@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WORK SIM — 첫 일주일</title>
+<meta name="description" content="고객상담팀 신입으로 출근해 7일 동안 메일과 전화, 규정과 숫자를 처리하는 3D 업무 시뮬레이션. 하루 40분씩 일곱 번, NCS 10개 영역으로 평가하고 7일치 기록을 돌려줍니다.">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:title" content="WORK-SIM — 첫 일주일">
+<meta property="og:description" content="월요일 아침에는 아무것도 모릅니다. 이레 뒤에는 팀의 문제를 당신이 결정합니다.">
+<meta property="og:image" content="shots/play/pc_02_desktop.jpg">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   WORK-SIM v2 소개·시작 포털 (2026-09-07 개편)
+
+   방향 전환의 이유 — 대표 지적 "애네 머리 색깔 이거 다 깨져있네".
+   앞선 판은 3D 사무실 위에 어두운 막을 씌워 글자 대비를 얻었는데,
+   그 막이 캐릭터를 검은 덩어리로 뭉갰다. 그래서 막을 완전히 없앤다.
+   글은 흰 바탕 위에 놓고, 3D 는 히어로 오른쪽 액자 안에서 밝게 그대로 보여 준다.
+
+   토스(toss.im) 랜딩의 문법을 따른다.
+     · 흰 바탕, 한 화면에 한 문장, 아주 큰 제목, 아끼지 않는 여백
+     · 구간에 들어오면 아래에서 살짝 올라오며 나타난다(28px · 0.75초 · ease-out)
+     · 7일 흐름은 왼쪽 글이 넘어가는 동안 오른쪽 카드가 고정된 채 바뀐다
+     · 숫자는 0에서 세어 올라간다
+   움직임은 transform·opacity 만 쓰고, 스크롤 리스너 없이 IntersectionObserver 로만 켠다.
+
+   빌드 도구가 없는 프로젝트라 CSS 는 이 파일 안에 둔다(index.html 관행과 같다).
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* 38차 팔레트 — 대표 확정 「화이트·회색·남색」. 이전 청록과 크림 톤은 남기지 않는다.
+     강조색은 한 곳에서만 정한다: 아래 네 개를 바꾸면 페이지 전체가 따라온다. */
+  --paper:#ffffff; --paper2:#f5f6f8; --paper3:#fafbfd;
+  --ink:#1b2430; --ink2:#5b6675; --ink3:#646c7a;
+  --line:rgba(27,36,48,.12); --line2:rgba(27,36,48,.20);
+  --accent:#1f4e8c;                  /* 흰 배경 위 8.3:1 · 흰 글자를 얹어도 8.3:1 */
+  --accentDeep:#143766;              /* 눌림·호버용 진한 남색. 흰 배경 위 11.9:1 */
+  --accentLite:#7fb0ee;              /* 어두운 판 위의 막대·레일용(글자 아님) */
+  --accentLine:#c5d5ee;              /* 강조 테두리 */
+  --tint:#e8eefa;                    /* 아주 옅은 남색 판 */
+  --btn:#1f4e8c; --btnInk:#ffffff;   /* 8.3:1 */
+  --btnGhostInk:#1b2430;
+  --shadow:0 1px 2px rgba(20,30,45,.05), 0 30px 60px -34px rgba(20,30,45,.30);
+  --s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;--s9:96px;
+  --r:14px; --r-l:20px; --r-x:28px;
+  --nav:60px;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+/* 다크 모드에서도 밝은 화면으로 고정한다 — 대표 폰이 다크라 페이지가 검게 나왔다.
+   흰 종이 톤이 이 제품의 정체성이라 시스템 설정을 따라가지 않는다. */
+:root{ color-scheme:light; }
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro KR","Apple SD Gothic Neo","Pretendard Variable",Pretendard,"Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+  font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-x:hidden}
+h1,h2,h3,h4,p,figure{margin:0}
+h1,h2,h3{letter-spacing:-.03em;line-height:1.24;text-wrap:balance}
+p{text-wrap:pretty}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+input,button,select,textarea{font:inherit}
+ol,ul{margin:0;padding:0;list-style:none}
+
+.wrap{max-width:1160px;margin:0 auto;padding:0 var(--s5)}
+section{padding:clamp(84px,11vw,150px) 0}
+.pale{background:var(--paper2)}
+/* 위 작은 라벨. 한글은 자간을 벌리면 낱자가 흩어져 읽힌다 — .14em 에서 .02em 으로 좁혔다 */
+.kick{display:inline-block;font-size:13px;font-weight:750;letter-spacing:.02em;color:var(--accent);
+  margin-bottom:var(--s4)}
+.h2{font-size:clamp(28px,4.4vw,58px);font-weight:800}
+.h3{font-size:clamp(20px,2.2vw,28px);font-weight:750}
+.lead{font-size:clamp(16px,1.75vw,21px);color:var(--ink2);line-height:1.6;max-width:30em}
+.sm{font-size:14.5px;color:var(--ink2)}
+.xs{font-size:13px;color:var(--ink3)}
+.secHead{max-width:820px;margin-bottom:clamp(40px,5vw,76px)}
+.secHead .lead{margin-top:var(--s5);max-width:30em}
+
+.skip{position:absolute;left:-9999px;top:0;z-index:999}
+.skip:focus{left:12px;top:12px;background:var(--btn);color:var(--btnInk);padding:10px 14px;border-radius:10px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+
+/* ── 나타남 ─────────────────────────────────────────────────────────────
+   구간에 들어올 때 28px 아래에서 올라오며 서서히 나타난다. 통통 튀지 않는다. */
+.rv{opacity:0;transform:translateY(28px)}
+.rv.shown{opacity:1;transform:none;
+  transition:opacity .75s var(--ease),transform .75s var(--ease)}
+.rv[data-d="1"].shown{transition-delay:.09s}
+.rv[data-d="2"].shown{transition-delay:.18s}
+.rv[data-d="3"].shown{transition-delay:.27s}
+.rv[data-d="4"].shown{transition-delay:.36s}
+
+/* ── 상단 바 ───────────────────────────────────────────────────────────── */
+#topbar{position:fixed;left:0;right:0;top:0;z-index:60;height:var(--nav);
+  display:flex;align-items:center;gap:var(--s4);padding:0 var(--s5);
+  background:var(--paper);border-bottom:1px solid var(--line)}
+.brand{font-size:16px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.brand em{font-style:normal;font-weight:500;color:var(--ink2);margin-left:8px;font-size:14px}
+#topnav{display:flex;gap:2px;margin-left:var(--s6)}
+#topnav a{font-size:14px;color:var(--ink2);padding:7px 12px;border-radius:999px;white-space:nowrap}
+#topnav a:hover{color:var(--ink);background:var(--paper2)}
+#topbar .sp{margin-left:auto}
+
+/* ── 버튼 ─────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:48px;padding:0 var(--s6);border:1px solid transparent;border-radius:999px;
+  font-size:15.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:transform .14s var(--ease),background .18s var(--ease),border-color .18s var(--ease),opacity .18s}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.pri{background:var(--accent);color:#fff}
+.btn.pri:hover{background:var(--accentDeep);color:#fff}
+.btn.gho{background:transparent;border-color:var(--line2);color:var(--btnGhostInk)}
+.btn.gho:hover{background:var(--paper2)}
+.btn.lg{height:56px;padding:0 var(--s7);font-size:17px}
+.btn.sm{height:38px;padding:0 var(--s5);font-size:14px}
+.btn.b{width:100%}
+.lnk{background:none;border:0;padding:0;cursor:pointer;font:inherit;color:var(--accent);
+  text-decoration:underline;text-underline-offset:3px}
+
+/* ── 히어로 ────────────────────────────────────────────────────────────
+   왼쪽 흰 영역에 글, 오른쪽 액자 안에 진짜 3D 사무실. 어두운 막은 없다. */
+#top{padding-top:calc(var(--nav) + clamp(40px,6vw,84px));padding-bottom:clamp(60px,8vw,110px)}
+.heroGrid{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);
+  gap:clamp(32px,5vw,76px);align-items:center}
+/* 한 줄짜리 제목이라 더 크게 세운다. 좁은 화면에서 「업무 시뮬레이션」과
+   「WORK-SIM」이 두 줄로 나뉘는 것은 그대로 둔다(balance 가 알아서 끊는다). */
+#top h1{font-size:clamp(34px,5.4vw,70px);font-weight:800;line-height:1.16;margin-bottom:.06em}
+/* 둘째 줄만 남색 → 밝은 파랑 그라데이션. background-clip:text 를 못 쓰는 환경에서는
+   앞줄의 단색(--accent)이 그대로 남는다 — 색을 먼저 칠하고 그 위에 덧입힌다. */
+#top h1 .l2{display:block;color:var(--accent)}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  #top h1 .l2{background:linear-gradient(96deg,var(--accent) 0%,#2f6dbb 46%,#4a86d8 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    -webkit-text-fill-color:transparent;padding-bottom:.06em}
+}
+#heroLead{margin-top:var(--s5);font-size:clamp(16px,1.8vw,21px);color:var(--ink2);max-width:24em}
+#heroCta{display:flex;gap:var(--s3);flex-wrap:wrap;margin-top:clamp(28px,3.5vw,44px)}
+
+.frame{position:relative;aspect-ratio:4/3;border-radius:var(--r-x);overflow:hidden;
+  background:var(--paper2);box-shadow:var(--shadow)}
+.frame img,.frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.frame img{object-fit:cover}
+#stage3d{opacity:0;transition:opacity 1s var(--ease)}
+#stage3d.on{opacity:1}
+
+/* ── 계정 ─────────────────────────────────────────────────────────────── */
+#start .secHead{max-width:660px;margin-left:auto;margin-right:auto;text-align:center}
+#start .secHead .lead{margin-left:auto;margin-right:auto}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s5);
+  max-width:900px;margin:0 auto clamp(40px,5vw,64px)}
+.steps li{text-align:center}
+.steps .n{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;
+  background:var(--accent);color:#fff;font-weight:800;font-size:15px;margin-bottom:var(--s3)}
+.steps b{display:block;font-size:16.5px;font-weight:750}
+.steps li span:not(.n){display:block;margin-top:5px;font-size:14px;color:var(--ink2)}
+
+.card{max-width:480px;margin:0 auto;background:var(--paper);border:1px solid var(--line);
+  border-radius:var(--r-x);padding:clamp(24px,3vw,36px);box-shadow:var(--shadow)}
+.card h3{font-size:21px;font-weight:750}
+.card .sub{margin-top:6px;font-size:14.5px;color:var(--ink2)}
+.tabs{display:flex;gap:3px;background:var(--paper2);padding:4px;border-radius:999px;margin-bottom:var(--s6)}
+.tabs button{flex:1;height:40px;border:0;border-radius:999px;background:transparent;color:var(--ink2);
+  font-size:15px;font-weight:700;cursor:pointer;transition:background .18s var(--ease),color .18s var(--ease)}
+.tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
+.f{display:block;margin-bottom:var(--s4);text-align:left}
+.f .lb{display:block;font-size:13.5px;font-weight:700;margin-bottom:6px}
+.in{width:100%;height:50px;padding:0 var(--s4);color:var(--ink);background:var(--paper2);
+  border:1.5px solid transparent;border-radius:var(--r);
+  transition:border-color .16s var(--ease),background .16s var(--ease)}
+.in::placeholder{color:var(--ink3)}
+.in:focus{outline:none;background:var(--paper);border-color:var(--accent)}
+.in.code{font-size:20px;font-weight:800;letter-spacing:.18em;text-align:center;text-transform:uppercase}
+.hint{font-size:12.5px;color:var(--ink3);margin:-8px 0 var(--s4)}
+.err{display:block;min-height:20px;margin-top:var(--s2);font-size:13.5px;font-weight:650;color:#b3261e}
+.err.ok{color:#177245}
+.note{margin:0 0 var(--s5);padding:var(--s3) var(--s4);border-radius:var(--r);
+  background:var(--tint);border:1px solid var(--accentLine);font-size:13.5px;color:var(--ink);line-height:1.6}
+.who{display:flex;align-items:center;gap:var(--s3);padding-bottom:var(--s4);margin-bottom:var(--s5);
+  border-bottom:1px solid var(--line)}
+.who .av{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;
+  display:grid;place-items:center;font-weight:800;font-size:15px;flex:none}
+.who .nm{display:block;font-size:15px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .em{display:block;font-size:12.5px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .sp{margin-left:auto}
+/* 내 캐릭터 — 게임 안에서 한 번 고르고, 바꾸고 싶을 때 여기서 바꾼다 */
+.avRow{display:flex;align-items:center;gap:6px;margin-top:var(--s5);font-size:13.5px;color:var(--ink2)}
+.avBtn{border:1px solid var(--line2);background:var(--paper);color:var(--ink);border-radius:999px;
+  padding:5px 13px;font-size:13px;font-weight:700;cursor:pointer;transition:background .14s var(--ease)}
+.avBtn:hover{background:var(--paper2)}
+.avBtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.dayline{display:flex;gap:5px;margin:var(--s5) 0}
+.dayline i{flex:1;height:7px;border-radius:99px;background:var(--paper2);font-style:normal}
+.dayline i.on{background:var(--accent)}
+.mini{margin-top:var(--s4);font-size:13px;color:var(--ink3);text-align:center}
+
+/* ── 7일: 왼쪽 글이 흐르고 오른쪽 카드가 고정된 채 바뀐다 ───────────────── */
+.weekGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:clamp(40px,6vw,88px);align-items:start}
+.wk{min-height:64vh;display:flex;flex-direction:column;justify-content:center;
+  padding:var(--s6) 0;opacity:.4;transition:opacity .5s var(--ease)}
+.wk.on{opacity:1}
+.wk .no{display:inline-flex;align-items:baseline;gap:8px;color:var(--accent);
+  font-size:13px;font-weight:800;letter-spacing:.02em}
+.wk .no b{font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.wk h3{margin-top:var(--s3);font-size:clamp(24px,3vw,38px);font-weight:800}
+.wk p{margin-top:var(--s4);font-size:17px;color:var(--ink2);max-width:20em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--s5)}
+.chips span{font-size:12.5px;font-weight:700;color:var(--ink2);background:var(--paper2);
+  border-radius:999px;padding:5px 12px}
+.weekSticky{position:sticky;top:calc(var(--nav) + 44px)}
+.stickyCard{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-x);
+  padding:clamp(24px,3vw,36px);box-shadow:var(--shadow);min-height:360px;
+  display:flex;flex-direction:column}
+.stickyCard .day{font-size:13px;font-weight:800;letter-spacing:.02em;color:var(--accent)}
+.stickyCard h4{margin:var(--s2) 0 0;font-size:clamp(22px,2.4vw,30px);font-weight:800;letter-spacing:-.03em}
+.bub{margin-top:var(--s5);background:var(--paper2);border-radius:var(--r-l);padding:var(--s5)}
+.bub .spk{display:block;font-size:14px;font-weight:800;color:var(--accent)}
+.bub .stage{display:block;font-size:12.5px;color:var(--ink3);margin-top:2px}
+.bub .tx{position:relative;margin-top:var(--s4);font-size:16.5px;line-height:1.75}
+.bub .gh{visibility:hidden}
+.bub .s{position:absolute;left:0;top:0;right:0}
+.bub .car{display:inline-block;width:2px;height:1em;vertical-align:-.14em;
+  background:var(--accent);margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.rail{display:flex;gap:5px;margin-top:auto;padding-top:var(--s6)}
+.rail i{flex:1;height:6px;border-radius:99px;background:var(--paper2);font-style:normal;
+  transition:background .4s var(--ease)}
+.rail i.on{background:var(--accentLite)}
+.rail i.cur{background:var(--accent)}
+.wkBub{display:none}
+
+/* ── 3D 장면 슬라이드 ───────────────────────────────────────────────────
+   장면 넷~여섯이 4초마다 페이드로 넘어간다. 화살표·점으로 직접 넘길 수 있고,
+   손이 올라가 있거나 화면 밖으로 나가면 멈춘다. 움직임을 줄이는 설정이면
+   자동 전환을 아예 켜지 않는다(아래 prefers-reduced-motion 블록). */
+.deck{position:relative;margin:0;border-radius:var(--r-x);overflow:hidden;background:var(--paper3);
+  box-shadow:var(--shadow)}
+.deckView{position:relative;aspect-ratio:3/2;background:var(--paper2)}
+.deckView img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity .7s var(--ease)}
+.deckView img.on{opacity:1}
+.deckCap{position:absolute;left:0;right:0;bottom:0;padding:56px var(--s6) var(--s5);
+  color:#fff;font-size:clamp(15px,1.7vw,19px);font-weight:700;letter-spacing:-.01em;
+  background:linear-gradient(to top,rgba(12,20,32,.82) 0%,rgba(12,20,32,.62) 45%,rgba(12,20,32,0) 100%)}
+.deckNav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;
+  width:44px;height:44px;border:0;border-radius:50%;cursor:pointer;
+  background:rgba(255,255,255,.86);color:#1b2430;font-size:24px;line-height:1;
+  box-shadow:0 2px 10px rgba(20,30,45,.22);transition:background .16s var(--ease)}
+.deckNav:hover{background:#fff}
+.deckNav.prev{left:var(--s4)} .deckNav.next{right:var(--s4)}
+.deckDots{position:absolute;right:var(--s6);bottom:var(--s5);z-index:2;display:flex;gap:7px}
+.deckDots button{width:9px;height:9px;padding:0;border:0;border-radius:50%;cursor:pointer;
+  background:rgba(255,255,255,.45);transition:background .2s var(--ease),transform .2s var(--ease)}
+.deckDots button[aria-selected="true"]{background:#fff;transform:scale(1.25)}
+
+/* ── 구간 머리에 붙는 작은 삽화 ─────────────────────────────────────────── */
+.headRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);
+  gap:clamp(24px,4vw,60px);align-items:end;margin-bottom:clamp(40px,5vw,76px)}
+.headRow .secHead{margin-bottom:0}
+.headArt{border-radius:var(--r-l);overflow:hidden;background:var(--paper3)}
+.headArt img{width:100%;height:auto;aspect-ratio:3/2;object-fit:cover}
+.headArt.pending{display:none}
+
+/* ── 사람들 ─────────────────────────────────────────────────────────────── */
+/* 배경이 있는 사진이라 액자가 필요하다 — 투명 PNG 였을 때와 달리 모서리를 깎고 그림자를 준다 */
+.castBand{margin:0;border-radius:var(--r-x);overflow:hidden;background:var(--paper3);
+  box-shadow:var(--shadow)}
+.castBand img{width:100%;height:auto;display:block}
+.cast{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--s4);
+  margin-top:clamp(32px,4vw,56px)}
+.cast li{text-align:center}
+.cast .pic{width:84px;height:84px;margin:0 auto var(--s3);border-radius:50%;
+  background:var(--paper2);overflow:hidden}
+.cast .pic img{width:100%;height:100%;object-fit:cover}
+.cast b{display:block;font-size:15px;font-weight:750}
+.cast span{display:block;margin-top:2px;font-size:13px;color:var(--ink2)}
+
+/* ── 고정 카드 안의 인물 ─────────────────────────────────────────────────── */
+.bubHead{display:flex;align-items:center;gap:var(--s3)}
+.bubHead .pic{width:52px;height:52px;border-radius:50%;background:var(--paper);overflow:hidden;flex:none}
+.bubHead .pic img{width:100%;height:100%;object-fit:cover}
+
+/* ── 마무리 띠 ───────────────────────────────────────────────────────────── */
+#end{padding-bottom:0;text-align:center}
+#end .h2{max-width:16em;margin:0 auto}
+#end .lead{margin:var(--s5) auto 0}
+#end .btn{margin-top:clamp(28px,3.5vw,44px)}
+.endBand{margin-top:clamp(40px,5vw,64px)}
+.endBand img{width:100%;height:auto}
+
+/* ── 큰 화면 사진 ───────────────────────────────────────────────────────
+   대표 지적 「좀 시원한 느낌이면 좋겠어, 실제로 분석표 저기도」.
+   전체 화면을 우겨넣지 않고 핵심 판만 잘라 크게 띄운다. */
+.shot{border-radius:var(--r-x);overflow:hidden;background:var(--paper);
+  box-shadow:0 2px 6px rgba(20,30,45,.05), 0 50px 90px -46px rgba(20,30,45,.38)}
+.shot img{width:100%;height:auto;display:block}
+.wide{max-width:1120px;margin:0 auto}
+.wide + .wide{margin-top:clamp(72px,9vw,140px)}
+.cap{margin-top:var(--s5);font-size:16px;color:var(--ink2);text-align:center;
+  max-width:36em;margin-left:auto;margin-right:auto}
+
+/* ── 나란히 놓기(글 · 그림) ─────────────────────────────────────────────── */
+.side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);
+  gap:clamp(36px,5vw,80px);align-items:center}
+.side.flip .sideArt{order:-1}
+.sideArt{border-radius:var(--r-x);overflow:hidden;background:var(--paper3);box-shadow:var(--shadow)}
+.sideArt img{width:100%;height:auto;aspect-ratio:3/2;object-fit:cover}
+.sideArt.pending{display:grid;place-items:center;aspect-ratio:3/2;box-shadow:none;
+  border:1px dashed var(--line2);color:var(--ink3);font-size:14px;text-align:center;padding:var(--s6)}
+
+#report{padding:clamp(110px,14vw,190px) 0}
+
+/* ── NCS 열 개 ─────────────────────────────────────────────────────────── */
+.axes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3)}
+.ax{display:grid;grid-template-columns:30px 1fr;gap:var(--s4);align-items:start;
+  background:var(--paper);border-radius:var(--r-l);padding:var(--s5)}
+.ax .n{font-size:15px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.5}
+.ax b{display:block;font-size:16px;font-weight:750}
+.ax span:not(.n){display:block;margin-top:3px;font-size:13.5px;color:var(--ink2)}
+
+/* ── 숫자 세어 올라가기 ─────────────────────────────────────────────────── */
+.nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s6)}
+.nums .v{font-size:clamp(38px,5.2vw,72px);font-weight:800;letter-spacing:-.03em;line-height:1;
+  font-variant-numeric:tabular-nums}
+.nums .v .u{font-size:.4em;font-weight:750;letter-spacing:-.02em;margin-left:4px}
+.nums .k{margin-top:var(--s3);font-size:14.5px;color:var(--ink2)}
+.count{display:inline-block;text-align:left}
+
+/* ── 직무 ─────────────────────────────────────────────────────────────── */
+.jobs{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:clamp(32px,4vw,52px)}
+.jobs span{font-size:15.5px;font-weight:700;background:var(--paper);border-radius:999px;
+  padding:11px 20px;border:1px solid var(--line)}
+.jobs span.me{background:var(--btn);color:var(--btnInk);border-color:var(--btn)}
+
+/* ── 운영 ─────────────────────────────────────────────────────────────── */
+.ops{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(36px,5vw,80px);align-items:start}
+.ops .list{display:grid;gap:var(--s5);margin-top:clamp(28px,3vw,44px)}
+.ops .list div{padding-top:var(--s5);border-top:1px solid var(--line)}
+.ops .list b{display:block;font-size:17px;font-weight:750}
+.ops .list p{margin-top:5px;font-size:14.5px;color:var(--ink2)}
+.ops .box{background:var(--paper);border-radius:var(--r-x);padding:clamp(24px,3vw,36px);
+  box-shadow:var(--shadow)}
+.ops .box p{margin-top:var(--s3);font-size:14.5px;color:var(--ink2);line-height:1.75}
+.ops .box .btn{margin-top:var(--s5)}
+.recs{display:grid;gap:var(--s4);margin-top:var(--s6)}
+.recs li{padding-top:var(--s4);border-top:1px solid var(--line)}
+.recs b{display:block;font-size:16.5px;font-weight:750}
+.recs p{margin-top:4px;font-size:14.5px;color:var(--ink2)}
+
+footer{background:var(--paper2);padding:var(--s8) 0;font-size:13.5px;color:var(--ink3)}
+.ft{display:flex;gap:var(--s5);flex-wrap:wrap;align-items:center}
+.ft .sp{margin-left:auto}
+
+/* ── 미리 받기 표시 (조용히) ────────────────────────────────────────────── */
+#pf{position:fixed;left:var(--s4);bottom:var(--s4);z-index:70;
+  display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);
+  padding:9px 15px 9px 12px;border-radius:999px;
+  background:var(--btn);color:var(--btnInk);font-size:12.5px;font-weight:600;
+  box-shadow:var(--shadow);transition:opacity .6s linear,transform .4s var(--ease)}
+#pf[hidden]{display:none}
+#pf.gone{opacity:0;transform:translateY(8px);pointer-events:none}
+#pfBar{width:74px;height:5px;border-radius:99px;background:rgba(255,255,255,.28);overflow:hidden;flex:none}
+#pfBar i{display:block;height:100%;width:0;background:var(--accentLite);border-radius:99px;transition:width .4s linear}
+#pfTx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── 좁은 화면 (모바일 세로 우선) ───────────────────────────────────────── */
+@media (max-width:900px){
+  #topnav{display:none}
+  .heroGrid,.weekGrid,.side,.ops,.two{grid-template-columns:minmax(0,1fr)}
+  .side.flip .sideArt{order:0}
+  .steps{grid-template-columns:minmax(0,1fr);gap:var(--s5)}
+  .steps li{display:grid;grid-template-columns:34px 1fr;gap:var(--s4);text-align:left;align-items:start}
+  .steps .n{margin-bottom:0}
+  .nums{grid-template-columns:1fr 1fr;gap:var(--s7) var(--s5)}
+  .headRow{grid-template-columns:minmax(0,1fr)}
+  .headArt{max-width:300px}
+  .deckNav{width:38px;height:38px;font-size:21px}
+  .deckCap{padding:44px var(--s5) var(--s4);font-size:14.5px}
+  .deckDots{right:var(--s5);bottom:var(--s4)}
+  .cast{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s5) var(--s3)}
+  .cast .pic{width:70px;height:70px}
+  .axes{grid-template-columns:minmax(0,1fr)}
+  .weekSticky{display:none}                  /* 좁은 화면에서는 각 일차 안에 대사를 넣는다 */
+  .wkBub{display:block;margin-top:var(--s5)}
+  .wk{min-height:0;opacity:1;padding:var(--s7) 0;border-top:1px solid var(--line)}
+  .wk:first-child{border-top:0;padding-top:0}
+  #top{padding-top:calc(var(--nav) + var(--s7))}
+  #heroCta .btn{flex:1 1 100%}
+  .frame{aspect-ratio:16/11;margin-top:var(--s7)}
+  /* 사진은 가로 전체 폭으로 — 좁은 화면에서 작아 보이지 않게 좌우 여백을 걷는다 */
+  .wide{margin-left:calc(var(--s5) * -1);margin-right:calc(var(--s5) * -1)}
+  .wide .shot{border-radius:18px}
+  .wide + .wide{margin-top:clamp(56px,14vw,96px)}
+  .cap{padding:0 var(--s5)}
+}
+@media (max-width:560px){
+  #topbar{padding:0 var(--s4)}
+  .brand em{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1;transform:none;transition:none!important}
+  .btn,#stage3d,#pf,#pfBar i,.wk,.rail i,.deckView img{transition:none!important}
+  .bub .car{animation:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#start">계정 만들기로 건너뛰기</a>
+
+<header id="topbar">
+  <a class="brand" href="#top">WORK-SIM<em>첫 일주일</em></a>
+  <nav id="topnav" aria-label="이 페이지 안에서 이동">
+    <a href="#week">7일</a><a href="#ncs">평가</a><a href="#report">결과</a><a href="#letter">자소서</a><a href="#ops">운영</a>
+  </nav>
+  <span class="sp"></span>
+  <a class="btn pri sm" id="topStart" href="#start">시작하기</a>
+</header>
+
+<!-- ════════ 히어로 ════════ -->
+<section id="top">
+  <div class="wrap heroGrid">
+    <div class="heroCopy">
+      <h1><span class="l2 rv" data-d="1">업무 시뮬레이션 WORK-SIM</span></h1>
+      <p id="heroLead" class="rv" data-d="3">3D 사무실에 출근해 메일을 쓰고, 규정을 찾고, 옆 팀에 걸어가 묻습니다. 10개 직무 중 하나를 골라 하루 40분씩 일주일.</p>
+      <div id="heroCta" class="rv" data-d="4">
+        <a class="btn pri lg" id="heroGo" href="#start">시작하기</a>
+        <a class="btn gho lg" href="#week">7일 흐름 보기</a>
+      </div>
+    </div>
+    <div class="rv" data-d="2">
+      <div class="frame">
+        <img id="stageStill" src="shots/office/hero_still.jpg" width="1200" height="900"
+             alt="3D 사무실. 고객상담팀 자리에 팀원들이 앉아 일하고 있다.">
+        <iframe id="stage3d" title="사무실 미리보기" tabindex="-1" aria-hidden="true"></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 계정 ════════ -->
+<section id="start" class="pale">
+  <div class="wrap">
+    <div class="secHead rv">
+      <h2 class="h2">개인 토큰으로 시작</h2>
+      <p class="lead">토큰만 넣으면 바로 출근합니다. 회원가입은 하지 않아도 됩니다.</p>
+    </div>
+
+    <ol class="steps">
+      <li class="rv" data-d="1"><span class="n">1</span><div><b>토큰 받기</b><span>담당 선생님이 나눠 준 열두 자리</span></div></li>
+      <li class="rv" data-d="2"><span class="n">2</span><div><b>토큰 넣기</b><span>아래 칸에 한 번만 넣으면 기억합니다</span></div></li>
+      <li class="rv" data-d="3"><span class="n">3</span><div><b>1일차 출근</b><span>계정은 선택입니다 — 없어도 이어 하기가 됩니다</span></div></li>
+    </ol>
+
+    <div class="card rv" data-d="2" id="authCard">
+      <!-- (가) 로그인 전 -->
+      <div id="paneAuth">
+        <div class="tabs" role="tablist" aria-label="시작 방법">
+          <button type="button" role="tab" id="tabTok" aria-selected="true" aria-controls="wayTok">토큰으로 시작</button>
+          <button type="button" role="tab" id="tabAcct" aria-selected="false" aria-controls="wayAcct">계정으로 이어 하기</button>
+        </div>
+
+        <!-- 기본 경로: 토큰 한 칸이면 끝난다 -->
+        <div id="wayTok">
+          <form id="formStart" novalidate>
+            <h3>개인 토큰을 넣어 주세요</h3>
+            <p class="sub">담당 선생님이 나눠 준 열두 자리입니다.</p>
+            <div style="height:var(--s5)"></div>
+            <label class="f"><span class="lb">개인 토큰</span>
+              <input class="in code" id="stCode" name="token" inputmode="latin" autocapitalize="characters"
+                     spellcheck="false" autocomplete="off" maxlength="14" placeholder="WS7-XXXX-XXXX"></label>
+            <p class="hint">이 브라우저가 토큰을 기억합니다. 다른 컴퓨터에서 이어 하려면 같은 토큰을 넣으면 됩니다.</p>
+            <button class="btn pri b lg" id="stBtn" type="submit">시작하기</button>
+            <span class="err" id="stErr" role="alert" aria-live="polite"></span>
+          </form>
+        </div>
+
+        <!-- 선택 경로: 이름을 남기고 여러 기기에서 관리하려면 -->
+        <div id="wayAcct" hidden>
+        <p class="note">계정은 <b>선택</b>입니다. 이름을 남겨 담당 선생님 화면에 뜨게 하고 싶을 때만 만드세요.
+          가입해도 <b>개인 토큰은 그대로 필요합니다</b> — 팀 배정이 토큰에 들어 있습니다.</p>
+        <div class="tabs" role="tablist" aria-label="계정">
+          <button type="button" role="tab" id="tabUp" aria-selected="true" aria-controls="formUp">회원가입</button>
+          <button type="button" role="tab" id="tabIn" aria-selected="false" aria-controls="formIn">로그인</button>
+        </div>
+
+        <form id="formUp" novalidate>
+          <h3>계정 만들기</h3>
+          <p class="sub">학교 이메일이 아니어도 됩니다.</p>
+          <div style="height:var(--s6)"></div>
+          <label class="f"><span class="lb">이름</span>
+            <input class="in" id="upName" name="name" autocomplete="name" maxlength="40" placeholder="홍길동"></label>
+          <label class="f"><span class="lb">소속</span>
+            <input class="in" id="upOrg" name="org" autocomplete="organization" maxlength="120" placeholder="○○대학교 경영학과"></label>
+          <p class="hint">학교나 기관 이름만 적어도 됩니다.</p>
+          <label class="f"><span class="lb">이메일</span>
+            <input class="in" id="upEmail" name="email" type="email" autocomplete="email" placeholder="name@example.com"></label>
+          <label class="f"><span class="lb">비밀번호</span>
+            <input class="in" id="upPw" name="password" type="password" autocomplete="new-password" placeholder="8자 이상"></label>
+          <label class="f"><span class="lb">비밀번호 확인</span>
+            <input class="in" id="upPw2" name="password-confirm" type="password" autocomplete="new-password" placeholder="같은 비밀번호를 한 번 더"></label>
+          <p class="hint">두 칸이 다르면 가입되지 않습니다. 오타로 가입해 못 들어오는 일을 막는 칸입니다.</p>
+          <button class="btn pri b lg" id="upBtn" type="submit">가입하고 시작하기</button>
+          <span class="err" id="upErr" role="alert" aria-live="polite"></span>
+        </form>
+
+        <form id="formIn" novalidate hidden>
+          <h3>로그인</h3>
+          <p class="sub">이어서 하려면 로그인하세요.</p>
+          <div style="height:var(--s6)"></div>
+          <label class="f"><span class="lb">이메일</span>
+            <input class="in" id="inEmail" name="email" type="email" autocomplete="email" placeholder="name@example.com"></label>
+          <label class="f"><span class="lb">비밀번호</span>
+            <input class="in" id="inPw" name="password" type="password" autocomplete="current-password" placeholder="비밀번호"></label>
+          <button class="btn pri b lg" id="inBtn" type="submit">로그인</button>
+          <span class="err" id="inErr" role="alert" aria-live="polite"></span>
+          <p class="mini"><button type="button" class="lnk" id="resetBtn">비밀번호를 잊으셨나요</button></p>
+          <span class="err" id="resetMsg" role="status" aria-live="polite" style="text-align:center"></span>
+        </form>
+        </div>
+      </div>
+
+      <!-- (나) 로그인 후, 토큰 등록 전 -->
+      <div id="paneToken" hidden>
+        <div class="who">
+          <span class="av" id="tkAv">W</span>
+          <span style="min-width:0"><span class="nm" id="tkName">이름</span><span class="em" id="tkEmail">이메일</span></span>
+          <span class="sp"></span>
+          <button class="btn gho sm" type="button" id="tkOut">로그아웃</button>
+        </div>
+        <h3>개인 토큰을 넣어 주세요</h3>
+        <p class="sub">처음 한 번만 넣습니다. 담당 선생님이 나눠 준 열두 자리입니다.</p>
+        <form id="formToken" novalidate>
+          <div style="height:var(--s6)"></div>
+          <label class="f"><span class="lb">개인 토큰</span>
+            <input class="in code" id="tkCode" name="token" inputmode="latin" autocapitalize="characters"
+                   spellcheck="false" autocomplete="off" maxlength="14" placeholder="WS7-XXXX-XXXX"></label>
+          <button class="btn pri b lg" id="tkBtn" type="submit">확인하고 시작하기</button>
+          <span class="err" id="tkErr" role="alert" aria-live="polite"></span>
+        </form>
+      </div>
+
+      <!-- (다) 이어 하기 -->
+      <div id="paneGo" hidden>
+        <div class="who">
+          <span class="av" id="goAv">W</span>
+          <span style="min-width:0"><span class="nm" id="goName">이름</span><span class="em" id="goEmail">이메일</span></span>
+          <span class="sp"></span>
+          <button class="btn gho sm" type="button" id="goOut">로그아웃</button>
+          <button class="btn gho sm" type="button" id="goSwap" hidden>다른 토큰</button>
+        </div>
+        <h3 id="goTitle">이어 하기</h3>
+        <p class="sub" id="goSub">어제 끝난 데서 이어 합니다.</p>
+        <p class="avRow">내 캐릭터
+          <button type="button" class="avBtn" id="avGF" aria-pressed="false">여성</button>
+          <button type="button" class="avBtn" id="avGM" aria-pressed="false">남성</button>
+        </p>
+        <div class="dayline" id="goDays" aria-hidden="true"></div>
+        <a class="btn pri b lg" id="goBtn" href="play.html">시작하기</a>
+        <p class="mini" id="goCode"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 사람들 ════════ -->
+<section id="cast">
+  <div class="wrap">
+    <div class="secHead rv" style="max-width:680px">
+      <h2 class="h2">함께 일하는 사람들</h2>
+      <p class="lead">팀장과 사수, 같은 날 입사한 동기, 옆 팀 담당자. 필요한 답은 사규집에도 있고 다른 팀 자리에도 있습니다.</p>
+    </div>
+    <figure class="castBand rv" data-d="1">
+      <img src="assets/home/w/team_office.jpg" width="1400" height="933" loading="lazy" decoding="async"
+           alt="밝은 사무실에서 여섯 명이 각자 일하는 장면. 타이핑, 모니터를 가리키며 설명, 서류를 들고 이동, 전화 응대.">
+    </figure>
+    <ul class="cast rv" data-d="2" id="castList"></ul>
+  </div>
+</section>
+
+<!-- ════════ 3D 장면 슬라이드 ════════
+     지금은 shots/office/ 의 기존 스냅을 줄여 넣은 자리표시자다.
+     3D 담당의 카메라·복도·NPC 작업이 끝나면 같은 이름(assets/home/w/scene_N.jpg)으로
+     덮어쓰기만 하면 된다 — 목록과 촬영 지침은 assets/home/manifest.json 에 있다. -->
+<section id="scenes">
+  <div class="wrap">
+    <div class="secHead rv" style="max-width:680px">
+      <span class="kick">사무실</span>
+      <h2 class="h2">이런 장면들이 이어집니다</h2>
+      <p class="lead">읽고 고르는 화면이 아닙니다. 자리에서 일어나 걸어가고, 복도를 지나 다른 팀 자리 앞에 섭니다.</p>
+    </div>
+    <figure class="deck rv" data-d="1" id="deck">
+      <div class="deckView" id="deckView"></div>
+      <button class="deckNav prev" type="button" id="deckPrev" aria-label="이전 장면">‹</button>
+      <button class="deckNav next" type="button" id="deckNext" aria-label="다음 장면">›</button>
+      <figcaption class="deckCap" id="deckCap"></figcaption>
+      <div class="deckDots" id="deckDots" role="tablist" aria-label="장면 고르기"></div>
+    </figure>
+  </div>
+</section>
+
+<!-- ════════ 7일 ════════ -->
+<section id="week">
+  <div class="wrap">
+    <div class="headRow">
+      <div class="secHead rv">
+        <span class="kick">7일</span>
+        <h2 class="h2">하루하루 더 깊이 들어갑니다</h2>
+        <p class="lead">첫날은 받은 일을 정리하는 법, 둘째 날은 규정으로 답하는 법, 셋째 날은 숫자와 서류. 마지막 날에는 일주일 동안 모은 근거로 팀의 문제를 직접 결정합니다.</p>
+      </div>
+      <figure class="headArt pending rv" data-d="1" data-ill="ill_seven.png"></figure>
+    </div>
+    <div class="weekGrid">
+      <div id="weekList"></div>
+      <div class="weekSticky">
+        <div class="stickyCard">
+          <span class="day" id="skDay">1일차</span>
+          <h4 id="skTitle">받은 일 정리</h4>
+          <div class="bub">
+            <div class="bubHead">
+              <span class="pic"><img id="skPic" src="assets/home/w/av_c30.png" width="260" height="260" alt=""></span>
+              <span><span class="spk" id="skSpk">김민아 팀장</span>
+                    <span class="stage" id="skStage">자리로 와서</span></span>
+            </div>
+            <p class="tx" id="skTx"></p>
+          </div>
+          <div class="rail" id="skRail" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ NCS 평가 ════════ -->
+<section id="ncs" class="pale">
+  <div class="wrap">
+    <div class="secHead rv">
+      <span class="kick">평가</span>
+      <h2 class="h2">NCS 10개 영역으로 평가</h2>
+      <p class="lead">미션마다 측정 축과 채점 규칙이 붙어 있습니다. 회신은 의사소통, 검산은 수리, 옆 팀에 묻는 일은 조직이해로 잡힙니다.</p>
+    </div>
+    <div class="side">
+      <div class="axes" id="axes"></div>
+      <figure class="sideArt pending rv" data-d="1" data-ill="ill_ncs.png">
+        <span>NCS 10개 영역 삽화 자리</span>
+      </figure>
+    </div>
+    <p class="xs rv" style="margin-top:clamp(32px,4vw,56px);max-width:40em">자기개발은 점수를 매기지 않고 7일차 회고 칸에 기록만 남깁니다. 근거 없이 매길 수 있는 축이 아니기 때문입니다.</p>
+  </div>
+</section>
+
+<!-- ════════ 결과 분석 ════════ -->
+<section id="report">
+  <div class="wrap">
+    <div class="headRow">
+      <div class="secHead rv">
+        <span class="kick">결과</span>
+        <h2 class="h2">일주일의 기록이 한 장으로</h2>
+        <p class="lead">하루가 끝나면 그날 켜진 축만 막대로 보여 주고, 채우지 못한 축은 빈칸으로 둡니다. 무엇이 모자랐는지가 그대로 보입니다.</p>
+      </div>
+      <figure class="headArt pending rv" data-d="1" data-ill="ill_report.png"></figure>
+    </div>
+
+    <figure class="wide rv" data-d="1">
+      <div class="shot"><img src="assets/home/w/shot_ncs.jpg" width="1600" height="1163" loading="lazy" decoding="async"
+           alt="하루를 마친 화면. 왼쪽에 처리한 업무와 점수, 오른쪽에 NCS 10개 축의 막대가 있다."></div>
+      <figcaption class="cap">그날 처리한 업무 하나하나에 점수가 붙고, 켜진 축만 막대로 채워집니다.</figcaption>
+    </figure>
+
+    <figure class="wide rv" data-d="1">
+      <div class="shot"><img src="assets/home/w/shot_admin.jpg" width="1600" height="538" loading="lazy" decoding="async"
+           alt="담당 선생님 화면. 팀별 완료 일차 분포 막대와 학생별 진행 표."></div>
+      <figcaption class="cap">담당 선생님 화면. 누가 몇 일차인지, 평균 점수가 어떤지 한 줄로 봅니다.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ════════ 자소서 ════════ -->
+<section id="letter" class="pale">
+  <div class="wrap side flip">
+    <div>
+      <h2 class="h2 rv">자기소개서의 근거</h2>
+      <p class="lead rv" data-d="1" style="margin-top:var(--s5)">어떤 요청을 받아 무엇을 판단했는지가 날짜와 함께 남습니다. 「협업 경험을 쓰세요」 앞에서 막히는 이유는 글솜씨가 아니라 소재입니다.</p>
+      <ul class="recs rv" data-d="2">
+        <li><b>처리한 업무와 고른 행동</b><p>어떤 요청을 받아 회신했는지, 무엇을 거절하고 무엇을 올렸는지가 카드 단위로 남습니다.</p></li>
+        <li><b>결정과 그 근거</b><p>7일차 보고서에 문제 정의, 근거로 삼은 단서, 고른 안, 버린 안과 이유를 직접 씁니다.</p></li>
+        <li><b>축별 점수와 회고</b><p>어느 영역이 강했는지 숫자로 남고, 회고 칸에 쓴 문장이 그대로 보관됩니다.</p></li>
+      </ul>
+      <p class="xs rv" data-d="3" style="margin-top:var(--s6);max-width:34em">문항별 초안을 만들어 주는 화면은 준비 중입니다. 지금 남는 것은 그 초안을 쓸 때 필요한 근거 자료입니다. 없는 기능을 있다고 적지 않습니다.</p>
+    </div>
+    <figure class="sideArt pending rv" data-d="1" data-ill="ill_letter.png">
+      <span>자기소개서 근거 자료 삽화 자리</span>
+    </figure>
+  </div>
+</section>
+
+<!-- ════════ AI 첨삭 ════════ -->
+<section id="ai">
+  <div class="wrap side">
+    <div>
+      <h2 class="h2 rv">답장마다 AI 첨삭</h2>
+      <p class="lead rv" data-d="1" style="margin-top:var(--s5)">인사, 확인, 답, 다음 행동, 맺음 다섯 요소를 보고 반드시 들어가야 할 값이 빠졌는지, 쓰면 안 되는 표현이 들어갔는지 짚어 줍니다. 점수는 서버가 규칙으로 확정하고 총평만 AI 가 씁니다.</p>
+      <p class="sm rv" data-d="2" style="margin-top:var(--s5);max-width:30em">서버에 연결되지 않으면 같은 배점의 규칙 채점으로 내려가고 화면에 「규칙 채점」이라고 표시합니다. 두 점수를 그대로 비교할 수 있게 배점을 맞춰 두었습니다.</p>
+    </div>
+    <figure class="sideArt rv" data-d="1">
+      <img src="shots/play/03_composer.jpg" width="1360" height="960" loading="lazy" decoding="async"
+           alt="메일 작성 창. 반드시 들어갈 값 세 가지가 안내되어 있다.">
+    </figure>
+  </div>
+</section>
+
+<!-- ════════ 숫자 ════════ -->
+<section id="nums" class="pale">
+  <div class="wrap">
+    <div class="nums">
+      <div class="rv"><div class="v"><span class="count" data-to="7" data-w="1">0</span><span class="u">일</span></div><div class="k">하루 40분씩, 일곱 번의 출근</div></div>
+      <div class="rv" data-d="1"><div class="v"><span class="count" data-to="404" data-w="3">0</span><span class="u">장</span></div><div class="k">직무별 업무 카드</div></div>
+      <div class="rv" data-d="2"><div class="v"><span class="count" data-to="10" data-w="2">0</span><span class="u">개</span></div><div class="k">고를 수 있는 직무</div></div>
+      <div class="rv" data-d="3"><div class="v"><span class="count" data-to="10" data-w="2">0</span><span class="u">축</span></div><div class="k">NCS 직업기초능력</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 직무 ════════ -->
+<section id="jobs">
+  <div class="wrap">
+    <div class="secHead rv" style="max-width:620px">
+      <h2 class="h2">직무마다 다른 하루</h2>
+      <p class="lead">고객상담팀에는 문의가 오고 회계팀에는 지급 요청서가 옵니다. 같은 카드를 나눠 쓰지 않습니다.</p>
+    </div>
+    <div class="jobs rv" data-d="1" id="jobList"></div>
+    <p class="xs rv" data-d="2" style="margin-top:var(--s6)">지금 열려 있는 직무는 고객상담팀입니다. 나머지는 시나리오 집필이 끝나는 대로 열립니다.</p>
+  </div>
+</section>
+
+<!-- ════════ 운영 ════════ -->
+<section id="ops" class="pale">
+  <div class="wrap ops">
+    <div>
+      <h2 class="h2 rv" style="max-width:11em">반 전체를 한 화면에서</h2>
+      <p class="lead rv" data-d="1" style="margin-top:var(--s5)">토큰을 나눠 주고, 누가 몇 일차인지와 점수가 어떤지 한 화면에서 봅니다.</p>
+      <div class="list">
+        <div class="rv" data-d="1"><b>대상</b><p>대학생과 취업 준비생. 직무 경험이 없어도 1일차는 본문에 답이 다 들어 있습니다.</p></div>
+        <div class="rv" data-d="2"><b>시간</b><p>한 회차 40분. 일곱 회차를 연속으로 하거나 주 1회씩 나눠 해도 진행이 이어집니다.</p></div>
+        <div class="rv" data-d="3"><b>준비물</b><p>브라우저와 개인 토큰. 설치는 없습니다.</p></div>
+        <div class="rv" data-d="4"><b>남는 것</b><p>일차별 축 점수와 7일차 보고서. 담당 선생님은 관리자 화면에서 반 전체 진행을 봅니다.</p></div>
+      </div>
+    </div>
+    <div class="box rv" data-d="2">
+      <h3 class="h3">토큰이 아직 없나요</h3>
+      <p>개인 토큰은 담당 선생님이 발급합니다. 수업에 쓰실 분은 아래로 문의해 주세요. 시연 계정과 발급 방법을 안내해 드립니다.</p>
+      <a class="btn pri b" href="mailto:co@edmakers.kr?subject=WORK%20SIM%20%EB%AC%B8%EC%9D%98">문의하기</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 마무리 ════════ -->
+<section id="end">
+  <div class="wrap">
+    <h2 class="h2 rv">첫 일주일, 시작해 보시겠어요</h2>
+    <p class="lead rv" data-d="1">계정을 만들고 개인 토큰을 넣으면 오늘 바로 1일차로 출근합니다.</p>
+    <a class="btn pri lg rv" data-d="2" href="#start">시작하기</a>
+    <figure class="endBand rv" data-d="3">
+      <img src="assets/home/w/team_bust.png" width="1400" height="138" loading="lazy" decoding="async" alt="">
+    </figure>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap ft">
+    <span>WORK-SIM</span>
+    <a href="#top">맨 위로</a>
+    <a href="mailto:co@edmakers.kr">문의하기</a>
+    <span class="sp">에듀메이커스</span>
+  </div>
+</footer>
+
+<div id="pf" hidden>
+  <span id="pfBar"><i></i></span>
+  <span id="pfTx">게임 파일을 미리 받는 중</span>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js?v=20260907g"></script>
+<script src="js/backend-url.js?v=20260907g"></script>
+<script src="js/backend.js?v=20260907g"></script>
+<script src="js/auth.js?v=20260907g"></script>
+<script src="js/prefetch.js?v=20260907g"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   소개 페이지 동작
+     1) 서비스 워커 등록(실패해도 그냥 진행) · 미리 받기
+     2) 히어로 3D — 액자 안에서 밝게. 못 쓰면 정지 사진으로 내린다.
+     3) 나타남 · 숫자 세어 올라가기 · 7일 고정 구간 (IntersectionObserver 만 쓴다)
+     4) 시작: 토큰 → 이어 하기(기본). 계정(가입·로그인)은 선택 경로로 접어 둔다
+   ══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+var $=function(id){ return document.getElementById(id); };
+var Q=new URLSearchParams(location.search);
+var TEAM='cs';
+var reduced=false;
+try{ reduced=matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+var IO=('IntersectionObserver' in window);
+
+/* ── 1) 서비스 워커 ─────────────────────────────────────────────────── */
+if('serviceWorker' in navigator){
+  try{
+    navigator.serviceWorker.register('sw.js').catch(function(e){
+      console.info('서비스 워커 등록 실패(캐시 없이 계속합니다):', e && e.message);
+    });
+  }catch(e){}
+}
+try{ if(window.Backend && window.BACKEND_URL) window.Backend.configure(window.BACKEND_URL); }catch(e){}
+
+/* ── 미리 받기 표시 ─────────────────────────────────────────────────── */
+var pf=$('pf'), pfBar=$('pfBar').firstElementChild, pfTx=$('pfTx'), pfStarted=false;
+function startPrefetch(mode){
+  if(pfStarted||!window.WS||!WS.prefetch) return;
+  pfStarted=true;
+  pf.hidden=false;
+  WS.prefetch.start({team:TEAM,mode:mode,onProgress:function(ratio,done,total){
+    pfBar.style.width=Math.round(ratio*100)+'%';
+    pfTx.textContent=(done>=total&&total) ? '게임 파일 준비 완료'
+                                         : '게임 파일을 미리 받는 중 '+Math.round(ratio*100)+'%';
+    if(done>=total&&total){
+      setTimeout(function(){ pf.classList.add('gone'); },2600);
+      setTimeout(function(){ pf.hidden=true; },3600);
+    }
+  }});
+}
+addEventListener('pagehide',function(){ try{ WS.prefetch.stop(); }catch(e){} });
+
+/* ── 2) 히어로 3D ───────────────────────────────────────────────────
+   액자 안에서 밝게 그대로 보여 준다. 어두운 막을 씌우지 않는다.
+   카메라는 앉은 사람들의 앞쪽에서 아주 느리게 돈다(0.02rad/s). */
+var stage3d=$('stage3d');
+var OF=null, camRAF=0, camT=0, turnCur=0, turnWant=0;
+var HERO_TURN=2.0;                                    /* 자리에 앉은 사람들 앞쪽 3/4 각도 */
+var use3d = Q.get('still')==='1' ? false
+          : (Q.get('3d')==='1' ? true
+          : (!reduced && innerWidth>=900 && !navigator.userAgent.match(/Mobi|Android/i)));
+
+function office(){
+  try{
+    var w=stage3d.contentWindow;
+    return (w && w.__office && w.__office.ready && w.__office.ready()) ? w.__office : null;
+  }catch(e){ return null; }
+}
+
+function dropTo2d(why){
+  use3d=false;
+  if(camRAF){ cancelAnimationFrame(camRAF); camRAF=0; }
+  try{ stage3d.classList.remove('on'); stage3d.src='about:blank'; }catch(e){}
+  if(why) console.info('히어로 3D 를 정지 사진으로 내립니다:', why);
+  startPrefetch('full');
+}
+
+/* 한 방향으로 계속 돌면 좋은 각도를 벗어난다. 좋은 각도를 중심으로 아주 느리게 좌우로 흔든다
+   (진폭 0.2 = 18°, 주기 70초 → 최대 각속도 0.028rad/s). */
+function camLoop(ts){
+  camRAF=requestAnimationFrame(camLoop);
+  if(!OF){ OF=office(); if(!OF) return; onOfficeReady(); }
+  if(!camT) camT=ts;
+  var dt=Math.min(0.05,(ts-camT)/1000); camT=ts;
+  turnCur += (turnWant-turnCur)*Math.min(1,dt*1.2);
+  var sway=0.20*Math.sin(ts/1000*0.09);
+  try{ OF.rig({turn:turnCur+sway}); }catch(e){}
+}
+
+var fpsFrames=0, fpsStart=0, fpsChecked=(Q.get('fps')==='0');
+function fpsWatch(ts){
+  if(!use3d||fpsChecked) return;
+  if(!fpsStart) fpsStart=ts;
+  fpsFrames++;
+  if(ts-fpsStart>2200){
+    fpsChecked=true;
+    var fps=fpsFrames/((ts-fpsStart)/1000);
+    if(fps<30) dropTo2d('평균 '+fps.toFixed(0)+'fps');
+    return;
+  }
+  requestAnimationFrame(fpsWatch);
+}
+
+function onOfficeReady(){
+  if(!OF) return;
+  turnWant=HERO_TURN; turnCur=HERO_TURN;
+  try{
+    /* 1인칭(앉은 사람 눈)으로 들어가면 모니터만 보인다. 3인칭으로 고정하고
+       자리에 앉은 사람들의 얼굴이 보이는 각도로 세운다. */
+    OF.firstPerson(false);
+    OF.setView('island');
+    OF.rig({turn:HERO_TURN,pitch:0.30,dist:4.6});
+  }catch(e){}
+  stage3d.classList.add('on');
+  startPrefetch('light');
+  requestAnimationFrame(fpsWatch);
+}
+
+if(use3d){
+  stage3d.src='office.html?embed=1&ui=0&team='+TEAM+'&npc=4';
+  var give=setTimeout(function(){ if(!office()) dropTo2d('로드가 60초를 넘겼습니다'); }, 60000);
+  stage3d.addEventListener('load',function(){
+    var poll=setInterval(function(){
+      if(office()){ clearInterval(poll); clearTimeout(give); }
+      else if(!use3d){ clearInterval(poll); }
+    },400);
+  });
+  camRAF=requestAnimationFrame(camLoop);
+  if(IO){
+    new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(!use3d) return;
+        stage3d.style.display = e.isIntersecting ? '' : 'none';
+      });
+    },{rootMargin:'200px 0px 200px 0px',threshold:0}).observe($('top'));
+  }
+}else{
+  startPrefetch('full');
+}
+
+/* ── 3-1) 나타남 ────────────────────────────────────────────────────── */
+function watchReveal(){
+  var els=document.querySelectorAll('.rv:not(.shown)');
+  if(!IO||reduced){ Array.prototype.forEach.call(els,function(e){ e.classList.add('shown'); }); return; }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(!e.isIntersecting) return;
+      e.target.classList.add('shown');
+      io.unobserve(e.target);
+    });
+  },{rootMargin:'0px 0px -10% 0px',threshold:0.08});
+  Array.prototype.forEach.call(els,function(e){ io.observe(e); });
+}
+
+/* ── 3-2) 숫자 세어 올라가기 ────────────────────────────────────────── */
+function countUp(el){
+  var to=+el.dataset.to||0;
+  /* 자릿수만큼 자리를 미리 잡아 둔다 — 숫자가 늘어도 옆 글자가 밀리지 않는다 */
+  el.style.minWidth=(+el.dataset.w||String(to).length)+'ch';
+  if(reduced){ el.textContent=String(to); return; }
+  /* requestAnimationFrame 은 뒤에서 3D 가 돌 때 프레임이 굶어 멈추는 일이 있어
+     시계(Date.now)로 진행률을 계산한다. 32ms 간격이면 눈에는 부드럽다. */
+  var t0=Date.now(), dur=1100;
+  var id=setInterval(function(){
+    var p=Math.min(1,(Date.now()-t0)/dur);
+    el.textContent=String(Math.round(to*(1-Math.pow(1-p,3))));
+    if(p>=1) clearInterval(id);
+  },32);
+}
+
+/* ── 3-3) 7일 — 왼쪽이 흐르고 오른쪽 카드가 바뀐다 ─────────────────────
+   대사는 ~/co-work-sim/docs/story/cs-ep1.md ~ cs-ep7.md 의 실제 문장이다(지어내지 않았다). */
+var DAYS=[
+  {n:1,title:'받은 일 정리',learn:'우리 팀에 오는 요청이 어떤 것들이고, 답장은 어떻게 쓰는지.',
+   ax:['의사소통','자원관리'],spk:'김민아 팀장',pic:'c30',stage:'자리로 와서',
+   tx:'왔어요? 김민아예요. 오늘은 딱 하나만 해요. 메일함에 들어온 걸 보고, 우리가 답할 수 있는 건 답하고, 아닌 건 맞는 데로 보내는 것. 30분 뒤에 얼마나 남았는지 볼게요.'},
+  {n:2,title:'규정으로 답하기',learn:'내 생각이 아니라 사규집 조항으로 답한다.',
+   ax:['정보','문제해결'],spk:'박선임',pic:'c31',stage:'바인더를 톡톡 치며',
+   tx:'어제 말한 거. 사규집이에요. 고객상담 편이 스무 조항쯤 돼요. 오늘부터 답장에 "됩니다" 쓰지 마요. "몇 조에 따라 됩니다"로.'},
+  {n:3,title:'숫자와 서류',learn:'표와 결재는 숫자가 맞아야 넘어간다.',
+   ax:['수리','기술'],spk:'김민아 팀장',pic:'c30',stage:'종이 한 장을 책상에 놓으며',
+   tx:'6월 반품 현황표. 이주임이 만든 건데 요약 칸이 이상해요. 검산해서 12시까지. 합계 틀리면 나한테 오지 말고 다시 해요.'},
+  {n:4,title:'옆 팀과 일하기',learn:'이건 누구 일인지 판단하고, 모르면 그 팀에 가서 묻는다.',
+   ax:['조직이해','대인관계'],spk:'박선임',pic:'c31',stage:'커피 들고 지나가며',
+   tx:'오늘부터 나한테 묻지 마요. 조직도 열어 놨어요. 누구한테 물을지 거기서 고르고, 뭘 물을지 정하고 가요. 세 개 중에 하나만 맞는 질문이에요.'},
+  {n:5,title:'거절과 보고',learn:'규정에 없는 부탁은 거절하고, 권한 밖은 근거를 붙여 올린다.',
+   ax:['직업윤리','문제해결'],spk:'김민아 팀장',pic:'c30',stage:'명패를 툭 치고',
+   tx:'명패 나왔네. 오늘은 "안 됩니다"를 몇 번 쓰나 볼 거예요. 근데 "안 됩니다" 뒤에 조항이 없으면 그건 거절이 아니라 그냥 화내는 거예요.'},
+  {n:6,title:'한꺼번에 터질 때',learn:'동시에 터져도 순서를 정하고, 강경한 상대에게도 규정과 사실로.',
+   ax:['자원관리','의사소통'],spk:'박선임',pic:'c31',stage:'수화기를 손으로 막고',
+   tx:'팀장님 외근이에요, 10시 넘어 와요. 오늘 좀 이상해요, 아침부터 전화가. 순서 정해서 해요. 다 급하다고 하면 다 안 급한 거예요.'},
+  {n:7,title:'결정과 발표',learn:'6일 동안 모은 단서로 팀의 문제에 답을 정하고, 한 장으로 발표한다.',
+   ax:['문제해결','정보'],spk:'박선임',pic:'c31',stage:'옆자리에 앉으며',
+   tx:'어렵게 쓰지 마요. 6일 동안 본 것만 써요. 없는 건 없다고 쓰고. 숫자 없는 문장은 팀장님이 안 읽어요.'}
+];
+
+function esc(t){ return String(t).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+var listBox=$('weekList');
+DAYS.forEach(function(d,i){
+  var el=document.createElement('article');
+  el.className='wk rv'+(i===0?' on':'');
+  el.dataset.day=String(d.n);
+  el.innerHTML=
+    '<span class="no"><b>'+d.n+'</b>일차</span>'+
+    '<h3>'+esc(d.title)+'</h3>'+
+    '<p>'+esc(d.learn)+'</p>'+
+    '<div class="chips">'+d.ax.map(function(a){ return '<span>'+esc(a)+'</span>'; }).join('')+'</div>'+
+    '<div class="wkBub"><div class="bub"><div class="bubHead">'+
+      '<span class="pic"><img src="assets/home/w/av_'+(d.pic||'c30')+'.png" width="260" height="260" alt="" loading="lazy" decoding="async"></span>'+
+      '<span><span class="spk">'+esc(d.spk)+'</span><span class="stage">'+esc(d.stage)+'</span></span></div>'+
+      '<p class="tx">'+esc(d.tx)+'</p></div></div>';
+  listBox.appendChild(el);
+});
+
+var rail=$('skRail');
+rail.innerHTML=DAYS.map(function(){ return '<i></i>'; }).join('');
+
+var typer=null;
+function typeInto(el,text){
+  if(typer) clearTimeout(typer);
+  el.textContent='';
+  var gh=document.createElement('span'); gh.className='gh'; gh.textContent=text;
+  var out=document.createElement('span'); out.className='s';
+  el.appendChild(gh); el.appendChild(out);
+  if(reduced){ out.textContent=text; return; }
+  var t=document.createElement('span'); out.appendChild(t);
+  var car=document.createElement('span'); car.className='car'; out.appendChild(car);
+  var i=0;
+  (function tick(){
+    t.textContent=text.slice(0,i);
+    if(i++>=text.length){ if(car.parentNode) car.parentNode.removeChild(car); return; }
+    typer=setTimeout(tick, /[.?!]/.test(text.charAt(i-2)||'')?110:24);
+  })();
+}
+
+var curDay=0;
+function showDay(n){
+  if(curDay===n) return;
+  curDay=n;
+  var d=DAYS[n-1];
+  $('skDay').textContent=d.n+'일차';
+  $('skTitle').textContent=d.title;
+  $('skSpk').textContent=d.spk;
+  $('skStage').textContent=d.stage;
+  $('skPic').src='assets/home/w/av_'+(d.pic||'c30')+'.png';
+  typeInto($('skTx'), d.tx);
+  Array.prototype.forEach.call(rail.children,function(x,i){
+    x.className=(i+1<n?'on':'')+(i+1===n?' cur':'');
+  });
+  Array.prototype.forEach.call(listBox.children,function(x){
+    x.classList.toggle('on', +x.dataset.day===n);
+  });
+}
+
+if(IO){
+  var wio=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting) showDay(+e.target.dataset.day); });
+  },{rootMargin:'-42% 0px -42% 0px',threshold:0});
+  Array.prototype.forEach.call(listBox.children,function(el){ wio.observe(el); });
+}
+showDay(1);
+
+/* ── 3-4) 섹션 삽화 — 있으면 끼우고, 없으면 자리만 남긴다 ────────────────
+   assets/home/manifest.json 의 files 에 적힌 것만 넣는다.
+   없는 파일에 <img> 를 걸면 404 가 콘솔 오류로 남기 때문이다. */
+fetch('assets/home/manifest.json').then(function(r){ return r.ok?r.json():null; }).then(function(j){
+  var have={}; ((j&&j.files)||[]).forEach(function(f){ have[f]=1; });
+  var web=(j&&j.web)||{};
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ill]'),function(fig){
+    var name=fig.dataset.ill;
+    if(!have[name]) return;
+    var img=new Image();
+    img.src='assets/home/'+(web[name]||name);      /* 웹용 축소판이 있으면 그것을 */
+    img.alt=''; img.loading='lazy'; img.decoding='async'; img.width=900; img.height=600;
+    fig.textContent=''; fig.classList.remove('pending'); fig.appendChild(img);
+  });
+}).catch(function(){ /* 목록이 없으면 자리 표시 그대로 둔다 */ });
+
+/* ── NCS 열 축 · 직무 열 개 ─────────────────────────────────────────── */
+var AXES=[
+  ['1','의사소통','회신 5요소와 조항 인용'],
+  ['2','수리','환불액과 잔여 일수 계산'],
+  ['3','문제해결','회신·전달·상신·거절 중 무엇을 고르는가'],
+  ['4','자기개발','7일차 회고 기록만, 점수 없음'],
+  ['5','자원관리','마감과 긴급도, 처리 순서'],
+  ['6','대인관계','직접 전달과 직접 질문'],
+  ['7','정보','사규집에서 찾아 값을 넣는가'],
+  ['8','기술','양식 작성과 결재 검토'],
+  ['9','조직이해','이 일이 어느 팀 소관인가'],
+  ['10','직업윤리','규정 근거 없는 부탁을 거절하는가']
+];
+$('axes').innerHTML=AXES.map(function(a,i){
+  return '<div class="ax rv" data-d="'+(i%4)+'"><span class="n">'+a[0]+'</span>'+
+         '<div><b>'+esc(a[1])+'</b><span>'+esc(a[2])+'</span></div></div>';
+}).join('');
+
+/* 인물 — 얼굴 그림은 assets/home/char 원화에서 잘라 만든 것.
+   이름·소속은 ~/co-work-sim/docs/story/cs-ep1.md 등장인물 표를 따른다. */
+var CAST=[
+  ['c25','나','고객상담팀 신입'],
+  ['c30','김민아 팀장','고객상담팀'],
+  ['c31','박선임','사수'],
+  ['c17','윤하린','물류팀 동기'],
+  ['c19','최주임','총무팀'],
+  ['c39','한주임','회계팀']
+];
+$('castList').innerHTML=CAST.map(function(c,i){
+  return '<li class="rv" data-d="'+(i%4)+'"><span class="pic">'+
+         '<img src="assets/home/w/av_'+c[0]+'.png" width="260" height="260" alt="" loading="lazy" decoding="async">'+
+         '</span><b>'+esc(c[1])+'</b><span>'+esc(c[2])+'</span></li>';
+}).join('');
+
+var JOBS=['고객상담팀','물류팀','회계팀','총무팀','채용팀','경영기획팀','품질관리팀','홍보팀','교육팀','구매팀'];
+/* 토큰이 돌려주는 팀 열쇠 → 사람이 읽는 이름. 계정 없이 들어온 화면에 팀을 세울 때 쓴다 */
+var TEAM_NAME={cs:'고객상담팀',logi:'물류팀',acct:'회계팀',ga:'총무팀',rec:'채용팀',
+  plan:'경영기획팀',qc:'품질관리팀',pr:'홍보팀',edu:'교육팀',buy:'구매팀'};
+$('jobList').innerHTML=JOBS.map(function(j,i){
+  return '<span'+(i===0?' class="me"':'')+'>'+esc(j)+'</span>';
+}).join('');
+
+watchReveal();
+
+if(IO){
+  var cio=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ countUp(e.target); cio.unobserve(e.target); } });
+  },{threshold:0.5});
+  Array.prototype.forEach.call(document.querySelectorAll('.count'),function(e){ cio.observe(e); });
+}else{
+  Array.prototype.forEach.call(document.querySelectorAll('.count'),function(e){ e.textContent=e.dataset.to; });
+}
+
+/* ── 3-2) 3D 장면 슬라이드 ──────────────────────────────────────────
+   이름은 고정이다(assets/home/w/scene_N.jpg). 3D 최종본이 나오면 같은 이름으로
+   덮어쓰기만 하면 되고, 장 수를 늘리려면 아래 목록에 한 줄만 더한다. */
+var SCENES=[
+  ['assets/home/w/scene_1.jpg','내 자리에서 메일을 씁니다'],
+  ['assets/home/w/scene_2.jpg','막히면 옆 자리로 걸어가 묻습니다'],
+  ['assets/home/w/scene_3.jpg','복도를 지나 다른 팀으로 갑니다'],
+  ['assets/home/w/scene_4.jpg','맞는 담당자에게 직접 전달합니다'],
+  ['assets/home/w/scene_5.jpg','하루가 끝나면 팀장에게 보고합니다']
+];
+(function(){
+  var view=$('deckView'), cap=$('deckCap'), dots=$('deckDots'), deck=$('deck');
+  if(!view||!SCENES.length) return;
+  var imgs=[], btns=[], cur=0, timer=null, held=false, seen=!IO;
+  SCENES.forEach(function(sc,i){
+    var im=document.createElement('img');
+    im.src=sc[0]; im.alt=sc[1]; im.width=1400; im.height=933;
+    if(i){ im.loading='lazy'; } im.decoding='async';
+    if(!i) im.className='on';
+    view.appendChild(im); imgs.push(im);
+    var b=document.createElement('button');
+    b.type='button'; b.setAttribute('role','tab');
+    b.setAttribute('aria-selected',String(!i));
+    b.setAttribute('aria-label',(i+1)+'번째 장면 — '+sc[1]);
+    b.onclick=function(){ go(i); hold(); };
+    dots.appendChild(b); btns.push(b);
+  });
+  cap.textContent=SCENES[0][1];
+  function go(i){
+    cur=(i+SCENES.length)%SCENES.length;
+    imgs.forEach(function(im,j){ im.classList.toggle('on',j===cur); });
+    btns.forEach(function(b,j){ b.setAttribute('aria-selected',String(j===cur)); });
+    cap.textContent=SCENES[cur][1];
+  }
+  function tick(){ go(cur+1); }
+  function play(){ if(reduced||timer||held||!seen||SCENES.length<2) return; timer=setInterval(tick,4000); }
+  function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+  /* 직접 넘긴 뒤에는 잠깐 자동 전환을 쉰다 — 읽는 중에 화면이 바뀌면 성가시다 */
+  function hold(){ held=true; stop(); clearTimeout(hold._t); hold._t=setTimeout(function(){ held=false; play(); },9000); }
+  $('deckPrev').onclick=function(){ go(cur-1); hold(); };
+  $('deckNext').onclick=function(){ go(cur+1); hold(); };
+  deck.addEventListener('mouseenter',stop);
+  deck.addEventListener('mouseleave',function(){ if(!held) play(); });
+  deck.addEventListener('focusin',stop);
+  deck.addEventListener('focusout',function(){ if(!held) play(); });
+  if(IO){ new IntersectionObserver(function(es){ es.forEach(function(e){ seen=e.isIntersecting; if(seen) play(); else stop(); }); },{threshold:.2}).observe(deck); }
+  else play();
+})();
+
+/* ── 4) 계정 ────────────────────────────────────────────────────────── */
+var A=(window.WS&&WS.auth)||null;
+
+function show(pane){
+  ['paneAuth','paneToken','paneGo'].forEach(function(id){ $(id).hidden=(id!==pane); });
+}
+function busy(btn,on,label){
+  btn.disabled=on;
+  if(on){ btn.dataset.was=btn.textContent; btn.textContent=label||'확인 중'; }
+  else if(btn.dataset.was){ btn.textContent=btn.dataset.was; }
+}
+function say(el,msg,good){
+  el.textContent=msg||'';
+  el.classList.toggle('ok',!!good);
+}
+function initial(name,email){
+  var s=(name||email||'W').trim();
+  return (s.charAt(0)||'W').toUpperCase();
+}
+
+if(!A||!(WS.fb&&WS.fb.ready&&WS.fb.ready())){
+  say($('upErr'), (WS.fb&&WS.fb.error&&WS.fb.error())||'로그인 기능을 불러오지 못했습니다. 새로고침해 주세요.');
+}
+
+/* 콘솔에서 이메일/비밀번호 로그인을 아직 켜지 않았을 때.
+   소개·7일·미리 받기는 그대로 돌아가고, 계정 카드에만 안내를 얹는다. */
+function setupNote(){
+  if(!A||!A.authOff()||$('paneAuth').querySelector('.note.setup')) return;
+  var n=document.createElement('p');
+  n.className='note setup';
+  n.textContent='관리자가 로그인 기능을 켜는 중입니다. 켜지면 이 화면에서 바로 가입할 수 있어요. 그동안 아래 소개를 먼저 읽어 주세요.';
+  $('paneAuth').insertBefore(n, $('paneAuth').firstChild);
+}
+
+/* 바깥 탭 — 토큰(기본) · 계정(선택) */
+function way(which){
+  var tok=which!=='acct';
+  $('tabTok').setAttribute('aria-selected',String(tok));
+  $('tabAcct').setAttribute('aria-selected',String(!tok));
+  $('wayTok').hidden=!tok; $('wayAcct').hidden=tok;
+}
+$('tabTok').onclick=function(){ way('tok'); };
+$('tabAcct').onclick=function(){ way('acct'); };
+
+/* 안쪽 탭 — 회원가입 · 로그인 */
+function tab(which){
+  var up=which==='up';
+  $('tabUp').setAttribute('aria-selected',String(up));
+  $('tabIn').setAttribute('aria-selected',String(!up));
+  $('formUp').hidden=!up; $('formIn').hidden=up;
+}
+$('tabUp').onclick=function(){ tab('up'); };
+$('tabIn').onclick=function(){ tab('in'); };
+
+function dayline(day){
+  var out='';
+  for(var i=1;i<=7;i++) out+='<i class="'+(i<day?'on':'')+'"></i>';
+  $('goDays').innerHTML=out;
+}
+
+var CURRENT={code:'',day:1,name:'',email:''};
+
+function toGo(p){
+  CURRENT.code=p.code; CURRENT.day=p.day||1; CURRENT.name=p.name; CURRENT.email=p.email;
+  /* 계정 없이 토큰만으로 들어온 경우 — 보여 줄 이메일이 없으니 토큰과 팀을 대신 세운다.
+     「로그아웃」도 뜻이 없어 「다른 토큰」으로 바꿔 단다. */
+  var anon=!(A&&A.user&&A.user());
+  $('goAv').textContent=anon?'W':initial(p.name,p.email);
+  $('goName').textContent=p.name||(anon?'토큰으로 시작':'참가자');
+  $('goEmail').textContent=anon?(TEAM_NAME[p.team]||p.team||'개인 토큰'):(p.email||'');
+  $('goOut').hidden=anon; $('goSwap').hidden=!anon;
+  var d=Math.min(7,Math.max(1,p.day||1));
+  $('goTitle').textContent=(d>1)?('이어 하기 '+d+'일차'):'1일차 출근';
+  $('goSub').textContent=(d>1)
+    ? '어제 끝난 데서 이어 합니다. 오늘은 '+d+'일차입니다.'
+    : '첫 출근입니다. 40분이면 끝납니다.';
+  dayline(d);
+  $('goBtn').textContent=(d>1)?('이어 하기 '+d+'일차'):'1일차 시작하기';
+  $('goBtn').href=A?A.playUrl(p.code):('play.html?code='+encodeURIComponent(p.code));
+  $('goCode').textContent='개인 토큰 '+p.code;
+  $('topStart').textContent=(d>1)?'이어 하기':'시작하기';
+  show('paneGo');
+}
+
+function toToken(u,prof){
+  $('tkAv').textContent=initial(prof&&prof.name,u.email);
+  $('tkName').textContent=(prof&&prof.name)||u.displayName||'참가자';
+  $('tkEmail').textContent=u.email||'';
+  show('paneToken');
+}
+
+/* 이 기기에 기억해 둔 토큰이 있으면 계정 없이도 바로 「이어 하기」로 연다.
+   서버에 다시 물어 일차를 맞추되, 못 물어도 기억한 값으로 화면은 뜬다. */
+function resumeByCode(){
+  var lo=(A&&A.local)?A.local():{};
+  /* play.html 에서 코드를 직접 넣고 들어간 학생은 ws7.portal 이 아니라
+     ws7.code 만 남는다 — 게임에서 「홈으로」로 나왔을 때도 이어 하기가 뜨게 둘 다 본다. */
+  if(!lo.code){ try{ lo={code:localStorage.getItem('ws7.code')||''}; }catch(e){ lo={}; } }
+  if(!lo||!lo.code) return false;
+  toGo({code:lo.code,day:lo.day||1,team:lo.team||'',name:lo.name||'',email:''});
+  if(A&&A.refreshDay) A.refreshDay(lo.code).then(function(d){
+    if(d&&d!==CURRENT.day&&!(A.user&&A.user())) toGo({code:lo.code,day:d,team:lo.team||'',name:lo.name||'',email:''});
+  });
+  return true;
+}
+
+if(A){
+  A.watch(function(u){
+    if(!u){ if(!resumeByCode()){ show('paneAuth'); way('tok'); } $('topStart').textContent=CURRENT.code?'이어 하기':'시작하기'; return; }
+    A.profile().then(function(p){
+      p=p||{};
+      if(p.code){
+        toGo({code:p.code,day:p.day||1,name:p.name,email:p.email||u.email});
+        A.refreshDay(p.code).then(function(d){
+          if(d&&d!==CURRENT.day) toGo({code:p.code,day:d,name:p.name,email:p.email||u.email});
+        });
+      }else{
+        toToken(u,p);
+      }
+    });
+  });
+}
+
+$('formUp').addEventListener('submit',function(ev){
+  ev.preventDefault();
+  if(!A) return;
+  say($('upErr'),'');
+  var a={name:$('upName').value,org:$('upOrg').value,email:$('upEmail').value,
+         pw:$('upPw').value,pw2:$('upPw2').value};
+  busy($('upBtn'),true,'만드는 중');
+  A.signUp(a).then(function(r){
+    busy($('upBtn'),false);
+    if(!r.ok){ say($('upErr'),r.reason); setupNote(); return; }
+    if(!r.mirrored) console.info('프로필 서버 기록을 건너뛰었습니다:',r.mirrorReason);
+  });
+});
+
+$('formIn').addEventListener('submit',function(ev){
+  ev.preventDefault();
+  if(!A) return;
+  say($('inErr'),'');
+  busy($('inBtn'),true,'확인 중');
+  A.signIn({email:$('inEmail').value,pw:$('inPw').value}).then(function(r){
+    busy($('inBtn'),false);
+    if(!r.ok){ say($('inErr'),r.reason); setupNote(); }
+  });
+});
+
+$('resetBtn').onclick=function(){
+  if(!A) return;
+  say($('resetMsg'),'');
+  A.reset($('inEmail').value).then(function(r){
+    say($('resetMsg'), r.ok?'재설정 메일을 보냈습니다. 받은 편지함을 확인해 주세요.':r.reason, r.ok);
+  });
+};
+
+/* 토큰 칸 두 개(계정 없는 길·계정 있는 길)가 같은 규칙으로 다듬어진다 */
+function tidyCode(el){
+  el.addEventListener('input',function(){
+    var v=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');
+    if(A){ var n=A.normCode(v); if(n.length<=14) v=n; }
+    this.value=v;
+  });
+}
+tidyCode($('stCode'));
+
+$('formStart').addEventListener('submit',function(ev){
+  ev.preventDefault();
+  if(!A){ say($('stErr'),'토큰 확인 기능을 불러오지 못했습니다. 새로고침해 주세요.'); return; }
+  say($('stErr'),'');
+  busy($('stBtn'),true,'확인 중');
+  A.registerToken($('stCode').value).then(function(r){
+    busy($('stBtn'),false);
+    if(!r.ok){ say($('stErr'),r.reason); return; }
+    toGo({code:r.code,day:r.day||1,team:r.team||'',name:r.name||'',email:''});
+    location.hash='#start';
+  });
+});
+
+$('goSwap').onclick=function(){
+  if(A&&A.forgetCode) A.forgetCode();
+  CURRENT.code=''; show('paneAuth'); way('tok');
+  $('stCode').value=''; say($('stErr'),''); $('topStart').textContent='시작하기';
+  try{ $('stCode').focus(); }catch(e){}
+};
+
+$('tkCode').addEventListener('input',function(){
+  var v=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');
+  if(A){ var n=A.normCode(v); if(n.length<=14) v=n; }
+  this.value=v;
+});
+$('formToken').addEventListener('submit',function(ev){
+  ev.preventDefault();
+  if(!A) return;
+  say($('tkErr'),'');
+  busy($('tkBtn'),true,'확인 중');
+  A.registerToken($('tkCode').value).then(function(r){
+    busy($('tkBtn'),false);
+    if(!r.ok){ say($('tkErr'),r.reason); return; }
+    if(!r.mirrored) console.info('토큰 서버 기록을 건너뛰었습니다:',r.mirrorReason);
+    var u=A.user();
+    A.profile().then(function(p){
+      toGo({code:r.code,day:r.day||1,name:(p&&p.name)||r.name,email:(u&&u.email)||''});
+      location.hash='#start';
+    });
+  });
+});
+
+function out(){ if(A) A.signOut().then(function(){ if(!resumeByCode()){ show('paneAuth'); way('acct'); tab('in'); } }); }
+$('tkOut').onclick=out;
+$('goOut').onclick=out;
+/* 캐릭터 선호는 이 기기에 남는다(ws7.avatar). 게임이 하루를 열 때 이 값을 따라간다 */
+function avGet(){ try{ return localStorage.getItem('ws7.avatar')||''; }catch(e){ return ''; } }
+function avPaint(){ var g=avGet();
+  $('avGF').setAttribute('aria-pressed',String(g==='f'));
+  $('avGM').setAttribute('aria-pressed',String(g==='m')); }
+function avSet(g){ try{ localStorage.setItem('ws7.avatar',g); }catch(e){} avPaint(); }
+$('avGF').onclick=function(){ avSet('f'); };
+$('avGM').onclick=function(){ avSet('m'); };
+avPaint();
+
+$('goBtn').addEventListener('click',function(){ try{ WS.prefetch.stop(); }catch(e){} });
+
+/* ── 검사용 훅 (tools/home_smoke.mjs) ───────────────────────────────── */
+window.__home={
+  ready:true,
+  use3d:function(){ return use3d; },
+  office:function(){ return !!office(); },
+  prefetch:function(){ return (window.WS&&WS.prefetch)?WS.prefetch.status():null; },
+  pane:function(){ return $('paneGo').hidden?($('paneToken').hidden?'auth':'token'):'go'; },
+  way:function(){ return $('wayTok').hidden?'acct':'tok'; },
+  code:function(){ return CURRENT.code||''; },
+  startToken:function(c){ $('stCode').value=c; return new Promise(function(res){
+      $('formStart').dispatchEvent(new Event('submit',{cancelable:true}));
+      var t=setInterval(function(){ if(!$('paneGo').hidden||$('stErr').textContent){ clearInterval(t);
+        res({pane:window.__home.pane(),err:$('stErr').textContent,url:window.__home.playUrl()}); } },200);
+      setTimeout(function(){ clearInterval(t); res({pane:window.__home.pane(),err:$('stErr').textContent,url:window.__home.playUrl()}); },15000); }); },
+  playUrl:function(){ return $('goBtn').getAttribute('href'); },
+  day:function(){ return CURRENT.day; },
+  weekDay:function(){ return curDay; },
+  authOff:function(){ return !!(A&&A.authOff()); },
+  mirrorBlocked:function(){ return !!(A&&A.mirrorBlocked()); },
+  /* 화면 촬영용 — 로그인 없이 각 단계를 보여 준다(값은 예시) */
+  demoPane:function(name,v){ v=v||{};
+    if(name==='token'){ $('tkAv').textContent='김'; $('tkName').textContent=v.name||'김서연';
+      $('tkEmail').textContent=v.email||'seoyeon@univ.ac.kr'; show('paneToken'); $('tkCode').value=v.code||''; }
+    else if(name==='go'){ toGo({code:v.code||'WS7-ZBK6-NA73',day:v.day||3,name:v.name||'김서연',email:v.email||'seoyeon@univ.ac.kr'}); }
+    else { show('paneAuth'); way(v.way||'tok'); }
+    return window.__home.pane(); }
+};
+})();
+</script>
+</body>
+</html>

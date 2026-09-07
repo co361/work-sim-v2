@@ -1,0 +1,9 @@
+{
+ "ep7": {
+  "criteria": [
+   {"key": "cancelCost", "label": "해지의 실비용", "unit": "만 원", "hint": "돌려받지 못하는 집행 계약금 + 대체 소재 제작 견적", "answer": "4,800"},
+   {"key": "perSignup", "label": "가입 1명당 집행액", "unit": "원", "hint": "이미 집행한 계약금 ÷ 신규 가입자 수", "answer": "12,000"},
+   {"key": "delayMentions", "label": "입장문까지 쌓이는 언급", "unit": "건", "hint": "시간당 관련 언급 증가 × 입장문 검토·승인 시간", "answer": "240"}
+  ]
+ }
+}

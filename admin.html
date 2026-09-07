@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WORK-SIM v2 — 관리자</title>
+<!-- ==========================================================================
+     WORK SIM v2 관리자 콘솔 (docs/plan-portal.md 「W8」)
+     - 로그인 : Firebase Auth + RTDB admins/{uid}
+     - 토큰   : GAS ws7issue 로 발급 → RTDB ws7/tokens/{code} 미러 → 목록·CSV
+     - 진행   : GAS ws7load 로 학생별 7일 점수·NCS 10축
+     비밀(ADMIN_SECRET)은 이 파일에 넣지 않는다. 관리자가 화면에서 입력하고
+     그 값은 sessionStorage 에만 둔다(탭을 닫으면 사라진다).
+     ========================================================================== -->
+<style>
+:root{
+  /* 38차 — 대표 확정 「화이트·회색·남색」. 크림·금색은 남기지 않는다 */
+  --page:#f5f6f8; --card:#fff; --card2:#f5f6f8; --head:#eef0f4;
+  --ink:#1b2430; --mute:#5b6675; --line:#dde3ec; --line2:#ccd4e0;
+  --acc:#1f4e8c; --acc-d:#143766; --acc-soft:#e8eefa; --acc-line:#c5d5ee;
+  --ok:#177245; --ok-soft:#e6f3ec; --warn:#9a4a06; --warn-soft:#fdf3e6;
+  --bad:#a8271e; --bad-bg:#b3261e; --bad-soft:#fbeae8;
+  --mono:'SF Mono','SFMono-Regular',Consolas,'Liberation Mono',monospace;
+  --r:12px; --r-s:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);word-break:keep-all;
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,system-ui,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif}
+h1,h2,h3{margin:0;font-weight:700}
+a{color:var(--acc)}
+
+/* ── 상단 바 ───────────────────────────────────────────────────────────── */
+.hd{position:sticky;top:0;z-index:30;background:#fff;border-bottom:1px solid var(--line)}
+.hd-in{max-width:1180px;margin:0 auto;padding:11px 18px;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:baseline;gap:9px;min-width:0}
+.brand b{font-size:16px;letter-spacing:-.01em}
+.brand span{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mark{width:10px;height:10px;border-radius:3px;background:var(--acc);align-self:center;flex:none}
+.sess{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mute)}
+.tabs{max-width:1180px;margin:0 auto;padding:0 18px;display:flex;gap:4px}
+.tab{border:0;background:none;font:inherit;color:var(--mute);font-weight:700;font-size:13.5px;
+  padding:9px 14px 10px;border-bottom:2.5px solid transparent;cursor:pointer;border-radius:6px 6px 0 0}
+.tab:hover{color:var(--ink);background:var(--head)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--acc)}
+.tab .n{display:inline-block;margin-left:6px;font-size:11px;font-weight:800;color:var(--acc-d);
+  background:var(--acc-soft);border-radius:999px;padding:1px 7px;vertical-align:1px}
+
+/* ── 레이아웃 ─────────────────────────────────────────────────────────── */
+main{max-width:1180px;margin:0 auto;padding:20px 18px 64px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:16px}
+.card-h{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.card-h h2{font-size:14.5px}
+.card-h .sub{font-size:12px;color:var(--mute)}
+.card-h .sp{margin-left:auto}
+.auth{max-width:430px;margin:56px auto 0}
+.row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+label{font-size:11.5px;font-weight:700;color:var(--mute);letter-spacing:.01em}
+input,select,textarea{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line2);
+  border-radius:var(--r-s);padding:9px 11px;outline:none;max-width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(31,78,140,.20)}
+input[type=password],input[type=email]{letter-spacing:.02em}
+.mono{font-family:var(--mono);font-size:12.5px}
+.grow{flex:1;min-width:180px}
+
+/* ── 버튼 ─ 흰 바탕에 흰 글씨가 없게. 남색 버튼은 흰 글자(8.3:1). ─────── */
+button{font:inherit;font-weight:700;border-radius:var(--r-s);padding:9px 16px;cursor:pointer;
+  border:1px solid transparent;background:#fff;color:var(--ink)}
+button:disabled{opacity:.5;cursor:default}
+.pri{background:var(--acc);color:#fff;border-color:var(--acc-d)}         /* 대비 8.3:1 */
+.pri:hover:not(:disabled){background:var(--acc-d)}
+.gh{background:#fff;color:var(--ink);border-color:var(--line2)}
+.gh:hover:not(:disabled){background:var(--head)}
+.dang{background:var(--bad-bg);color:#fff;border-color:#8f1e17}          /* 대비 6.5:1 */
+.dang:hover:not(:disabled){background:#8f1e17}
+.sm{padding:5px 11px;font-size:12.5px;border-radius:7px}
+
+/* ── 표 ───────────────────────────────────────────────────────────────── */
+.tw{border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:520px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{position:sticky;top:0;z-index:1;background:var(--head);text-align:left;font-size:11.5px;
+  color:var(--mute);font-weight:800;padding:9px 12px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #eef0f4;vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:#f7f9fc}
+tr.pick{cursor:pointer}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.empty{color:var(--mute);text-align:center;padding:28px 12px}
+
+/* ── 상태 알약 ────────────────────────────────────────────────────────── */
+.pill{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.p-unused{background:#eef0f4;color:#4d5766}
+.p-active{background:var(--acc-soft);color:var(--acc-d)}
+.p-revoked{background:var(--bad-soft);color:var(--bad)}
+.p-done{background:var(--ok-soft);color:var(--ok)}
+
+/* ── 알림·안내 ────────────────────────────────────────────────────────── */
+.note{font-size:12.5px;color:var(--mute);line-height:1.7;background:var(--card2);
+  border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.note.warn{background:var(--warn-soft);border-color:#f0d7b4;color:var(--warn)}
+.note.bad{background:var(--bad-soft);border-color:#f0c6c2;color:#8f1e17}
+.note b{color:inherit}
+.code{font-family:var(--mono);font-size:12px;background:#eef0f4;border-radius:4px;padding:1px 5px}
+.msg{font-size:12.5px;min-height:19px;margin-top:9px}
+.msg.ok{color:var(--ok)} .msg.err{color:var(--bad)}
+.muted{color:var(--mute);font-size:12.5px}
+.hide{display:none !important}
+/* 표 설명은 화면에서 감추되 화면 읽어 주는 도구에는 남긴다 — display:none 이면 읽히지 않는다 */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ── 발급 결과 코드 상자 ──────────────────────────────────────────────── */
+.keys{background:#1b2430;color:#dbe8fa;border-radius:10px;padding:13px 15px;margin-top:12px;
+  font-family:var(--mono);font-size:13px;line-height:1.95;max-height:220px;overflow:auto;white-space:pre}
+
+/* ── 진행 현황 ────────────────────────────────────────────────────────── */
+.dist{display:flex;flex-direction:column;gap:9px}
+.dist .r{display:grid;grid-template-columns:104px 1fr 74px;gap:10px;align-items:center}
+.dist .nm{font-size:12.5px;font-weight:700}
+.dist .bar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:#eef0f4;border:1px solid var(--line)}
+.dist .bar i{display:block;font-style:normal}
+.dist .ct{font-size:12px;color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}
+/* 범례 — 색 이름 일곱 개를 늘어놓던 것을 남색 한 색의 명도 눈금 하나로 줄였다.
+   같은 계열 일곱 단계는 이름으로 구분되지 않는다. 정확한 일차는 막대의 툴팁과 아래 표가 준다. */
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:11.5px;color:var(--mute)}
+.legend .sc{display:flex;align-items:center;gap:7px}
+.legend .sc .ramp{display:flex;border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+.legend .sc .ramp i{width:15px;height:11px;display:block}
+.legend .one{display:flex;align-items:center;gap:5px}
+.legend .one i{width:11px;height:11px;border-radius:3px;display:block;border:1px solid var(--line)}
+.bars{display:grid;grid-template-columns:96px 1fr 40px;gap:8px 10px;align-items:center;font-size:12.5px}
+.bars .b{height:11px;border-radius:6px;background:#eef0f4;overflow:hidden}
+.bars .b i{display:block;height:100%;background:linear-gradient(90deg,#143766,#3f74c0)}
+.bars .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}
+.bars .z{color:#6d7684}   /* 흐리게 보이되 흰 바탕에서 4.6:1 — AA 아래로 내리지 않는다 */
+
+/* ── 대화상자 ─────────────────────────────────────────────────────────── */
+dialog{border:0;border-radius:14px;padding:0;width:min(94vw,640px);
+  box-shadow:0 24px 70px rgba(20,30,45,.32);color:var(--ink);background:#fff}
+dialog::backdrop{background:rgba(27,36,48,.42)}
+.dl-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--card2);
+  border-radius:14px 14px 0 0}
+.dl-h b{font-size:14.5px}
+.dl-b{padding:16px 18px;max-height:66vh;overflow:auto}
+.dl-f{display:flex;gap:8px;padding:13px 18px;border-top:1px solid var(--line);background:var(--card2);
+  border-radius:0 0 14px 14px}
+.dl-f .sp{margin-left:auto}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12.5px;margin-bottom:14px}
+.kv b{color:var(--mute);font-weight:700}
+h3.sec{font-size:12px;color:var(--mute);letter-spacing:.02em;margin:16px 0 9px}
+h3.sec:first-child{margin-top:0}
+footer{max-width:1180px;margin:0 auto;padding:0 18px 34px;font-size:11.5px;color:#7b8494;text-align:center}
+@media(max-width:720px){ .dist .r{grid-template-columns:78px 1fr 60px} .hd-in{flex-wrap:wrap} }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<!-- WORK SIM v2 전용 Firebase 프로젝트(work-sim-7day). co-work-sim 의 team-work-sim 과 다른 곳이다.
+     초기화는 이 파일 하나만 한다 — 화면에서 initializeApp 을 다시 부르지 않는다. -->
+<script src="js/firebase-config.js?v=20260907g"></script>
+</head>
+<body>
+
+<header class="hd">
+  <div class="hd-in">
+    <span class="mark"></span>
+    <span class="brand"><b>WORK-SIM 관리자</b><span>7일 업무 시뮬레이션 · 토큰과 진행</span></span>
+    <div class="sess hide" id="sess">
+      <span id="who"></span>
+      <button class="gh sm" id="btnReload">새로고침</button>
+      <button class="gh sm" id="btnLogout">로그아웃</button>
+    </div>
+  </div>
+  <nav class="tabs hide" id="tabs" role="tablist" aria-label="관리자 콘솔 탭">
+    <button class="tab" role="tab" data-tab="issue"  id="tabIssue"  aria-controls="pIssue"  aria-selected="false">토큰 발급</button>
+    <button class="tab" role="tab" data-tab="tokens" id="tabTokens" aria-controls="pTokens" aria-selected="false">토큰 목록<span class="n" id="nTokens"></span></button>
+    <button class="tab" role="tab" data-tab="users"  id="tabUsers"  aria-controls="pUsers"  aria-selected="false">사용자<span class="n" id="nUsers"></span></button>
+    <button class="tab" role="tab" data-tab="prog"   id="tabProg"   aria-controls="pProg"   aria-selected="false">진행 현황</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ═══════════ 로그인 ═══════════ -->
+<section class="card auth" id="cardLogin">
+  <div class="card-h"><h2>관리자 로그인</h2></div>
+  <div class="f" style="margin-bottom:12px">
+    <label for="inEmail">이메일</label>
+    <input id="inEmail" type="email" autocomplete="username" placeholder="admin@edmakers.kr">
+  </div>
+  <div class="f" style="margin-bottom:16px">
+    <label for="inPw">비밀번호</label>
+    <input id="inPw" type="password" autocomplete="current-password" placeholder="비밀번호">
+  </div>
+  <button class="pri" id="btnLogin" style="width:100%">로그인</button>
+  <div class="msg err" id="loginMsg" role="alert" aria-live="assertive"></div>
+  <div class="note" style="margin-top:14px">
+    Firebase <b>이메일/비밀번호</b>로 로그인한 뒤 관리자 여부를 확인합니다 —
+    대표 계정(<span class="code">co@edmakers.kr</span>)이거나 <span class="code">ws7/admins/{uid}</span> 에 등록된 계정입니다.
+    프로젝트는 WORK SIM v2 전용 <span class="code">work-sim-7day</span> 입니다(co-work-sim 과 한도를 나눠 쓰지 않습니다).
+  </div>
+</section>
+
+<!-- ═══════════ 권한 없음 ═══════════ -->
+<section class="card auth hide" id="cardNoPerm">
+  <div class="card-h"><h2>관리자 권한 없음</h2></div>
+  <div class="note bad hide" id="npWhy" role="alert" aria-live="assertive"></div>
+  <p class="muted" style="margin:10px 0 0">
+    로그인은 되었지만 이 계정은 관리자가 아닙니다. 대표 계정(<span class="code">co@edmakers.kr</span>)으로 로그인하거나,
+    대표가 아래 uid 를 <span class="code">ws7/admins/</span> 에 등록하면 콘솔이 열립니다.
+    <br><span class="code">ws7/admins/<span id="npUid">…</span></span>
+  </p>
+  <button class="gh" id="btnNoPermOut" style="margin-top:16px">로그아웃</button>
+</section>
+
+<!-- ═══════════ 콘솔 ═══════════ -->
+<div id="console" class="hide">
+
+  <div class="note warn hide" id="banLocal" style="margin-bottom:16px"></div>
+  <div class="note bad  hide" id="banRtdb"  style="margin-bottom:16px"></div>
+
+  <!-- ───────── 토큰 발급 ───────── -->
+  <section class="card hide" id="pIssue" role="tabpanel" aria-labelledby="tabIssue">
+    <div class="card-h">
+      <h2>GAS 관리자 비밀번호</h2>
+      <span class="sub">토큰 발급에만 쓰입니다 · 이 탭에서만 보관</span>
+      <span class="sp"></span><span class="muted" id="secState">미입력</span>
+    </div>
+    <div class="row">
+      <div class="f grow">
+        <label for="inSecret">백엔드 관리자 비밀번호 (Code.gs 의 ADMIN_SECRET)</label>
+        <input id="inSecret" type="password" autocomplete="off" placeholder="발급할 때 한 번만 입력합니다">
+      </div>
+      <button class="gh" id="btnSecret">기억하기</button>
+      <button class="gh" id="btnSecretClear">지우기</button>
+    </div>
+    <div class="note" style="margin-top:12px">
+      이 값은 <b>페이지에 저장되어 있지 않습니다</b>. 입력한 값은 이 탭의
+      <span class="code">sessionStorage</span> 에만 남고 탭을 닫으면 사라집니다.
+    </div>
+  </section>
+
+  <section class="card hide" id="pIssue2">
+    <div class="card-h"><h2>토큰 발급</h2><span class="sub">GAS <span class="code">ws7issue</span> → RTDB <span class="code">ws7/tokens</span> 미러</span></div>
+    <div class="row">
+      <div class="f"><label for="isTeam">팀</label><select id="isTeam" style="width:170px"></select></div>
+      <div class="f"><label for="isCount">수량</label><input id="isCount" type="number" min="1" max="300" value="10" style="width:96px"></div>
+      <div class="f grow"><label for="isMemo">메모 (기수·학교 등 · RTDB 에만 저장)</label><input id="isMemo" placeholder="예: 조선대 1기 · 9월 12일"></div>
+      <button class="pri" id="btnIssue">토큰 발급</button>
+    </div>
+    <div class="msg" id="issueMsg" role="status" aria-live="polite"></div>
+    <div class="hide" id="issueOut">
+      <div class="keys" id="issueKeys"></div>
+      <div class="row" style="margin-top:11px">
+        <button class="gh sm" id="btnCopy">전체 복사</button>
+        <button class="gh sm" id="btnCsvNew">방금 발급분 CSV</button>
+        <span class="muted" id="issueHint"></span>
+      </div>
+    </div>
+    <div class="note" style="margin-top:13px">
+      토큰 형식은 <span class="code">WS7-XXXX-XXXX</span> 입니다(혼동 문자 I·O·0·1 제외).
+      학생은 소개 페이지에서 회원가입한 뒤 이 토큰을 한 번 입력하면 팀이 확정됩니다.
+    </div>
+  </section>
+
+  <!-- ───────── 토큰 목록 ───────── -->
+  <section class="card hide" id="pTokens" role="tabpanel" aria-labelledby="tabTokens">
+    <div class="card-h">
+      <h2>토큰 목록</h2><span class="sub" id="tokSum"></span>
+      <span class="sp"></span>
+      <button class="gh sm" id="btnTokReload">새로고침</button>
+      <button class="gh sm" id="btnTokProbe">진행 조회</button>
+      <button class="pri sm" id="btnTokCsv">CSV 내보내기</button>
+    </div>
+    <div class="row" style="margin-bottom:13px">
+      <div class="f"><label for="fTeam">팀</label><select id="fTeam" style="width:150px"></select></div>
+      <div class="f"><label for="fStatus">상태</label><select id="fStatus" style="width:130px">
+        <option value="">전체</option><option value="unused">미사용</option>
+        <option value="active">사용중</option><option value="revoked">정지</option></select></div>
+      <div class="f grow"><label for="fQuery">검색 (코드·사용자·메모)</label><input id="fQuery" placeholder="입력하면 즉시 걸러집니다"></div>
+    </div>
+    <div class="tw">
+      <table>
+        <caption class="sr-only">발급된 개인 토큰 목록</caption>
+        <thead><tr>
+          <th scope="col">코드</th><th scope="col">팀</th><th scope="col">상태</th>
+          <th scope="col">사용자</th><th scope="col" class="num">현재 일차</th>
+          <th scope="col">메모</th><th scope="col">발급일</th><th scope="col">작업</th>
+        </tr></thead>
+        <tbody id="tokBody"><tr><td colspan="8" class="empty">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="msg" id="tokMsg" role="status" aria-live="polite"></div>
+    <div class="row" style="margin-top:14px;align-items:flex-end">
+      <div class="f grow">
+        <label for="inAddCodes">이미 발급된 코드를 목록에 넣기 (쉼표·줄바꿈으로 여러 개)</label>
+        <input id="inAddCodes" class="mono" placeholder="WS7-XXXX-XXXX">
+      </div>
+      <button class="gh" id="btnAddCodes">조회해서 추가</button>
+    </div>
+    <div class="note" style="margin-top:12px">
+      상태는 <b>RTDB 가 정본</b>입니다. 「정지」는 <span class="code">ws7/tokens/{code}.status</span> 를 바꿉니다 —
+      서버(GAS)에서도 막으려면 스프레드시트 <span class="code">ws7_codes</span> 의 <span class="code">status</span> 를
+      <span class="code">revoked</span> 로 바꿔야 합니다(관련 요청은 <span class="code">docs/play-api-requests.md</span>).
+      「진행 조회」는 <span class="code">ws7load</span> 만 부르므로 <b>미사용 토큰을 사용중으로 바꾸지 않습니다</b>.
+    </div>
+  </section>
+
+  <!-- ───────── 사용자 ───────── -->
+  <section class="card hide" id="pUsers" role="tabpanel" aria-labelledby="tabUsers">
+    <div class="card-h">
+      <h2>사용자</h2><span class="sub">RTDB <span class="code">ws7/users</span> — 소개 페이지에서 가입한 학생</span>
+      <span class="sp"></span>
+      <button class="gh sm" id="btnUsrReload">새로고침</button>
+      <button class="pri sm" id="btnUsrCsv">CSV 내보내기</button>
+    </div>
+    <div class="tw">
+      <table>
+        <caption class="sr-only">가입한 학생 목록</caption>
+        <thead><tr>
+          <th scope="col">이름</th><th scope="col">소속</th><th scope="col">이메일</th>
+          <th scope="col">팀</th><th scope="col">토큰</th><th scope="col" class="num">현재 일차</th>
+          <th scope="col">마지막 접속</th><th scope="col">작업</th>
+        </tr></thead>
+        <tbody id="usrBody"><tr><td colspan="8" class="empty">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="msg" id="usrMsg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card hide" id="pAdmins">
+    <div class="card-h">
+      <h2>관리자 계정</h2>
+      <span class="sub">RTDB <span class="code">ws7/admins</span> — 규칙상 <b>대표 계정만</b> 추가·삭제할 수 있습니다</span>
+      <span class="sp"></span>
+      <button class="gh sm" id="btnAdmReload">새로고침</button>
+    </div>
+    <div class="tw" style="max-height:220px">
+      <table>
+        <caption class="sr-only">등록된 관리자 계정</caption>
+        <thead><tr>
+          <th scope="col">uid</th><th scope="col">메모</th><th scope="col">등록한 사람</th>
+          <th scope="col">등록일</th><th scope="col">작업</th>
+        </tr></thead>
+        <tbody id="admBody"><tr><td colspan="5" class="empty">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="row" id="admAddRow" style="margin-top:13px">
+      <div class="f grow"><label for="inAdmUid">추가할 계정의 uid</label>
+        <input id="inAdmUid" class="mono" autocomplete="off" placeholder="Firebase Auth 의 사용자 UID (28자)"></div>
+      <div class="f"><label for="inAdmMemo">메모</label><input id="inAdmMemo" placeholder="예: 운영 담당 김OO"></div>
+      <button class="pri" id="btnAdmAdd">관리자 추가</button>
+    </div>
+    <div class="msg" id="admMsg" role="status" aria-live="polite"></div>
+    <div class="note" style="margin-top:12px">
+      uid 는 Firebase 콘솔 → Authentication → 사용자 목록에서 복사합니다. 대표 계정
+      (<span class="code">co@edmakers.kr</span>)은 <b>등록하지 않아도</b> 규칙이 통과시키므로 여기에 넣을 필요가 없습니다.
+    </div>
+  </section>
+
+  <!-- ───────── 진행 현황 ───────── -->
+  <section class="card hide" id="pProg" role="tabpanel" aria-labelledby="tabProg">
+    <div class="card-h">
+      <h2>팀별 완료 일차 분포</h2><span class="sub">토큰 하나 = 학생 하나</span>
+      <span class="sp"></span>
+      <button class="pri sm" id="btnProgLoad">진행 불러오기</button>
+    </div>
+    <div id="dist" class="dist"><div class="empty">「진행 불러오기」를 누르면 GAS 에서 학생별 진행을 가져옵니다.</div></div>
+    <div class="legend hide" id="distLegend"></div>
+    <div class="msg" id="progMsg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card hide" id="pProg2">
+    <div class="card-h"><h2>학생별 진행</h2><span class="sub">행을 누르면 7일 점수와 NCS 10축이 열립니다</span></div>
+    <div class="tw">
+      <table>
+        <caption class="sr-only">학생별 진행 상황</caption>
+        <thead><tr>
+          <th scope="col">코드</th><th scope="col">팀</th><th scope="col">이름</th>
+          <th scope="col" class="num">현재 일차</th><th scope="col" class="num">완료</th>
+          <th scope="col" class="num">평균 점수</th><th scope="col">마지막 저장</th>
+        </tr></thead>
+        <tbody id="progBody"><tr><td colspan="7" class="empty">아직 불러오지 않았습니다.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+</div><!-- /console -->
+</main>
+
+<footer>© 2026 edmakers · WORK SIM v2 관리자 콘솔</footer>
+
+<!-- ═══════════ 학생 상세 ═══════════ -->
+<dialog id="dlgStu">
+  <div class="dl-h"><b id="stuTitle">학생 진행</b><span class="sp" style="margin-left:auto"></span>
+    <button class="gh sm" id="stuClose">닫기</button></div>
+  <div class="dl-b" id="stuBody"></div>
+  <div class="dl-f">
+    <button class="dang" id="stuReset">진행 초기화</button>
+    <span class="sp"></span>
+    <button class="gh" id="stuClose2">닫기</button>
+  </div>
+</dialog>
+
+<!-- ═══════════ 초기화 확인 ═══════════ -->
+<dialog id="dlgConfirm">
+  <div class="dl-h"><b>진행을 초기화합니다</b></div>
+  <div class="dl-b">
+    <div class="note bad" style="margin-bottom:14px">
+      <b>되돌릴 수 없습니다.</b> 이 학생이 지금까지 쌓은 7일치 결과·점수·NCS·단서가 모두 지워지고
+      <b>1일차부터 다시</b> 시작하게 됩니다. 학생 화면에 남아 있는 사본도 다음 저장 때 함께 덮어써집니다.
+    </div>
+    <div class="kv">
+      <b>코드</b><span class="mono" id="cfCode"></span>
+      <b>팀</b><span id="cfTeam"></span>
+      <b>이름</b><span id="cfName"></span>
+      <b>지울 진행</b><span id="cfWhat"></span>
+    </div>
+    <div class="f">
+      <label for="cfType">확인을 위해 아래 칸에 <b class="mono" id="cfEcho"></b> 를 그대로 입력하세요</label>
+      <input id="cfType" class="mono" autocomplete="off" placeholder="코드를 입력">
+    </div>
+    <div class="msg err" id="cfMsg" role="alert" aria-live="assertive"></div>
+  </div>
+  <div class="dl-f">
+    <button class="gh" id="cfCancel">취소</button>
+    <span class="sp"></span>
+    <button class="dang" id="cfGo" disabled>초기화</button>
+  </div>
+</dialog>
+
+<script src="js/backend.js?v=20260907g"></script>
+<script src="js/backend-url.js?v=20260907g"></script>
+<script src="js/admin.js?v=20260907g"></script>
+</body>
+</html>

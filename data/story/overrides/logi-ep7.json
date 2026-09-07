@@ -1,0 +1,116 @@
+{
+ "ep7": {
+  "criteria": [
+   {
+    "key": "saveMonth",
+    "label": "바꿀 때 월 실제 절감액",
+    "unit": "만 원",
+    "hint": "월 출고량 × (현 단가 − 물량 미달 시 적용 단가)",
+    "answer": "210"
+   },
+   {
+    "key": "breakAdd",
+    "label": "바꿀 때 늘어나는 월 파손",
+    "unit": "건",
+    "hint": "월 출고량 × (신규 업체 파손율 − 현 업체 파손율)",
+    "answer": "294"
+   },
+   {
+    "key": "switchNet",
+    "label": "즉시 전환 첫 달 순부담",
+    "unit": "만 원",
+    "hint": "중도 해지 위약금 − 월 실제 절감액",
+    "answer": "990"
+   }
+  ],
+  "table": [
+   {
+    "frag": 1,
+    "key": "monthOut",
+    "label": "월 출고량",
+    "unit": "건",
+    "answer": "42,000"
+   },
+   {
+    "frag": 1,
+    "key": "sameDayRt",
+    "label": "당일출고 비중",
+    "unit": "%",
+    "answer": "38"
+   },
+   {
+    "frag": 2,
+    "key": "curFee",
+    "label": "현 업체 갱신 단가",
+    "unit": "원",
+    "answer": "2,750"
+   },
+   {
+    "frag": 2,
+    "key": "noticeDay",
+    "label": "계약 갱신 통보 기한",
+    "unit": "일",
+    "answer": "5"
+   },
+   {
+    "frag": 3,
+    "key": "newFee",
+    "label": "신규 업체 제안 단가",
+    "unit": "원",
+    "answer": "2,450"
+   },
+   {
+    "frag": 3,
+    "key": "volCond",
+    "label": "할인 적용 최소 물량",
+    "unit": "건",
+    "answer": "50,000"
+   },
+   {
+    "frag": 3,
+    "key": "missFee",
+    "label": "물량 미달 시 단가",
+    "unit": "원",
+    "answer": "2,700"
+   },
+   {
+    "frag": 4,
+    "key": "breakCur",
+    "label": "현 업체 파손율",
+    "unit": "%",
+    "answer": "1.1"
+   },
+   {
+    "frag": 4,
+    "key": "breakNew",
+    "label": "신규 업체 파손율",
+    "unit": "%",
+    "answer": "1.8"
+   },
+   {
+    "frag": 4,
+    "key": "budgetLeft",
+    "label": "계약에 남은 예산",
+    "unit": "만 원",
+    "answer": "3,400"
+   },
+   {
+    "frag": 5,
+    "key": "penalty",
+    "label": "중도 해지 위약금",
+    "unit": "만 원",
+    "answer": "1,200"
+   },
+   {
+    "frag": 6,
+    "key": "cutoff",
+    "label": "신규 업체 상차 마감",
+    "unit": "시각",
+    "answer": "15:00"
+   }
+  ],
+  "rename": {
+   "서지원 팀장": "김민아 팀장"
+  }
+ }
+}
