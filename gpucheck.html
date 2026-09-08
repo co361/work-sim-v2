@@ -27,11 +27,16 @@
   html,body{margin:0;height:100%}
   body{background:var(--page);color:var(--ink);word-break:keep-all;
     font:14px/1.5 -apple-system,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
-    display:grid;grid-template-rows:auto auto 1fr auto;gap:11px;padding:14px 18px;overflow:hidden}
+    display:grid;grid-template-rows:auto auto 1fr auto;padding:14px 18px;overflow:hidden}
+  /* 경고가 없을 때 #alarm 은 display:none 이라 격자 항목에서 빠진다 —
+     그러면 main 이 auto 칸으로 밀리고 footer 가 1fr 을 먹어 아래가 텅 빈다. 칸을 못박아 둔다.
+     빈 칸에 gap 이 남지 않게 간격은 gap 대신 아래쪽 여백으로 준다. */
+  header{grid-row:1} #alarm{grid-row:2} main{grid-row:3} footer{grid-row:4}
+  header,main{margin-bottom:11px} #alarm.on{margin-bottom:11px}
   button{font:inherit;color:inherit;cursor:pointer}
 
   /* ── 머리말 ── */
-  header{display:flex;align-items:center;gap:12px}
+  header{display:flex;align-items:center;gap:12px;min-width:0}
   header h1{margin:0;font-size:18px;letter-spacing:-.01em}
   header .sub{color:var(--mute);font-size:12.5px}
   header .sp{margin-left:auto}
@@ -109,9 +114,13 @@
   footer.good .tag{color:#fff;background:var(--ok);border-color:var(--ok)}
   footer p{margin:0;font-size:14.5px;line-height:1.7;max-width:104ch}
   footer p b{font-weight:700}
+  footer p a{color:var(--acc-d);font-weight:700;text-decoration:none;border-bottom:2px solid var(--acc-line);
+    padding:1px 2px;border-radius:3px;white-space:nowrap}
+  footer p a:hover{background:var(--acc-soft)}
 
   @media (max-height:720px){
-    body{gap:8px;padding:10px 14px}
+    body{padding:10px 14px}
+    header,main,#alarm.on{margin-bottom:8px}
     .card{padding:11px 13px 12px}
     footer p{font-size:13.5px;line-height:1.6}
     th,td{padding:7px 6px}
@@ -519,7 +528,8 @@ function finish(){
     p = `<b>빈 화면(${n0(e)}fps)과 사무실 수준(${n0(rm)}fps)은 정상인데, 캐릭터 한 명을 넣자 ${n0(ch)}fps 가 됐습니다.</b> 사람 모델 자체가 무겁다는 뜻입니다 — 뼈대가 붙은 메시와 2048×2048 텍스처가 원인이고, 실제 게임에는 이런 사람이 방마다 서너 명씩 들어갑니다. 캐릭터 텍스처 크기를 1024 로 줄이는 쪽을 먼저 검토해야 합니다.`;
   } else if(e != null && rm != null && ch != null){
     tone = 'good'; tag = '여기까지 정상';
-    p = `<b>세 단계 모두 정상입니다(${n0(e)} / ${n0(rm)} / ${n0(ch)}fps).</b> 그래픽카드도 제대로 쓰고 있고, 사무실 한 방 정도의 부하는 이 컴퓨터가 넉넉히 감당합니다. 그렇다면 끊김의 원인은 그리는 일이 아니라 <b>게임이 뒤에서 하는 일</b>입니다 — 처음 들어간 뒤 열 개 팀 방을 전부 미리 만들면서 캐릭터 서른 명분의 큰 텍스처를 메모리에 올리는 구간이 유력합니다. 게임 주소 끝에 <b>?pre=0</b> 을 붙여(예: …/play.html?pre=0) 한 번 더 열어 보시고, 그때도 끊기는지 알려 주세요. 그 한 번으로 원인이 갈립니다.`;
+    p = `<b>세 단계 모두 정상입니다(${n0(e)} / ${n0(rm)} / ${n0(ch)}fps).</b> 그래픽카드도 제대로 쓰고 있고, 사무실 한 방 정도의 부하는 이 컴퓨터가 넉넉히 감당합니다. 그렇다면 끊김의 원인은 그리는 일이 아니라 <b>게임이 뒤에서 하는 일</b>입니다 — 처음 들어간 뒤 열 개 팀 방을 전부 미리 만들면서 캐릭터 서른 명분의 큰 텍스처를 본체 메모리에 쌓는 구간이 유력합니다. 아래 두 주소를 <b>차례로 열어 30초씩만 걸어 보고</b> 어느 쪽이 끊겼는지 알려 주세요. 그 한 번으로 원인이 갈립니다.<br>
+      ① <a href="office.html?team=cs" target="_blank" rel="noopener">지금과 같은 방</a> &nbsp; ② <a href="office.html?team=cs&amp;pre=0" target="_blank" rel="noopener">미리 받기를 끈 방</a> &nbsp;<span style="color:var(--mute);font-weight:400">— ②만 안 끊기면 범인은 미리 받기입니다.</span>`;
   } else {
     tone = ''; tag = '측정 중';
     p = `측정하고 있습니다. 15초 뒤에 이 자리에 판정이 나옵니다. 그동안 이 창을 그대로 두세요.`;
