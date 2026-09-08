@@ -101,9 +101,11 @@ const CAST={
   qc:  [['acnh_27','배정훈 팀장'],['acnh_28','남선임'],['acnh_32','도주임']],
   pr:  [['acnh_40','황서연 팀장'],['acnh_44','진선임'],['acnh_33','표주임']],
   edu: [['acnh_43','문경수 팀장'],['acnh_46','손선임'],['acnh_36','반주임']],
+  /* 44차: 구선임·엄주임을 새로 만든 acnh_47·48 로 교체 — 전에는 acnh_23(물류팀 오대리)·acnh_29(인사팀 홍주임)를
+     색만 바꿔 재사용해 얼굴이 겹쳤다(대표 「다른 사무실에 있어도 동일하게 생기면 안 돼」). 이제 모델 자체가 다르다 */
   buy: [['acnh_37','양지훈 팀장'],
-        ['acnh_23','구선임',{hairCol:'#5a3d2b',hairSide:0.12,hairTop:0.05,skinCol:'#f2c9a4'}],
-        ['acnh_29','엄주임',{hairCol:'#3a2a22',hairBack:0.10,hairTop:0.08}]],
+        ['acnh_47','구선임'],
+        ['acnh_48','엄주임']],
 };
 /* 통행인 — 복도에서만 보인다. 사무실 사람과 겹치지 않게 겉모습을 크게 바꾼다 */
 const PASSER_LOOK=[
@@ -1225,7 +1227,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
    10. 캐릭터 로더 — test.html 의 렌더 파이프라인(데칼·재질·자세)을 함수로 감싼 것. 로직은 그대로 두고 UI 만 뺐다
    ====================================================================== */
 const FACES=['neutral','happy','sad','surprised','angry','blink','talk','wink']; const COLS=4, ROWS=2;
-const FEMALE=/^(acnh_01|acnh_03|acnh_05|acnh_07|acnh_09|acnh_11|acnh_13|acnh_15|acnh_17|acnh_19|acnh_20|acnh_22|acnh_30|acnh_31|acnh_32|acnh_33|acnh_34|acnh_35|acnh_38|acnh_40|acnh_42|acnh_44|acnh_46)$/;
+const FEMALE=/^(acnh_01|acnh_03|acnh_05|acnh_07|acnh_09|acnh_11|acnh_13|acnh_15|acnh_17|acnh_19|acnh_20|acnh_22|acnh_30|acnh_31|acnh_32|acnh_33|acnh_34|acnh_35|acnh_38|acnh_40|acnh_42|acnh_44|acnh_46|acnh_47)$/;   /* 44차: 신규 인물 — acnh_47 여성·acnh_48 남성(기본값) */
 const CHAR_TUNE={ acnh_01:{faceScaleMul:0.85, faceY:0.05}, acnh_20:{faceY:0.02, eyeFrac:0.30, faceScaleMul:1.0}, /* 41차 후속: 앞머리가 오른쪽 눈·눈썹을 덮고 있었다. 눈선을 3cm 내려 앞머리 아래로 뺀다(실측 비교 shots/fix/fy_20_*.jpg) */ acnh_18:{faceY:0.05, eyeFrac:0.45, faceScaleMul:1.0} };
 const ANIMS_ALL={ idle:'idle', walk:'walk', walk2:'walking', sit:'sit', sitdown:'sitdown', standup:'standup', chat:'chat', type2:'type2' };
 /* 41차(대표 「공중에 떠다녀 다리도 안움직이고 귀신같아」): NPC 에 walk 이 없어서 startWalk 의 play('walk') 가 통째로 무시됐다.
