@@ -169,8 +169,12 @@ const GPU_NAME=(()=>{ try{ const c=document.createElement('canvas'); const g=c.g
 /* 내장 그래픽·소프트웨어 렌더러는 처음부터 「보통」에서 시작한다 — 높음으로 시작하면 첫 몇 초가 눈에 띄게 끊긴다 */
 const GPU_WEAK=/Intel.*(HD|UHD)\s*Graphics|Intel.*Iris|Microsoft Basic|SwiftShader|llvmpipe|Mesa/i.test(GPU_NAME);
 const Q_FORCE=QSTEPS.indexOf((Q.get('q')||'').toLowerCase());
-let QLV=(Q_FORCE>=0)?Q_FORCE:(GPU_WEAK?1:0);
-const QAUTO=(Q_FORCE<0);
+/* 44차: 자동 화질 조절을 껐다(대표 지시 「해상도 건드리지마 이거 조절하는거 켜지마」·
+   「너무 안좋아져 화질이」). 기기·프레임을 재서 해상도·그림자를 알아서 낮추던 것이 오히려
+   "몇 초 하다가 갑자기 게임이 안 좋아진다"로 보였다. 이제 ?q= 로 수동 지정했을 때만 그 단계로
+   고정되고, 지정이 없으면 항상 '높음'이다 — 아무것도 자동으로 낮아지지 않는다. */
+let QLV=(Q_FORCE>=0)?Q_FORCE:0;
+const QAUTO=false;
 const QLIGHTS={pend:[],rect:[]};   /* 단계에 따라 껐다 켤 조명들 */
 /* MSAA 는 '높음' 에서만 켠다 — 내장 그래픽에서 MSAA 는 대역폭을 그대로 먹는다.
    렌더러를 만든 뒤에는 못 바꾸므로(재생성 필요) 시작 단계로 결정한다. 내장 그래픽은 '보통'에서 시작 → MSAA 없음 */
@@ -2405,10 +2409,13 @@ function applyQuality(){
   if(typeof sun!=='undefined'&&sun){ sun.castShadow=shadow; const ms=(q==='high')?2048:1024;
     if(sun.shadow.mapSize.x!==ms){ sun.shadow.mapSize.set(ms,ms); if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map=null; } } }
   for(const l of QLIGHTS.pend){ const on=(q==='high')&&PEND_SHADOW; if(l.castShadow!==on){ l.castShadow=on; if(!on&&l.shadow&&l.shadow.map){ l.shadow.map.dispose(); l.shadow.map=null; } } l.shadow.needsUpdate=true; }
-  for(const l of QLIGHTS.rect) l.visible=(q==='high'||q==='mid');
-  /* 최소 단계에서는 환경맵 자체를 뗀다 — 세기만 0 으로 하면 셰이더는 그대로 큐브맵을 샘플링한다 */
-  scene.environment=(q==='min')?null:ENVMAP;
-  scene.environmentIntensity=(q==='high'||q==='mid')?0.3:(q==='low')?0.15:0.0;
+  /* 44차: 화질 단계마다 환경맵·사각광을 껐다 켰다 하면 자동 조절이 내려갈 때 방이 눈에 띄게
+     어두워진다(대표 「몇 초 후 화면이 어두워지더니 화질이 안좋아져」) — 자동 조절이 정상 동작한
+     결과인데도 「게임이 이상해졌다」로 보인다. 밝기는 항상 그대로 두고, 진짜 성능 비용(그림자·
+     해상도)만 단계별로 낮춘다. */
+  for(const l of QLIGHTS.rect) l.visible=true;
+  scene.environment=ENVMAP;
+  scene.environmentIntensity=0.3;
   if(QBOX) QBOX.dataset.q=q;
 }
 /* 자동 조절: 1.5초씩 평균 프레임 시간을 보고 한 칸씩 움직인다.
