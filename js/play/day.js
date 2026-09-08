@@ -72,9 +72,12 @@ async function startDay(ep){ S.ep=ep; S.phase='loading'; $('home').classList.rem
     if(pref&&pref!==P.avatar){ P.avatar=pref; saveProgress(true); }
     if(!P.avatar){ P.avatar=await askAvatar(); setAvatarPref(P.avatar); saveProgress(true); } }
   document.title=`${D.teamName} ${D.ep}화 「${D.title}」`; $('title').innerHTML=''; $('title').appendChild(document.createTextNode(`${D.teamName} ${D.ep}일차`)); const sm=h('small',null,`「${D.title}」 · ${D.date||''}`); $('title').appendChild(sm);
-  if(D.kind==='ep7'){ await stageUp(); $('loading').classList.add('off'); window.__playReady=true; return EP7.start(); }
+  /* 44차: 첫 진입 로딩은 「로딩 중」 대신 조작법 카드로 채운다(js/play/intro.js).
+     카드를 다 보거나 건너뛴 뒤에야 Intro.ready() 가 풀린다 — 방 이동·캐릭터 교체 로딩은 그대로다. */
+  Intro.start();
+  if(D.kind==='ep7'){ await stageUp(); await Intro.ready(); $('loading').classList.add('off'); window.__playReady=true; return EP7.start(); }
   prepareDay(); renderUnlocks(); initRulebook(); initOrg();
-  await stageUp(); $('loading').classList.add('off'); renderClock(); renderCounts(); window.__playReady=true;
+  await stageUp(); await Intro.ready(); $('loading').classList.add('off'); renderClock(); renderCounts(); window.__playReady=true;
   const cur=P.cur; if(cur&&cur.day===ep&&(cur.phase==='work'||cur.phase==='triage')&&Q.get('fresh')!=='1'){ restoreDay(cur); return; }
   P.cur=null; startBriefing(); }
 async function stageUp(){ if(NO_STAGE){ $('stage').style.display='none'; return; } const extra=Object.values(D.npcs||{}).filter(n=>n.seat&&!['lead','senior','chief','staff'].includes(n.seat)).map(n=>`${n.seat}:${n.ch}`).join(',');

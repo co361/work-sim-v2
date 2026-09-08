@@ -29,6 +29,49 @@
   #loading .bar i{display:block;height:100%;width:30%;background:var(--acc);animation:ld 1.2s ease-in-out infinite}
   @keyframes ld{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
   @media (prefers-reduced-motion:reduce){ #loading .bar i{animation:none;width:100%} }
+  /* ── 첫 진입 조작법 카드 (js/play/intro.js · 44차) ──
+     대표 "로딩하는 동안 로딩중이라고 띄우지 말고 게임 플레이 방법 단축키를 하나씩 설명하는 페이지를 띄워".
+     처음 들어올 때만이다 — 방을 옮길 때 로딩(office.html 안)과 캐릭터 교체 로딩은 그대로 「로딩 중」이다.
+     다 봤는데 아직 덜 받았으면 그때 위의 「로딩 중」 한 줄로 돌아간다. */
+  #loading.tut{gap:0}
+  #loading.tut>.t,#loading.tut>.bar{display:none}
+  #tut{width:min(620px,92vw);display:flex;flex-direction:column;gap:12px}
+  #tut[hidden]{display:none}
+  .tutHd{display:flex;align-items:center;gap:8px}
+  .tutHd .tag{font-size:12px;font-weight:700;color:var(--acc);background:var(--acc-soft);border:1px solid var(--acc-line);border-radius:999px;padding:3px 10px}
+  .tutHd .no{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+  .tutHd .btn{margin-left:auto;padding:6px 13px;font-size:12px}
+  .tutCard{background:#fff;border:1px solid var(--line);border-radius:20px;
+    box-shadow:0 1px 2px rgba(20,30,45,.05),0 14px 36px rgba(20,30,45,.10);
+    padding:24px 30px 26px;min-height:212px;display:flex;flex-direction:column;gap:13px}
+  .tutKeys{display:flex;flex-wrap:wrap;align-items:center;gap:7px;min-height:42px}
+  .tutKeys .sep{color:var(--mute);font-size:13px;padding:0 1px}
+  /* 키캡 — 실제 키처럼 아랫변을 두껍게 준다 */
+  kbd.k{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:40px;padding:0 11px;
+    background:#fff;border:1px solid var(--line2);border-bottom-width:3px;border-radius:10px;
+    font-family:inherit;font-weight:700;font-size:15px;line-height:1;color:var(--ink);box-shadow:0 1px 0 rgba(20,30,45,.05)}
+  kbd.k.acc{background:var(--acc);border-color:var(--acc-d);color:#fff}
+  kbd.k.wide{padding:0 15px;font-size:13px}
+  .tutCard h3{margin:0;font-size:21px;line-height:1.35;letter-spacing:-.01em}
+  .tutCard p{margin:0;font-size:15.5px;line-height:1.8;color:var(--mute)}
+  .tutCard p b{color:var(--ink);font-weight:700}
+  .tutIn{animation:tutIn .3s ease-out}
+  @keyframes tutIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .tutFt{display:flex;align-items:center;gap:10px}
+  .tutDots{display:flex;gap:6px;align-items:center}
+  .tutDots i{display:block;width:7px;height:7px;border-radius:999px;background:var(--line2)}
+  .tutDots i.seen{background:var(--acc-lite)}
+  .tutDots i.on{width:26px;background:var(--acc-lite);position:relative;overflow:hidden}
+  .tutDots i.on::after{content:'';position:absolute;inset:0;width:0;background:var(--acc);animation:tutFill var(--tutms,5200ms) linear forwards}
+  .tutDots.noauto i.on::after{animation:none;width:100%}
+  @keyframes tutFill{to{width:100%}}
+  #tutNext{margin-left:auto;min-width:100px;text-align:center}
+  .tutLoad{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--mute);min-height:18px}
+  .tutLoad i{width:12px;height:12px;border-radius:50%;border:2px solid var(--acc-line);border-top-color:var(--acc);animation:tutSpin .8s linear infinite}
+  .tutLoad.ok{color:var(--ok)} .tutLoad.ok i{display:none}
+  @keyframes tutSpin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){ .tutIn{animation:none} .tutDots i.on::after{animation:none;width:100%} .tutLoad i{animation:none} }
+  @media (max-width:520px){ .tutCard{padding:20px 18px 22px;min-height:196px} .tutCard h3{font-size:19px} .tutCard p{font-size:14.5px;line-height:1.75} }
   /* ── 홈(개인 코드 입장) ── */
   #home{position:fixed;inset:0;z-index:60;background:var(--page);overflow:auto;display:none}
   #home.open{display:block}
@@ -297,7 +340,8 @@
   .box{position:relative;background:#fff;border:1px solid var(--line2);border-radius:var(--r);
     padding:18px 20px;margin-top:12px;overflow:hidden;
     box-shadow:0 1px 2px rgba(20,30,45,.05),0 8px 24px rgba(20,30,45,.05)}
-  .box::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--bc,var(--acc))}
+  /* 43차: 왼쪽 세로 줄을 걷었다(대표 「촌스러워」). 상자 구분은 테두리와 그림자로 충분하다.
+     제목 앞 점만 남겨 상자마다 무엇인지 색으로 구분한다. */
   .box h3{margin:0 0 12px;font-size:14px;font-weight:800;color:var(--ink);letter-spacing:.03em;
     display:flex;align-items:center;gap:8px}
   .box h3::before{content:'';width:6px;height:6px;border-radius:2px;background:var(--bc,var(--acc));flex:none}
@@ -489,9 +533,18 @@
 </head>
 <body>
 <iframe id="stage" title="사무실" allow="autoplay"></iframe>
-<!-- 로딩 화면은 「로딩 중」 한 줄이다. #loadMsg 는 평소에 비어 있고(:empty 로 접힌다)
+<!-- 로딩 화면. 첫 진입에는 #tut(조작법 카드)가 대신 뜨고, 카드를 다 보거나 건너뛰면
+     아래 「로딩 중」 한 줄로 돌아간다. #loadMsg 는 평소에 비어 있고(:empty 로 접힌다)
      불러오기가 실패했을 때만 까닭을 적는다 — 진행 문구는 콘솔에만 남긴다. -->
-<div id="loading"><div class="t">로딩 중</div><div class="bar"><i></i></div><div class="s" id="loadMsg"></div><button class="btn" id="loadBack" type="button" style="display:none">홈으로</button></div>
+<div id="loading">
+  <div id="tut" hidden aria-live="polite">
+    <div class="tutHd"><span class="tag">조작법</span><span class="no"><b id="tutNo">1</b> / <span id="tutAll">6</span></span><button class="btn" id="tutSkip" type="button">건너뛰기</button></div>
+    <div class="tutCard" id="tutCard"></div>
+    <div class="tutFt"><div class="tutDots" id="tutDots"></div><button class="btn pri" id="tutNext" type="button">다음</button></div>
+    <div class="tutLoad" id="tutLoad"><i></i><span id="tutLoadTx">사무실을 준비하는 중…</span></div>
+  </div>
+  <div class="t">로딩 중</div><div class="bar"><i></i></div><div class="s" id="loadMsg"></div><button class="btn" id="loadBack" type="button" style="display:none">홈으로</button>
+</div>
 
 <div id="home"><div class="wrap">
   <h1>WORK SIM — 첫 일주일</h1>
@@ -618,6 +671,7 @@ window.__backendReady=fetch('js/backend.js',{method:'HEAD'}).then(r=>{ if(!r.ok)
 <script src="js/desk/telapp.js?v=20260907g"></script>
 <script src="js/desk/deskapp.js?v=20260907g"></script>
 <script src="js/play/core.js?v=20260907g"></script>
+<script src="js/play/intro.js?v=20260908a"></script>
 <script src="js/play/grade.js?v=20260907g"></script>
 <script src="js/play/cards.js?v=20260907g"></script>
 <script src="js/play/day.js?v=20260907g"></script>
