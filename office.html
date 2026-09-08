@@ -174,7 +174,12 @@ const QAUTO=(Q_FORCE<0);
 const QLIGHTS={pend:[],rect:[]};   /* 단계에 따라 껐다 켤 조명들 */
 /* MSAA 는 '높음' 에서만 켠다 — 내장 그래픽에서 MSAA 는 대역폭을 그대로 먹는다.
    렌더러를 만든 뒤에는 못 바꾸므로(재생성 필요) 시작 단계로 결정한다. 내장 그래픽은 '보통'에서 시작 → MSAA 없음 */
-const renderer=new THREE.WebGLRenderer({antialias:QLV===0,powerPreference:'high-performance'});
+/* 44차: antialias 는 렌더러를 만들 때 한 번 정해지면 그 뒤로는 못 바꾼다(다른 화질 설정과 달리
+   qualityTick 이 실시간으로 못 끄고 못 켠다). 예전엔 GPU_WEAK(Intel 내장 등)이면 처음부터 꺼서
+   계단현상이 심하게 보였다(대표 「화질이 기존에 비해 많이 안좋아, 계단현상이 엄청 심해」).
+   드로우콜을 742→252로 줄였으니 그 비용은 이미 감당 가능한 수준이라 항상 켠다 —
+   느리면 픽셀비율·그림자·환경맵처럼 실시간으로 조절되는 다른 항목이 대신 낮아진다. */
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
 document.body.appendChild(renderer.domElement);
