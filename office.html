@@ -1473,7 +1473,8 @@ let ASSET_SET=null;   /* assets/ 목록(serve.py 디렉토리 인덱스)을 한 
    안 되면 배포 스크립트가 만들어 두는 assets/_list.json, 그것도 없으면 파일마다 HEAD 로 떨어진다. */
 let ASSET_P=null;   /* 43차: 캐릭터를 동시에 불러오면 목록을 사람 수만큼 받았다 → 진행 중인 약속을 공유 */
 async function assetExists(name){ if(ASSET_SET===null){ await (ASSET_P||(ASSET_P=(async()=>{
-    try{ const r=await fetch('assets/'); if(!r.ok) throw 0; const t=await r.text();
+    try{ if(/\.github\.io$/.test(location.hostname)) throw 0;   /* 45차 배포 검사: GitHub Pages 에는 목록이 없어 이 요청이 라이브 콘솔에 404 오류 1건을 남겼다 → 바로 _list.json 으로 */
+         const r=await fetch('assets/'); if(!r.ok) throw 0; const t=await r.text();
          const set=new Set([...t.matchAll(/href="([^"]+)"/g)].map(m=>decodeURIComponent(m[1])));
          if(set.size) ASSET_SET=set; }catch(e){}
     if(ASSET_SET===null){ try{ const r=await fetch('assets/_list.json'); if(r.ok) ASSET_SET=new Set(await r.json()); }catch(e){} }

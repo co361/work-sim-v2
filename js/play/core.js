@@ -112,7 +112,8 @@ function playerChar(g){ if(g!=='f') return 'acnh_25'; if(PLAYER_F) return PLAYER
 function checkOfficeCast(O){ if(checkOfficeCast.done||!O||!O.CAST) return; checkOfficeCast.done=true;
   const bad=[]; for(const [t,list] of Object.entries(O.CAST)){ const a=list.map(x=>x[0]).join(','), b=(OFFICE_CAST[t]||[]).join(','); if(a!==b) bad.push(`${t}: office ${a} / core ${b}`); }
   if(bad.length) console.warn('[core.js] OFFICE_CAST 가 office.html CAST 와 다릅니다 — 같이 고치세요\n'+bad.join('\n')); }
-function avatarPic(ch){ const m=/^acnh_(\d+)$/.exec(String(ch||'')); if(!m||+m[1]<AVATAR_MIN||+m[1]>AVATAR_HAVE_MAX) return ''; return 'assets/home/w/av_c'+m[1]+'.png'; }
+function avatarPic(ch){ if(ch&&ch===PLAYER_F&&!(+String(ch).slice(5)<=AVATAR_HAVE_MAX)){ const mine=new Set(OFFICE_CAST[S.team]||[]); ch=FEMALE_FALLBACK.find(c=>!mine.has(c))||FEMALE_FALLBACK[0]; }   /* 45차 배포 검사: 여성 전용 모델(49) 그림이 아직 없으면 3D 가 대신 쓰는 모델 그림으로(전에는 캐릭터 고르기·대화창에 🙂) */
+  const m=/^acnh_(\d+)$/.exec(String(ch||'')); if(!m||+m[1]<AVATAR_MIN||+m[1]>AVATAR_HAVE_MAX) return ''; return 'assets/home/w/av_c'+m[1]+'.png'; }
 /* 이 기기에 남는 선호값 — 소개 페이지에서 바꾼 것을 게임이 따라간다 */
 function avatarPref(){ try{ return localStorage.getItem('ws7.avatar')||''; }catch(e){ return ''; } }
 function setAvatarPref(g){ try{ localStorage.setItem('ws7.avatar',g); }catch(e){} }
