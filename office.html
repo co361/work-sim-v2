@@ -1378,7 +1378,8 @@ function gatherSpots(toId,n){ const S0=SEATS&&SEATS[toId]; if(!S0||!S0.wp) retur
   const out=[]; for(const [lx,lz] of cand){ if(out.length>=n) break; const w=S0.wp(lx,0,lz); if(!free(w.x,w.z)) continue; out.push({x:w.x,z:w.z}); taken.push({x:w.x,z:w.z}); }
   return out; }
 function npcWalkPoint(c,x,z){ const from=nearestNode(c.model.position.x,c.model.position.z), to=nearestNode(x,z);
-  return startWalk(c,from===to?[to]:route(from,to),1.0).then(()=>new Promise(res=>{ if(c.seat&&c.standUp) c.standUp();
+  const keys=(from===to)?[to]:route(from,to);
+  return startWalk(c,(keys&&keys.length)?keys:[to],1.0).then(()=>new Promise(res=>{ if(c.seat&&c.standUp) c.standUp();
     WALKS.push({c,path:[{x:c.model.position.x,z:c.model.position.z},{x,z}],i:1,speed:1.0,onArrive:res}); c.mode='walk'; c.play('walk',{fade:0.2}); })); }
 async function gather(ids,toId){ toId=toId||'lead'; const S0=SEATS&&SEATS[toId]; if(!S0||!CUR||CUR===CORRIDOR) return [];
   const people=[]; for(const id of [].concat(ids||[])){ if(!id||id===toId) continue;
@@ -1388,7 +1389,9 @@ async function gather(ids,toId){ toId=toId||'lead'; const S0=SEATS&&SEATS[toId];
   people.forEach((g,i)=>{ const sp=spots[i]; if(!sp) return; const c=g.c; c.ai=c.ai||{next:0,busy:false,talking:false,why:''};
     c.ai.busy=true; c.ai.why='팀장 자리에 모임'; NPCAI.movers++; const rec={id:g.id,c,spot:sp,back:false}; GATHER.list.push(rec);
     walks.push((async()=>{ try{ if(c.seat) await c.standUp(); c.clearSeatOffset&&c.clearSeatOffset(); if(rec.back) return;
-        await npcWalkPoint(c,sp.x,sp.z); if(rec.back||rec.snapped) return;
+        /* 걷기가 사람·가구 사이에서 제자리걸음으로 막히는 경우가 있다(좁은 섬 옆) — 10초 안에 못 오면 그 자리에 세운다 */
+        await Promise.race([npcWalkPoint(c,sp.x,sp.z),waitSim(10)]); if(rec.back||rec.snapped) return;
+        if(Math.hypot(c.model.position.x-sp.x,c.model.position.z-sp.z)>0.3){ cancelWalks(c); c.standAt(sp.x,sp.z,c.model.rotation.y); }
         const hd=headOf(S0.occupant||c), ls=STATIONS[toId==='lead'?'lead_front':toId+'_side']; const tgt=new THREE.Vector3(); hd.getWorldPosition(tgt); if(ls){ tgt.x=(tgt.x+ls.x)/2; tgt.z=(tgt.z+ls.z)/2; }
         faceTo(c,tgt); c.mode='idle'; c.play('idle',{fade:0.2}); rec.arrived=true;
       }catch(e){ log('모이기 오류',(e&&e.message)||e); } return g.id; })()); });
@@ -1404,7 +1407,10 @@ function gatherSnap(){ const S0=null; let n=0;
     c.standAt(rec.spot.x,rec.spot.z,Math.atan2(tgt.x-rec.spot.x,tgt.z-rec.spot.z)); c.mode='idle'; c.play('idle',{fade:0.1}); rec.arrived=true; n++; }
   return n; }
 async function ungather(){ const list=GATHER.list.splice(0); await Promise.all(list.map(async rec=>{ const c=rec.c, seat=c.homeSeat; rec.back=true;
-  try{ if(CUR&&CUR.chars&&CUR.chars.indexOf(c)>=0&&seat){ await npcWalk(c,seatStationOf(seat.id)); } }catch(e){ log('모이기 복귀 오류',(e&&e.message)||e); }
+  /* npcWalk 는 가장 가까운 노드가 목적지 자신이면 경로가 비어 걷기 표시(walk)만 남기고 영영 끝나지 않았다(검사에서 최주임이 선 채로 멈춤).
+     점까지 걷기(npcWalkPoint)로 가고, 10초 안에 못 가면 자리에 바로 앉힌다 */
+  try{ if(CUR&&CUR.chars&&CUR.chars.indexOf(c)>=0&&seat){ const st=STATIONS[seatStationOf(seat.id)];
+      if(st){ cancelWalks(c); await Promise.race([npcWalkPoint(c,st.x,st.z),waitSim(10)]); cancelWalks(c); } } }catch(e){ log('모이기 복귀 오류',(e&&e.message)||e); }
   try{ if(seat){ evictSeat(seat,c); c.model.rotation.y=seat.ry; c.sitAt(seat,false); } }catch(e){}
   if(c.ai){ c.ai.busy=false; c.ai.why=''; c.ai.next=SIM_T+rnd(20,50); } NPCAI.movers=Math.max(0,NPCAI.movers-1); }));
   return true; }
@@ -2538,9 +2544,12 @@ function talkShot(npc,out,aim){
        머리(반지름 0.24)·어깨·엉덩이 점을 그 후보 카메라로 투영한 상자 넓이 — 실제보다 조금 크게 잡힌다(보수적) */
     const aimOf=(c,out2)=>{ out2.set(_th.x,_th.y+TALK_EYE,_th.z); aimLift(_tq,out2); return out2; };
     /* 플레이어 몸 표본 — 스킨 정점 약 300개를 몸 로컬로 잡아, 도착할 자리(talkGoal)에서 상대를 바라본 자세로 옮겨 둔다 */
-    const pv=[]; { let sk=null; PLAYER.model.traverse(o=>{ if(o.isSkinnedMesh&&!sk) sk=o; });
-      if(sk){ const pos=sk.geometry.attributes.position, step=Math.max(1,Math.floor(pos.count/1200)), v=new THREE.Vector3(), m=PLAYER.model, ry0=m.rotation.y;
-        const gx=RIG.talkGoal?RIG.talkGoal.x:m.position.x, gz=RIG.talkGoal?RIG.talkGoal.z:m.position.z, ry1=Math.atan2(_th.x-gx,_th.z-gz), dr=ry1-ry0, cs=Math.cos(dr), sn=Math.sin(dr);
+    /* 45차 후속: 첫 스킨 메시(몸)만 보던 것을 **모든 스킨 메시**(머리카락 포함)로 — 머리카락이 빠져 어림이 작게 나와 내 뒷머리가 화면 3~4할을 덮는 구도가 뽑혔다(라이브 live_04) */
+    const pv=[]; { const sks=[]; PLAYER.model.traverse(o=>{ if(o.isSkinnedMesh&&o.visible!==false) sks.push(o); });
+      const m=PLAYER.model, ry0=m.rotation.y;
+      const gx=RIG.talkGoal?RIG.talkGoal.x:m.position.x, gz=RIG.talkGoal?RIG.talkGoal.z:m.position.z, ry1=Math.atan2(_th.x-gx,_th.z-gz), dr=ry1-ry0, cs=Math.cos(dr), sn=Math.sin(dr);
+      const total=sks.reduce((a,k)=>a+k.geometry.attributes.position.count,0)||1, v=new THREE.Vector3();
+      for(const sk of sks){ const pos=sk.geometry.attributes.position, step=Math.max(1,Math.floor(total/1400));
         for(let i=0;i<pos.count;i+=step){ v.fromBufferAttribute(pos,i); sk.applyBoneTransform(i,v); v.applyMatrix4(sk.matrixWorld); const lx=v.x-m.position.x, lz=v.z-m.position.z;
           pv.push(new THREE.Vector3(gx+lx*cs+lz*sn, v.y, gz-lx*sn+lz*cs)); } } }
     const cover=(c)=>{ _tcam.fov=camera.fov; _tcam.aspect=camera.aspect; _tcam.near=0.05; _tcam.updateProjectionMatrix(); _tcam.position.copy(_tq); _tcam.lookAt(aimOf(c,_tv)); _tcam.updateMatrixWorld(true);
@@ -2578,9 +2587,10 @@ function aimLift(cam,aim){ _al.copy(aim).sub(cam); const d=_al.length()||1; _al.
   _au.set(0,1,0).addScaledVector(_al,-_al.y); const ul=_au.length()||1; _au.divideScalar(ul);
   aim.addScaledVector(_au,-d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*0.30); }
 /* 검사용: 플레이어가 지금 화면을 덮는 비율(스킨 정점 약 600개를 투영해 32×20 격자 칸을 센다) */
-function playerScreenCover(){ if(!PLAYER) return 0; let sk=null; PLAYER.model.traverse(o=>{ if(o.isSkinnedMesh&&!sk) sk=o; }); if(!sk) return 0;
-  const pos=sk.geometry.attributes.position, step=Math.max(1,Math.floor(pos.count/2500)), v=new THREE.Vector3(), cells=new Set(); camera.updateMatrixWorld(true);
-  for(let i=0;i<pos.count;i+=step){ v.fromBufferAttribute(pos,i); sk.applyBoneTransform(i,v); v.applyMatrix4(sk.matrixWorld); v.project(camera); if(v.z>1||Math.abs(v.x)>1||Math.abs(v.y)>1) continue; cells.add(Math.floor((v.x+1)/2*24)+','+Math.floor((v.y+1)/2*15)); }
+function playerScreenCover(){ if(!PLAYER) return 0; const sks=[]; PLAYER.model.traverse(o=>{ if(o.isSkinnedMesh&&o.visible!==false) sks.push(o); }); if(!sks.length) return 0;
+  const v=new THREE.Vector3(), cells=new Set(); camera.updateMatrixWorld(true);
+  for(const sk of sks){ const pos=sk.geometry.attributes.position, step=Math.max(1,Math.floor(pos.count/2500));
+    for(let i=0;i<pos.count;i+=step){ v.fromBufferAttribute(pos,i); sk.applyBoneTransform(i,v); v.applyMatrix4(sk.matrixWorld); v.project(camera); if(v.z>1||Math.abs(v.x)>1||Math.abs(v.y)>1) continue; cells.add(Math.floor((v.x+1)/2*24)+','+Math.floor((v.y+1)/2*15)); } }
   return +(cells.size/360).toFixed(3); }
 /* 계약(play.html 대화창이 닫힐 때 부른다 — 이름 바꾸지 말 것): 카메라를 원래 시점으로 부드럽게 되돌리고 상대의 talking 을 푼다 */
 function endTalk(){ const npc=RIG.talk; talkCam(null,false);

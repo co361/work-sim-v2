@@ -145,6 +145,13 @@
      못 잡으면(다른 방·자리 없는 동기) 얼굴 카메라를 잠깐 풀어 **어떤 얼굴도 이름표와 어긋나지 않게** 하고 대화창 사진으로 누구인지 보인다.
      화자가 바뀔 때마다 끊어서 붙인다(rig snap). */
   function speakerSeat(who) { const n = normName(who); if (sess && n === sess.name && sess.seat) return sess.seat; const info = npcInfo(n); return (info && info.seat) || null; }
+  /* 카메라를 다른 사람으로 옮겨야 하는 줄인데 내가 아직 말 거는 자리로 걸어가는 중이면(talkApproach) 멈출 때까지 잠깐 기다린다(최대 3초) —
+     걷는 도중에 구도를 고르면 도착한 내 몸이 카메라 앞을 막았다(flow_04: 내 뒷머리가 화면 4할) */
+  function waitStill(item, fn) {
+    const s = (item.sess && item.sess.cam) ? item.sess : (sess && sess.cam ? sess : null); const O = O3();
+    if (!s || !O || item.me || !item.who || speakerSeat(item.who) === camSeat) { fn(); return; }
+    const t0 = Date.now(); const tick = () => { let w = false; try { w = !!O.walking; } catch (e) {} if (w && Date.now() - t0 < 3000) { setTimeout(tick, 100); return; } fn(); }; tick();
+  }
   function aimAt(item) {
     /* 판 밖에서 끼어든 줄(다른 사람의 반응 등)도 얼굴 카메라가 켜진 판이 있으면 같은 규칙 — 카메라가 다른 사람 얼굴에 머물지 않게 */
     const s = (item.sess && item.sess.cam) ? item.sess : (sess && sess.cam ? sess : null); if (!s || s.closed || item.me || !item.who) return;
@@ -198,7 +205,7 @@
     item.seq = ++seq;
     const hasOpts = !!(item.options && item.options.length);
     jobs++;
-    const run = () => new Promise((done) => {
+    const run = () => new Promise((done) => { waitStill(item, () => {
       if (item.seq <= flushTo || (item.sess && item.sess.closed)) { done(hasOpts ? -1 : undefined); return; }
       openBox(); aimAt(item); paint(item);
       if (!item.me && item.text && !(item.options && item.options.length)) lastLine = { name: item.who, text: String(item.text), at: Date.now() };
@@ -215,7 +222,7 @@
       if (hasOpts) { if (item.timeLimit) showing.timer = setTimeout(() => end(-1), item.timeLimit * 1000); }
       else if (item.ms) showing.timer = setTimeout(() => end(), item.ms);
       if (item.onShow) { try { item.onShow(end); } catch (e) {} }
-    });
+    }); });
     const p = chain.then(run, run);
     chain = p.then(() => {}, () => {});
     return p.then((v) => { jobs--; maybeClose(); return v; }, () => { jobs--; maybeClose(); return hasOpts ? -1 : undefined; });
@@ -248,7 +255,7 @@
       /* 3D 는 talkView 를 켠 뒤 25초가 지나면 카메라를 스스로 푼다(갇히지 않게). 대화가 길어지면 다시 붙잡는다 */
       s.camKeep = setInterval(() => { if (sess === s && !s.closed && camSeat) camIn(camSeat); }, 12000);
     }
-    if (s.hold) openBox();
+    /* 창은 첫 줄이 뜰 때 연다 — 말 거는 자리로 걸어가는 동안(waitStill) 빈 대화창이 먼저 뜨지 않게 */
     return s;
   }
   async function end(s) {
@@ -746,7 +753,7 @@
     end: end,
     stage: stage,
     idle: idle,
-    isOpen: () => boxOpen || !!showing,
+    isOpen: () => boxOpen || !!showing || !!(sess && sess.hold && !sess.closed),   /* 창이 열리기 전(말 거는 자리로 걸어가는 중)도 대화 중이다 */
     close: close,
     onSay: onSay,
     onChoose: onChoose,
