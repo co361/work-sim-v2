@@ -86,10 +86,23 @@
 
   /* ---------- 얼굴 ----------
      사진 경로는 core.js avatarPic(av_cNN.png · 17~AVATAR_HAVE_MAX). 파일이 지워졌으면 onerror 로 이모지에 물러선다. */
+  /* 오늘 데이터에 없는 사람(예: 다른 팀 방에 있는 「총무팀 최주임」)도 3D 배역표(CAST)에서 얼굴을 찾는다 — 카메라가 얼굴을 못 잡는 줄에서 사진으로 누구인지 보이게 */
+  function chOf(name) {
+    const info = npcInfo(name); if (info && info.ch) return info.ch;
+    const O = O3(); const cast = O && O.CAST; if (!cast) return '';
+    const raw = String(name || '').replace(/\s*\(.*?\)\s*/g, '').trim();
+    let team = null, nm = raw;
+    for (const [k, v] of Object.entries(TEAM_NAMES || {})) { if (raw.startsWith(v)) { team = k; nm = raw.slice(v.length).trim(); break; } }
+    const hit = (list) => (list || []).find((x) => x && x[1] && (x[1] === nm || x[1].replace(/\s*팀장$/, '') === nm));
+    if (team && hit(cast[team])) return hit(cast[team])[0];
+    const all = Object.values(cast).map((l) => hit(l)).filter(Boolean);
+    return all.length === 1 ? all[0][0] : '';
+  }
   function faceOf(name) {
     const box = T.face(); box.innerHTML = '';
     const info = npcInfo(name);
-    const src = info && info.ch ? avatarPic(info.ch) : '';
+    const ch = chOf(name);
+    const src = ch ? avatarPic(ch) : '';
     if (src) { const im = document.createElement('img'); im.alt = ''; im.onerror = () => { if (im.parentNode === box) box.textContent = emojiFor(name, info); }; im.src = src; box.appendChild(im); return; }
     box.textContent = emojiFor(name, info);
   }
@@ -126,6 +139,26 @@
   }
   function maybeClose() { setTimeout(() => { if (!jobs && !showing && !(sess && sess.hold)) closeBox(); }, 0); }
 
+  /* ---------- 말하는 사람 얼굴로(45차 후속) ----------
+     대표 지적: 브리핑에서 최주임·사수 대사가 **팀장 얼굴 위**에 나왔다(이름표만 맞고 얼굴은 팀장).
+     얼굴 카메라가 켜진 대화 판에서는 줄마다 말하는 사람을 잡는다 — 3D 에서 그 사람을 잡을 수 있으면 talkView(그 사람 자리),
+     못 잡으면(다른 방·자리 없는 동기) 얼굴 카메라를 잠깐 풀어 **어떤 얼굴도 이름표와 어긋나지 않게** 하고 대화창 사진으로 누구인지 보인다.
+     모여 선 사람(gather)·대화 상대끼리는 부드럽게 옮기고, 멀리 앉은 사람으로 갈 때는 끊어서 붙인다(rig snap). */
+  function speakerSeat(who) { const n = normName(who); if (sess && n === sess.name && sess.seat) return sess.seat; const info = npcInfo(n); return (info && info.seat) || null; }
+  function aimAt(item) {
+    /* 판 밖에서 끼어든 줄(다른 사람의 반응 등)도 얼굴 카메라가 켜진 판이 있으면 같은 규칙 — 카메라가 다른 사람 얼굴에 머물지 않게 */
+    const s = (item.sess && item.sess.cam) ? item.sess : (sess && sess.cam ? sess : null); if (!s || s.closed || item.me || !item.who) return;
+    const O = O3(); if (!O) return;
+    const seat = speakerSeat(item.who);
+    if (seat && seat === camSeat) return;
+    const near = (x) => !!x && (x === s.seat || (s.gathered || []).includes(x));
+    if (seat) {
+      let ok = false; try { ok = typeof O.talkView === 'function' && O.talkView(seat, true) !== false; } catch (e) {}
+      if (ok) { const cut = !(near(seat) && near(camSeat)); camSeat = seat; if (cut) { try { if (typeof O.rig === 'function') O.rig({}); } catch (e) {} } return; }
+    }
+    if (camSeat) { try { if (typeof O.endTalk === 'function') O.endTalk(); if (typeof O.setControl === 'function') O.setControl(false); } catch (e) {} camSeat = null; }
+  }
+
   /* 한 장 그리기 — item {who, role, text, options[], timeLimit, me, keep} */
   function paint(item) {
     const box = T.box();
@@ -133,7 +166,8 @@
     box.classList.toggle('choosing', hasOpts);
     box.classList.toggle('me', !!item.me);
     /* 얼굴 카메라가 잡은 사람이 말할 때는 작은 사진을 숨긴다(얼굴은 위에 있다). 다른 사람의 줄(브리핑의 사수 등)이면 사진으로 누구인지 보인다 */
-    box.classList.toggle('cam', !!camSeat && (!!item.me || !sess || normName(item.who) === sess.name));
+    /* 작은 사진은 **말하는 사람의 얼굴이 화면에 잡혀 있을 때만** 숨긴다. 내 줄·얼굴을 못 잡은 사람의 줄은 사진으로 누구인지 보인다 */
+    box.classList.toggle('cam', !!camSeat && !item.me && speakerSeat(item.who) === camSeat);
     if (!item.keep) {
       if (item.me) faceOfMe(); else if (/^전화/.test(item.role || '') && !npcInfo(item.who)) T.face().textContent = '☎'; else faceOf(item.who);
       T.name().textContent = item.who || '';
@@ -166,7 +200,7 @@
     jobs++;
     const run = () => new Promise((done) => {
       if (item.seq <= flushTo || (item.sess && item.sess.closed)) { done(hasOpts ? -1 : undefined); return; }
-      openBox(); paint(item);
+      openBox(); aimAt(item); paint(item);
       if (!item.me && item.text && !(item.options && item.options.length)) lastLine = { name: item.who, text: String(item.text), at: Date.now() };
       let fin = false;
       const end = (v) => {
@@ -352,6 +386,7 @@
       const heard = (pending[name] || []).splice(0); delete pending[name]; delete noticed[name]; refresh();
       /* 부르기(브리핑·마무리) — 한 줄씩 다 듣고 대화를 닫은 뒤 onHeard(시계 시작·결과 화면). Esc 로 끊으면 못 들은 줄은 다시 쌓는다 */
       if (heard.some((x) => x.call)) {
+        const tk = heard.find((x) => x.token && x.token.gathered && x.token.gathered.length); s.gathered = tk ? tk.token.gathered : [];
         for (let i = 0; i < heard.length; i++) {
           const it = heard[i];
           if (s.closed) { const back = heard.slice(i); pending[name] = back.concat(pending[name] || []); noticed[name] = true; refresh(); break; }
@@ -623,7 +658,7 @@
      돌려주는 cancel() — 자동 플레이처럼 듣지 않고 넘어갈 때 쌓인 말과 알림을 걷는다. */
   function call(name, lines, opts) {
     name = normName(name); opts = opts || {};
-    const token = { name, done: false, remind: null };
+    const token = { name, done: false, remind: null, gathered: [].concat(opts.gathered || []) };
     const items = (lines || []).filter((l) => l && l.text).map((l) => ({ text: String(l.text), who: normName(l.who || name), role: l.role, call: true, token }));
     if (!name || !items.length) { token.done = true; if (opts.onHeard) { try { opts.onHeard(); } catch (e) { console.warn(e); } } return { cancel() {}, heard: () => true }; }
     items[items.length - 1].onHeard = opts.onHeard || null;

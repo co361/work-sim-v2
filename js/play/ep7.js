@@ -32,12 +32,14 @@ window.EP7=(function(){
     const L=(D.dialog&&D.dialog.briefing)||[];
     const gate=(!resumed&&L.length&&byT()&&typeof briefGate==='function')?briefGate(L):null;
     if(gate){ S.phase='briefing'; S.briefT=true;
-      briefCallE=Talk.call(gate,L.map(l=>({who:l.who,text:l.text,role:l.role})),{
+      /* 45차 후속: 말하는 사람들이 팀장 둘레로 모이고(day.js briefGatherStart), 대화창이 줄마다 그 사람 얼굴을 잡는다 */
+      const gathered=(typeof briefGatherStart==='function')?briefGatherStart(L,gate):[];
+      briefCallE=Talk.call(gate,L.map(l=>({who:l.who,text:l.text,role:l.role})),{ gathered,
         notice:`${gate}님이 부르세요. 자리로 가서 T 로 이야기를 들어요. (들어야 결정 화면이 열려요)`, remind:30000,
-        onHeard:()=>{ briefCallE=null; if(S.phase==='briefing') openPanel(); } });
+        onHeard:()=>{ briefCallE=null; if(typeof ungatherBrief==='function') ungatherBrief(); if(S.phase==='briefing') openPanel(); } });
       return; }
     openPanel(); }
-  function heardBrief(){ if(briefCallE){ briefCallE.cancel(); briefCallE=null; } if(S.phase==='briefing'&&E) openPanel(); }
+  function heardBrief(){ if(briefCallE){ briefCallE.cancel(); briefCallE=null; } if(typeof ungatherBrief==='function') ungatherBrief(); if(S.phase==='briefing'&&E) openPanel(); }
   function snapshot(){ return {form:JSON.parse(JSON.stringify(F)),pre:preRes}; }
   /* 칸을 채울 때마다(0.8초 뒤) 진행을 저장한다 — 탭을 옮기지 않고 새로고침해도 쓴 것이 남게 */
   let bumpTm=null; function bump(){ clearTimeout(bumpTm); bumpTm=setTimeout(()=>{ try{ saveProgress(); }catch(e){} },800); }

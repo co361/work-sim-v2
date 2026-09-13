@@ -1359,6 +1359,46 @@ async function npcScripted(c,stKey,stay){
   try{ evictSeat(seat,c); c.model.rotation.y=seat.ry; c.sitAt(seat,false); }catch(e){}
   NPCAI.movers=Math.max(0,NPCAI.movers-1); c.ai.busy=false; c.ai.why='';
 }
+/* ══ 45차 후속: 모이기(play 계약 gather/ungather) ═══════════════════════════════════
+   아침 브리핑처럼 **여러 사람이 한 대화에 나오는** 장면. 대표 지적 「최주임·사수 대사가 팀장 얼굴 위에 나온다」 —
+   말하는 사람의 얼굴을 잡으려면 그 사람이 대화하는 자리 가까이에 있어야 한다.
+   gather(['staff4','senior'], 'lead') → 그 사람들이 일어나 **팀장 책상 앞(말 거는 자리 lead_front) 둘레**로 걸어와 선다.
+   선 자리는 가구·다른 사람과 떨어진 점을 고른다. 서 있는 동안은 심부름·각본·자리 복구가 건드리지 않는다(ai.busy).
+   talkView(그 사람의 자기 자리 id) 가 서 있는 동료(standingAt)도 받으므로 play 는 좌석 id 로 얼굴을 옮긴다.
+   ungather() → 자기 자리로 돌아가 앉는다. 돌려주는 값: 오기로 한 사람의 좌석 id 목록(Promise — 다 도착하면 풀린다). */
+const GATHER={list:[]};
+function gatherSpots(toId,n){ const S0=SEATS&&SEATS[toId]; if(!S0||!S0.wp) return [];
+  const SOL=(CUR&&CUR.SOLIDS)||[], B=(CUR&&CUR.BOUND)||{x0:-99,x1:99,z0:-99,z1:99};
+  const talkSpot=STATIONS[toId==='lead'?'lead_front':toId+'_side']||null;
+  const taken=[]; if(talkSpot) taken.push({x:talkSpot.x,z:talkSpot.z});
+  for(const c of CHARS){ if(c.model.visible&&!GATHER.list.some(g=>g.c===c)) taken.push({x:c.model.position.x,z:c.model.position.z}); }
+  const free=(x,z)=>x>B.x0+0.2&&x<B.x1-0.2&&z>B.z0+0.2&&z<B.z1-0.2&&!SOL.some(q=>x>q.x0-0.28&&x<q.x1+0.28&&z>q.z0-0.28&&z<q.z1+0.28)&&taken.every(t=>Math.hypot(t.x-x,t.z-z)>0.82);
+  /* 팀장 책상 앞(로컬 +z)을 반원으로 훑는다 — 말 거는 자리 양옆이 먼저, 그다음 한 줄 뒤 */
+  const cand=[[-0.75,1.05],[1.15,1.05],[-0.85,1.55],[1.25,1.55],[-0.3,1.85],[0.7,1.9],[-1.3,1.2],[1.7,1.2],[-1.2,1.9],[1.6,1.9],[0.2,2.3]];
+  const out=[]; for(const [lx,lz] of cand){ if(out.length>=n) break; const w=S0.wp(lx,0,lz); if(!free(w.x,w.z)) continue; out.push({x:w.x,z:w.z}); taken.push({x:w.x,z:w.z}); }
+  return out; }
+function npcWalkPoint(c,x,z){ const from=nearestNode(c.model.position.x,c.model.position.z), to=nearestNode(x,z);
+  return startWalk(c,from===to?[to]:route(from,to),1.0).then(()=>new Promise(res=>{ if(c.seat&&c.standUp) c.standUp();
+    WALKS.push({c,path:[{x:c.model.position.x,z:c.model.position.z},{x,z}],i:1,speed:1.0,onArrive:res}); c.mode='walk'; c.play('walk',{fade:0.2}); })); }
+async function gather(ids,toId){ toId=toId||'lead'; const S0=SEATS&&SEATS[toId]; if(!S0||!CUR||CUR===CORRIDOR) return [];
+  const people=[]; for(const id of [].concat(ids||[])){ if(!id||id===toId) continue;
+    const c=(SEATS[id]&&SEATS[id].occupant)||standingAt(id); if(!c||c===PLAYER||c.trip||!c.model.visible||!c.homeSeat||c.homeSeat.id!==id) continue;
+    if(GATHER.list.some(g=>g.c===c)) continue; people.push({id,c}); }
+  const spots=gatherSpots(toId,people.length); const walks=[];
+  people.forEach((g,i)=>{ const sp=spots[i]; if(!sp) return; const c=g.c; c.ai=c.ai||{next:0,busy:false,talking:false,why:''};
+    c.ai.busy=true; c.ai.why='팀장 자리에 모임'; NPCAI.movers++; const rec={id:g.id,c,spot:sp,back:false}; GATHER.list.push(rec);
+    walks.push((async()=>{ try{ if(c.seat) await c.standUp(); c.clearSeatOffset&&c.clearSeatOffset(); if(rec.back) return;
+        await npcWalkPoint(c,sp.x,sp.z); if(rec.back) return;
+        const hd=headOf(S0.occupant||c), ls=STATIONS[toId==='lead'?'lead_front':toId+'_side']; const tgt=new THREE.Vector3(); hd.getWorldPosition(tgt); if(ls){ tgt.x=(tgt.x+ls.x)/2; tgt.z=(tgt.z+ls.z)/2; }
+        faceTo(c,tgt); c.mode='idle'; c.play('idle',{fade:0.2}); rec.arrived=true;
+      }catch(e){ log('모이기 오류',(e&&e.message)||e); } return g.id; })()); });
+  log(`모이기: ${GATHER.list.map(g=>g.c.label||g.id).join(', ')} → ${toId}`);
+  const got=await Promise.all(walks); return got.filter(Boolean); }
+async function ungather(){ const list=GATHER.list.splice(0); await Promise.all(list.map(async rec=>{ const c=rec.c, seat=c.homeSeat; rec.back=true;
+  try{ if(CUR&&CUR.chars&&CUR.chars.indexOf(c)>=0&&seat){ await npcWalk(c,seatStationOf(seat.id)); } }catch(e){ log('모이기 복귀 오류',(e&&e.message)||e); }
+  try{ if(seat){ evictSeat(seat,c); c.model.rotation.y=seat.ry; c.sitAt(seat,false); } }catch(e){}
+  if(c.ai){ c.ai.busy=false; c.ai.why=''; c.ai.next=SIM_T+rnd(20,50); } NPCAI.movers=Math.max(0,NPCAI.movers-1); }));
+  return true; }
 /* 45차: 좌석에서 남을 「제대로」 비운다 — occupant 만 지우면 그 사람은 그대로 앉은 자세로 남는다 */
 function evictSeat(seat,forWhom){ const o=seat&&seat.occupant; if(!o||o===forWhom) return;
   try{ o.standUp(); }catch(e){ o.seat=null; }
@@ -3141,6 +3181,8 @@ window.__office={ scene, camera, controls, renderer, VIEWS, SEATS:HOME_ROOM.SEAT
   trafficSoon:()=>{ TRAF.next=SIM_T; return true; },
   trafficGuests:()=>({mode:GUESTS_MODE,loading:TRAF.guestLoading,list:TRAF.guests.map(c=>({who:c.label,ch:c.CH,team:c.guestTeam,trip:!!c.trip})),log:TRAF.guestLog.slice()}),
   /* 39차: talkView(seatId,on) — 대화 화면. 두 사람이 크게 잡히는 자리로 0.3초에 다가가고 이동 입력을 막는다. off 면 고정 시점 복귀 */
+  /* 45차 후속: 모이기 — 여러 사람이 나오는 대화(브리핑) 전에 그 사람들을 말 거는 자리 둘레로 불러 세운다 */
+  gather, ungather, gathered:()=>GATHER.list.map(g=>({id:g.id,who:g.c.label||'',arrived:!!g.arrived})),
   talkView:(seatId,on)=>{ const npc=(on!==false)?talkNpcAt(seatId):null;   /* 45차: 'visitor' · 서 있는 동료도 받는다 */
     if(!npc){ endTalk(); return false; }
     talkCam(npc,true);
@@ -3155,7 +3197,7 @@ window.__office={ scene, camera, controls, renderer, VIEWS, SEATS:HOME_ROOM.SEAT
   talkShotInfo:()=>{ if(!RIG.talk) return null; const V=camera.position.constructor, h=new V(), q=new V(); headOf(RIG.talk).getWorldPosition(h); h.y+=TALK_EYE;   /* 45차 3차: 얼굴 위치 = 눈높이 */
     const fr=RIG.talk.model.rotation.y; const cx=camera.position.x-h.x, cz=camera.position.z-h.z, cl=Math.hypot(cx,cz)||1; const bodyDot=+((cx*Math.sin(fr)+cz*Math.cos(fr))/cl).toFixed(2);   /* 45차: 카메라가 상대 몸 앞쪽인가(1 정면 · 0 옆 · −1 뒤) */
     const hw=h.clone(); h.project(camera); headOf(PLAYER).getWorldPosition(q); q.project(camera);
-    return {npcFace:{x:+h.x.toFixed(3),y:+h.y.toFixed(3),fromTop:+((1-h.y)/2).toFixed(3)},myFace:{x:+q.x.toFixed(3),y:+q.y.toFixed(3),fromTop:+((1-q.y)/2).toFixed(3)},bodyDot,pick:RIG.talkPick&&{mode:RIG.talkPick.mode,fdot:RIG.talkPick.fdot,blk:RIG.talkPick.blk,occ:RIG.talkPick.occ},walking:!!walkOf(PLAYER), playerCover:playerScreenCover(), estCover:RIG.talkPick&&RIG.talkPick.cov}; },
+    return {who:RIG.talk.label||'',npcFace:{x:+h.x.toFixed(3),y:+h.y.toFixed(3),fromTop:+((1-h.y)/2).toFixed(3)},myFace:{x:+q.x.toFixed(3),y:+q.y.toFixed(3),fromTop:+((1-q.y)/2).toFixed(3)},bodyDot,pick:RIG.talkPick&&{mode:RIG.talkPick.mode,fdot:RIG.talkPick.fdot,blk:RIG.talkPick.blk,occ:RIG.talkPick.occ},walking:!!walkOf(PLAYER), playerCover:playerScreenCover(), estCover:RIG.talkPick&&RIG.talkPick.cov}; },
   setTalkHint:(seatId,text)=>{ if(text) TALK_HINT[seatId]=text; else delete TALK_HINT[seatId]; return true; },
   /* 45차 계약(play 방문 카드): visitorIn({name, visitor?, gender?}) → Promise<boolean> · visitorOut() → Promise · visitorState() 검사용 */
   visitorIn, visitorOut, visitorState:()=>({state:VISIT.state, name:VISIT.c&&VISIT.c.label, ch:VISIT.c&&VISIT.c.CH, visible:!!(VISIT.c&&VISIT.c.model.visible), mode:VISIT.c&&VISIT.c.mode}),

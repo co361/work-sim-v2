@@ -93,7 +93,7 @@ async function startDay(ep){ S.ep=ep; S.phase='loading'; $('home').classList.rem
   /* 44차: 첫 진입 로딩은 「로딩 중」 대신 조작법 카드로 채운다(js/play/intro.js).
      카드를 다 보거나 건너뛴 뒤에야 Intro.ready() 가 풀린다 — 방 이동·캐릭터 교체 로딩은 그대로다. */
   Intro.start();
-  if(D.kind==='ep7'){ await stageUp(); await Intro.ready(); $('loading').classList.add('off'); window.__playReady=true; return EP7.start(); }
+  if(D.kind==='ep7'){ await stageUp(); await Intro.ready(); $('loading').classList.add('off'); window.__playReady=true; return EP7.start(); }   /* 7일차 브리핑 부르기는 ep7.js start 가 한다(모이기는 briefGatherStart 를 같이 쓴다) */
   prepareDay(); renderUnlocks(); initRulebook(); initOrg();
   await stageUp(); await Intro.ready(); $('loading').classList.add('off'); renderClock(); renderCounts(); window.__playReady=true;
   const cur=P.cur; if(cur&&cur.day===ep&&(cur.phase==='work'||cur.phase==='triage')&&Q.get('fresh')!=='1'){ restoreDay(cur); return; }
@@ -262,20 +262,32 @@ function briefGate(L){ const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'
   if(lead&&seatByName(lead)&&(L.some(l=>seated(l.who)===lead)||!L.some(l=>seated(l.who)))) return lead;
   for(const l of L){ const k=seated(l.who); if(k) return k; }
   return lead&&seatByName(lead)?lead:null; }
+/* 브리핑 부르기 — 여러 사람이 말하면 그 사람들이 먼저 부르는 사람 둘레로 걸어와 선다(3D gather). 대화창은 줄마다 말하는 사람 얼굴을 잡는다(talk.js aimAt).
+   자동화(webdriver)는 사람이 안 보므로 모이지 않는다 — 걸어가는 동안 3D 연출 상대가 자리에 없어 자동 플레이가 멈추지 않게. */
+let briefGathered=[];
+/* 브리핑에서 말하는 사람(부르는 사람 빼고, 이 방 자리에 있는 사람)을 부르는 사람 둘레로 모은다 — 7일차(ep7.js)도 같이 쓴다 */
+function briefGatherStart(L,gate){ const gateSeat=seatByName(gate); const O=office();
+  const seats=uniq((L||[]).map(l=>seatByName(Talk.norm(l.who))).filter(x=>x&&x!==gateSeat));
+  ungatherBrief();
+  if(seats.length&&O&&typeof O.gather==='function'&&!navigator.webdriver){ briefGathered=seats; try{ O.gather(seats,gateSeat); }catch(e){ console.warn('모이기 실패',e); briefGathered=[]; } }
+  return briefGathered.slice(); }
+function callBriefing(onHeard){ const L=(D.dialog&&D.dialog.briefing)||[];
+  const gate=L.length&&talkByT()?briefGate(L):null; if(!gate) return false;
+  S.phase='briefing'; S.briefT=true;
+  briefGatherStart(L,gate);
+  briefCall=Talk.call(gate,L.map(l=>({who:l.who,text:l.text,role:l.role})),{ gathered:briefGathered.slice(),
+    notice:`${calledBy(gate)} 부르세요. 자리로 가서 T 로 이야기를 들어요. (들어야 하루가 시작돼요)`, remind:30000,
+    onHeard:()=>{ briefCall=null; onHeard(); } });
+  return true; }
+function ungatherBrief(){ if(!briefGathered.length) return; briefGathered=[]; const O=office(); if(O&&typeof O.ungather==='function'){ try{ O.ungather(); }catch(e){} } }
 function startBriefing(){ S.phase='briefing'; S.briefI=0; S.briefT=false;
-  const L=(D.dialog&&D.dialog.briefing)||[];
-  const gate=L.length&&talkByT()?briefGate(L):null;
-  if(gate){ S.briefT=true;
-    briefCall=Talk.call(gate,L.map(l=>({who:l.who,text:l.text,role:l.role})),{
-      notice:`${calledBy(gate)} 부르세요. 자리로 가서 T 로 이야기를 들어요. (들어야 하루가 시작돼요)`, remind:30000,
-      onHeard:()=>{ briefCall=null; if(S.phase==='briefing') endBriefing(); } });
-    return; }
+  if(callBriefing(()=>{ if(S.phase==='briefing') endBriefing(); })) return;
   $('dialog').classList.add('open'); showBrief(); }
 function showBrief(){ const L=D.dialog.briefing||[]; const l=L[S.briefI]; if(!l){ endBriefing(); return; } $('dWho').textContent=`${l.who}${l.role?' ('+l.role+')':''}`; $('dTx').textContent=fillName(l.text||''); $('dNext').textContent=S.briefI===L.length-1?'업무 시작':'다음';
   /* 45차: 말풍선을 띄우지 않는다 — 대사는 이 대사 창에만 나온다 */
   const O=office(); if(O){ try{ if(l.view) O.view(l.view); }catch(e){} } }
 $('dNext').onclick=()=>{ if(S.phase!=='briefing') return; S.briefI++; showBrief(); }; $('dSkip').onclick=()=>{ if(S.phase==='briefing') endBriefing(); };
-function endBriefing(){ if(briefCall){ briefCall.cancel(); briefCall=null; }
+function endBriefing(){ if(briefCall){ briefCall.cancel(); briefCall=null; } ungatherBrief();
   $('dialog').classList.remove('open'); const O=office(); if(O&&!S.briefT){ try{ O.hush(); O.view('default'); }catch(e){} } S.phase='work'; S.running=true; lastTick=0; arrivals();
   if(D.triage&&!(S.triage&&S.triage.done)){ startTriage(); return; }
   const L=D.todoLabels||['답할 것','넘길 것','물어볼 것']; toast(`메일함이 열렸어요. ${L.join(' / ')}을 나눠 보세요.`); saveProgress(); }
