@@ -59,26 +59,48 @@ function closeCard(){ $('card').classList.remove('open'); S.cur=null; closeCompo
 function note(html){ const n=$('cNote'); if(!html){ n.style.display='none'; n.textContent=''; return; } n.style.display='block'; n.innerHTML=html; }
 function lockBtn(acts){ if(!D) return; for(const k of ['approval','report']){ if((D.unlock||[]).includes(k)) continue; acts.appendChild(mkBtn('🔒 '+UNLOCK_LABEL[k],'lock',()=>toast(`${UNLOCK_DAY[k]}일차에 열립니다.`))); } }
 function composerLabel(c,k){ if(k==='reject') return '거절 회신 쓰기'; if(k==='confirm') return c.alsoReply||hasCompose(c)?'상신하고 고객 안내 쓰기':'상신 사유 쓰기'; return c.type==='msg'?'답장 쓰기':'회신 쓰기'; }
+/* 45차(대표 「말·질문·서류 제출은 T로만」): 사람에게 가는 일은 컴퓨터 카드에서 누르는 단추가 아니다.
+   3D 사무실이 있으면 「누구에게 가서 T」 안내만 적고, 실제 대화는 그 사람 앞에서 T 를 눌렀을 때 시작한다(js/play/talk.js).
+   3D 가 없을 때(?stage=0 · 불러오기 실패)만 예전 단추로 글 연출을 한다. */
+function walkT(){ return !NO_STAGE&&!!office(); }
+const T_KEY='<b>T</b>';
 function renderCardActs(id){ const c=CARD(id), st=S.cards[id]; const acts=$('cActs'); acts.innerHTML=''; $('composer').style.display='none'; note('');
   if(st.status==='done'){ showResult(id); return; } $('cResult').style.display='none';
   const steps=st.steps||{}; const flow=flowOf(c); const notes=[];
-  if(c.recordLookup){ const rl=c.recordLookup; if(st.lookup) notes.push(`<b>상담 기록:</b> ${escapeHtml(rl.result)}`); else acts.appendChild(mkBtn(rl.label||'상담 기록 조회','',()=>{ st.lookup=true; S.ncs['7'].push(100); renderCardActs(id); })); }
+  /* 45차: 머리말을 조회 종류에서 딴다 — 「배송 조회」→「배송 조회 결과」, 「해든소재 검사 기록 조회」→ 그대로 + 결과.
+     예전에는 팀과 상관없이 「상담 기록:」이 붙어 회계·품질 카드에서도 상담 기록처럼 보였다. label 이 없으면 「조회 결과」 */
+  if(c.recordLookup){ const rl=c.recordLookup; const lkHead=rl.label?`${rl.label} 결과`:'조회 결과';
+    if(st.lookup) notes.push(`<b>${escapeHtml(lkHead)}:</b> ${escapeHtml(rl.result)}`); else acts.appendChild(mkBtn(rl.label||'기록 조회','',()=>{ st.lookup=true; S.ncs['7'].push(100); renderCardActs(id); })); }
   if(c.actions&&c.actions.stopShip){ const a=c.actions.stopShip; const b=mkBtn((st.stopShip?'✓ ':'')+a.label,st.stopShip?'on':'',()=>{ st.stopShip=!st.stopShip; toast(st.stopShip?'물류팀에 출고 중지를 요청했어요.':'출고 중지 요청을 취소했어요.'); renderCardActs(id); }); acts.appendChild(b); }
   if(c.followup){ notes.push('재문의예요. 읽고 확인을 누르면 됩니다. (채점 없음)'); acts.appendChild(mkBtn('확인했어요','pri',()=>record(id,{act:'confirm',score:null,comment:''}))); note(notes.join('<br>')); return; }
   if(c.mode==='phone'){ notes.push('전화입니다. 어떻게 응대할까요?'); for(const k of (c.choiceOrder||Object.keys(c.choices||{}))) acts.appendChild(mkBtn(c.choices[k],'wide',()=>doPhone(id,k))); note(notes.join('<br>')); return; }
-  if(c.mode==='visit'){ notes.push('방문객이 와 있어요. 응대하러 갑니다.'+(c.timeLimit?` (${c.timeLimit}초 안에 답해야 해요)`:'')); acts.appendChild(mkBtn('응대하러 가기','pri',()=>doVisit(id))); note(notes.join('<br>')); return; }
+  if(c.mode==='visit'){ const lim=c.timeLimit?` 말을 걸면 ${c.timeLimit}초 안에 답해야 해요.`:'';
+    if(walkT()&&st.visitorHere){ notes.push(`방문객 <b>${escapeHtml(c.visitorName||c.from)}</b> 님이 소파에 앉아 기다려요. 가서 ${T_KEY}로 응대하세요.${lim}`); }
+    else if(walkT()&&st.visitorComing){ notes.push(`방문객이 들어오는 중이에요. 소파에 앉으면 가서 ${T_KEY}로 응대하세요.${lim}`); }
+    else { notes.push('방문객이 와 있어요. 응대하러 갑니다.'+(c.timeLimit?` (${c.timeLimit}초 안에 답해야 해요)`:'')); acts.appendChild(mkBtn('응대하러 가기','pri',()=>doVisit(id))); }
+    note(notes.join('<br>')); return; }
   if(c.mode==='reflect'){ notes.push('오늘 처리한 카드 중 하나를 골라 답장합니다.'); acts.appendChild(mkBtn('답장할 카드 고르기','pri',()=>renderPick(id))); note(notes.join('<br>')); return; }
   if(flow.includes('work')&&!steps.work){ notes.push(workCells(c)?`답 칸 ${workCells(c).length}개를 채워 제출하세요.`:('답 칸에 검산 결과를 적어 제출하세요.'+(c.workAnswer&&/원|건|일|%/.test(c.workAnswer)?' 단위까지 적어요.':''))); renderWorkInput(id,acts); if(st.workTries) notes.push(`<b>다시 세어 보세요.</b> (${st.workTries}번째)`); note(notes.join('<br>')); return; }
-  if(flow.includes('work')&&steps.work&&!steps.deliver){ notes.push(`<b>검산 결과 ${escapeHtml(steps.work.answer)}.</b> 이제 ${escapeHtml(c.deliver.npc||'팀장')}에게 직접 가져가세요.`); acts.appendChild(mkBtn(`${c.deliver.npc||'팀장'}에게 가져가기`,'pri',()=>doSheetDeliver(id))); note(notes.join('<br>')); return; }
+  if(flow.includes('work')&&steps.work&&!steps.deliver){ const to=c.deliver.npc||'팀장';
+    if(walkT()){ notes.push(`<b>검산 결과 ${escapeHtml(steps.work.answer)}.</b> 이제 ${escapeHtml(to)}에게 직접 가져가세요 — 자리로 걸어가 ${T_KEY}를 누르면 됩니다.`); }
+    else { notes.push(`<b>검산 결과 ${escapeHtml(steps.work.answer)}.</b> 이제 ${escapeHtml(to)}에게 직접 가져가세요.`); acts.appendChild(mkBtn(`${to}에게 가져가기`,'pri',()=>doSheetDeliver(id))); }
+    note(notes.join('<br>')); return; }
   if(flow.includes('approval')){ notes.push('결재 문서예요. 숫자와 규정이 맞으면 승인, 어긋나면 반려하면서 의견을 적어요.'); acts.appendChild(mkBtn('반려 의견 쓰기','pri',()=>openComposer(id,'approval'))); acts.appendChild(mkBtn('이상 없음(승인)','',()=>doApprove(id))); for(const k of Object.keys(c.act||{})){ if(['reply','reject','approve'].includes(k)) continue; acts.appendChild(mkBtn(actLabel(k),'',()=>doButton(id,k))); } lockBtn(acts); note(notes.join('<br>')); return; }
-  if(flow.includes('report')&&!steps.report){ const who=c.npc||(c.report&&c.report.npc)||D.dests.find(d=>d.seat==='lead').name; notes.push(`팀장에게 직접 보고하는 건이에요. 근거를 들고 가세요.`); acts.appendChild(mkBtn(`${who}에게 보고하러 가기`,'pri',()=>doReport(id))); if(c.mode!=='report'||c.type!=='report'){ for(const k of Object.keys(c.act||{})){ if(k==='confirm'||k==='reply') continue; acts.appendChild(mkBtn(actLabel(k),'',()=>doButton(id,k))); } if(c.act&&c.act.confirm) acts.appendChild(mkBtn('메일로 상신','',()=>doButton(id,'confirm','mailConfirm'))); } lockBtn(acts); note(notes.join('<br>')); return; }
+  if(flow.includes('report')&&!steps.report){ const who=c.npc||(c.report&&c.report.npc)||D.dests.find(d=>d.seat==='lead').name;
+    if(walkT()) notes.push(`팀장에게 직접 보고하는 건이에요. 근거를 들고 <b>${escapeHtml(who)}</b> 자리로 가서 ${T_KEY}로 보고하세요.`);
+    else { notes.push(`팀장에게 직접 보고하는 건이에요. 근거를 들고 가세요.`); acts.appendChild(mkBtn(`${who}에게 보고하러 가기`,'pri',()=>doReport(id))); } if(c.mode!=='report'||c.type!=='report'){ for(const k of Object.keys(c.act||{})){ if(k==='confirm'||k==='reply') continue; acts.appendChild(mkBtn(actLabel(k),'',()=>doButton(id,k))); } if(c.act&&c.act.confirm) acts.appendChild(mkBtn('메일로 상신','',()=>doButton(id,'confirm','mailConfirm'))); } lockBtn(acts); note(notes.join('<br>')); return; }
   if(flow.includes('report')&&steps.report&&!steps.reply){ notes.push(`<b>보고 끝.</b> ${escapeHtml(steps.report.line||'')}<br>이제 고객에게 회신하세요 — 결론은 아직 쓰지 않아요.`); acts.appendChild(mkBtn('고객에게 회신','pri',()=>openComposer(id,'reply'))); note(notes.join('<br>')); return; }
   /* 전달 · 질문 */
   if(flow.includes('deliver')||flow.includes('ask')){ const isAsk=flow.includes('ask'); const d=c.deliver||{}; const who=isAsk?c.npc:d.npc;
     if(st.ask){ notes.push(`<b>${escapeHtml(who)} 답:</b> "${escapeHtml(st.ask.answer)}"<br>받은 답을 회신에 옮겨 적으세요.`); }
-    else if(isAsk&&!steps.reply){ if(st.wrong) notes.push(`<b>다시 가 볼 수 있어요.</b> ${escapeHtml(st.wrong)}`); acts.appendChild(mkBtn('가서 물어보기','pri',()=>renderDest(id,'ask'))); }
+    else if(isAsk&&!steps.reply){ if(st.wrong) notes.push(`<b>다시 가 볼 수 있어요.</b> ${escapeHtml(st.wrong)}`);
+      /* 누구에게 물을지 고르는 것이 이 카드의 일이다 — 이름을 알려 주지 않는다 */
+      if(walkT()) notes.push(`이 일을 맡은 사람을 찾아가 ${T_KEY}로 여쭤보세요. 누구 소관인지는 카드 내용과 조직도를 보고 판단해요.`);
+      else acts.appendChild(mkBtn('가서 물어보기','pri',()=>renderDest(id,'ask'))); }
     if(!isAsk){ if(steps.deliver){ notes.push(`<b>${escapeHtml(who)}에게 전달 완료.</b> ${escapeHtml(steps.deliver.line||'')}`+(flow.includes('reply')&&!steps.reply?`<br>이제 ${c.alsoReply===true&&c.alsoReplyTo?escapeHtml(c.alsoReplyTo):'고객'}에게 어디로 넘어갔는지 안내 회신을 보내세요.`:'')); }
-      else { if(st.wrong) notes.push(`<b>다시 가 볼 수 있어요.</b> ${escapeHtml(st.wrong)}`); acts.appendChild(mkBtn('가서 전달하기','pri',()=>renderDest(id,'deliver'))); } }
+      else { if(st.wrong) notes.push(`<b>다시 가 볼 수 있어요.</b> ${escapeHtml(st.wrong)}`);
+        if(walkT()) notes.push(`맞는 팀 사람에게 직접 전달하는 건이에요. 그 사람 자리로 가서 ${T_KEY}를 누르세요(다른 팀 사무실은 문 앞에서 <b>E</b>).`);
+        else acts.appendChild(mkBtn('가서 전달하기','pri',()=>renderDest(id,'deliver'))); } }
     if(flow.includes('reply')&&!steps.reply){ acts.appendChild(mkBtn(st.ask||steps.deliver?'회신 쓰기':(isAsk?'묻지 않고 회신 쓰기':'회신 쓰기'),st.ask||steps.deliver?'pri':'',()=>openComposer(id,'reply'))); }
     for(const k of Object.keys(c.act||{})){ if(k==='delegate'||k==='reply'||(c.best===k&&k!=='hold')) continue; acts.appendChild(mkBtn(actLabel(k),'',()=>doButton(id,k))); }
     if(c.act&&c.act.hold&&c.best!=='hold'&&!acts.querySelector('[data-k=hold]')){ } lockBtn(acts); note(notes.join('<br>')); return; }
@@ -134,21 +156,27 @@ async function sendCompose(id,text,which,key,ans){ const c=CARD(id), st=S.cards[
     if((c.scored===false&&c.mode==='story')||c.unscored||c.axis==='self'){ st.source=null; if(c.clue&&c.clue.requiresReply) captureClue(c,st,true); markStep(id,which,{text}); if(!stepsLeft(id).length){} runBranch(id,'reply'); return; }
     const spec=composeSpec(c,isSecond?'second':null); const g=gradeText(c,text,spec); let score=g.score, comment=(c.act&&c.act[key]&&c.act[key][1])||''; let source='규칙 채점'; let feedback='';
     const ai=await gradeWithAI(c,text,spec,g); if(ai){ score=ai.score; g.els=ai.els; source=ai.source; feedback=ai.feedback; }
+    let neg=false;                                /* 틀린 쪽 분기(trap·wrong·forbid·partial·noCc·다른 행동)를 하나라도 불렀나 — 아니면 끝에서 ok 분기 */
     /* 계산값 */
-    if(ans!=null&&c.workAnswer){ const w=checkWork(c,ans); st.answer=ans; st.workOk=w.ok; S.counts.calcAll++; if(w.ok){ S.counts.calc++; } else { st.workTries=(st.workTries||0)+1; if(!w.trap&&st.workTries<2){ toast('결과값이 맞지 않아요. 다시 세어 보고 보내 주세요.'); $('composeSend').disabled=false; openComposer(id,which,key); $('composeText').value=text; $('cpWorkIn').value=ans; return; } score=Math.min(score,w.trap?20:0); comment='결과값이 틀렸어요. '+comment; runBranch(id,w.trap?'trap':'wrong'); } }
+    if(ans!=null&&c.workAnswer){ const w=checkWork(c,ans); st.answer=ans; st.workOk=w.ok; S.counts.calcAll++; if(w.ok){ S.counts.calc++; } else { st.workTries=(st.workTries||0)+1; if(!w.trap&&st.workTries<2){ toast('결과값이 맞지 않아요. 다시 세어 보고 보내 주세요.'); $('composeSend').disabled=false; openComposer(id,which,key); $('composeText').value=text; $('cpWorkIn').value=ans; return; } score=Math.min(score,w.trap?20:0); comment='결과값이 틀렸어요. '+comment; neg=true; runBranch(id,w.trap?'trap':'wrong'); } }
     /* 금지 표현 → 분기 */
-    if(g.forbid.length){ st.forbidHit=true; st.replyBanHit=true; const p=g.forbid[0]; comment='금지 표현이 들어갔어요: '+g.forbid.join(', ')+'. '+comment; runBranch(id,'forbid:'+p)||runBranch(id,(c.id==='cs22'&&p.includes('계좌'))?'forbidAccount':'forbid'); }
-    else if(g.partial){ comment='답이 절반이에요. 빠진 값을 채워야 고객이 다시 묻지 않아요. '+comment; st.partial=true; runBranch(id,'partial'); }
-    else if(g.missing.length&&!ai){ st.partial=true; runBranch(id,'partial'); }
+    if(g.forbid.length){ neg=true; st.forbidHit=true; st.replyBanHit=true; const p=g.forbid[0]; comment='금지 표현이 들어갔어요: '+g.forbid.join(', ')+'. '+comment; runBranch(id,'forbid:'+p)||runBranch(id,(c.id==='cs22'&&p.includes('계좌'))?'forbidAccount':'forbid'); }
+    else if(g.partial){ neg=true; comment='답이 절반이에요. 빠진 값을 채워야 고객이 다시 묻지 않아요. '+comment; st.partial=true; runBranch(id,'partial'); }
+    else if(g.missing.length&&!ai){ neg=true; st.partial=true; runBranch(id,'partial'); }
+    else if(g.missing.length) neg=true;
     if(g.cited===false){ st.citeMiss=true; comment=(comment?comment+' ':'')+'근거 조항 번호가 없어요.'; } else if(g.cited===true) S.counts.cite++;
-    if(c.ccTeams&&!isSecond){ const names=c.ccTeams.map(k=>TEAM_NAMES[k]||k); const ok=names.some(n=>text.includes(n.replace('팀',''))); if(!ok){ score=Math.min(score,60); comment='원인 확인을 맡을 팀을 참조에 넣지 않았어요. '+comment; st.noCc=true; runBranch(id,'noCc'); } }
+    if(c.ccTeams&&!isSecond){ const names=c.ccTeams.map(k=>TEAM_NAMES[k]||k); const ok=names.some(n=>text.includes(n.replace('팀',''))); if(!ok){ score=Math.min(score,60); comment='원인 확인을 맡을 팀을 참조에 넣지 않았어요. '+comment; st.noCc=true; neg=true; runBranch(id,'noCc'); } }
     /* 최선이 아닌 글 행동(예: 상신해야 할 건에 회신) */
     /* 앞 단계(보고·전달·질문)에서 이미 행동을 골랐으면 그 뒤의 안내 회신에는 상한을 걸지 않는다 */
-    if(key!==c.best&&c.best&&!isSecond&&c.act&&c.act[key]&&flowOf(c)[0]==='reply'){ score=Math.min(score,c.act[key][0]); comment=c.act[key][1]||comment; runBranch(id,key)||runBranch(id,'other'); }
+    if(key!==c.best&&c.best&&!isSecond&&c.act&&c.act[key]&&flowOf(c)[0]==='reply'){ score=Math.min(score,c.act[key][0]); comment=c.act[key][1]||comment; neg=true; runBranch(id,key)||runBranch(id,'other'); }
     /* 거절·상신이 정답인 카드를 작성기로 처리했을 때도 「거절·상신」 셈에 넣는다(버튼으로 처리하면 doButton 이 센다) */
     if(!isSecond&&c.best&&['reject','confirm'].includes(c.best)&&flowOf(c)[0]==='reply'){ S.counts.rejectAll++; if(key===c.best) S.counts.reject++; }
     if(c.mode==='ask'&&!isSecond){ if(st.ask) score=Math.min(score,st.ask.cap); else { score=Math.min(score,g.missing.length?40:60); comment='먼저 물어보지 않고 답했어요. '+comment; } }
     const d={els:g.els,missing:g.missing,forbid:g.forbid,partial:g.partial,cited:g.cited}; if(isSecond) st.detail2=d; else st.detail=d; st.source=source; if(feedback) st.feedback=feedback;
+    /* 45차: 정답 회신이면 ok 분기 — 상대의 반응(now)·다음 예고(next)·신뢰가 여기서 붙는다. 예전에는 불리지 않아
+       회신형 카드 88장(1~6일차)의 ok 반응과 「내일로 이어지는 것」이 한 번도 뜨지 않았다(총괄 검토).
+       전달·질문·보고로 시작하는 카드는 그 단계에서 이미 ok 를 부르므로 첫 단계가 회신인 카드만. 자동 플레이도 이 함수를 쓴다. */
+    if(!isSecond&&!neg&&flowOf(c)[0]==='reply'&&(!c.best||key===c.best)&&score>=60) runBranch(id,'ok');
     markStep(id,which,{text,score,comment,key}); }
   finally{ $('composeSend').disabled=false; } }
 async function sendApproval(id,text,ans){ const c=CARD(id), st=S.cards[id]; st.text=text; const spec=composeSpec(c); const g=gradeText(c,text,spec); let source='규칙 채점', feedback='';
@@ -165,16 +193,33 @@ function doApprove(id){ const c=CARD(id); const a=c.act.approve||c.act.reply||[3
 /* ---------- 버튼 · 전화 · 반성 · 검산 ---------- */
 function doButton(id,k,branchKey){ const c=CARD(id); const a=c.act&&c.act[k]; if(!a) return; if(k==='delegate') S.counts.pass++; if(k==='confirm') S.counts.ask++; if(c.best&&['reject','confirm'].includes(c.best)){ S.counts.rejectAll++; if(k===c.best) S.counts.reject++; }
   const st=S.cards[id]; st.choice=k; record(id,{act:k,score:a[0],comment:a[1]}); if(k!==c.best){ runBranch(id,branchKey||k)||runBranch(id,'other'); } else runBranch(id,branchKey||'ok'); }
-function doPhone(id,k){ const c=CARD(id); const a=c.act[k]; if(!a) return; const st=S.cards[id]; st.choice=k; if(k==='promise') S.counts.promise++; record(id,{act:k,score:a[0],comment:a[1]}); runBranch(id,k===c.best?'ok':k)||runBranch(id,k); const br=(D.branches[id]||{})[k]||(k===c.best?(D.branches[id]||{}).ok:null); const after=(br&&br.after)||(k!==c.best&&c.after);
-  /* 전화를 끊은 뒤 오는 한 줄은 **알림**으로 낸다 — 자리가 없는 사람이라고 메신저 대화를
-     새로 파면 「고객」이라는 대화방이 생겨 목록이 지저분해진다(대표 "너무 산만해"). */
-  if(after) setTimeout(()=>{ if(!bubble(after.who,after.text,5)) toast(after.text,after.who,5000,'cust'); },1800); }
+function doPhone(id,k,keepAfter){ const c=CARD(id); const a=c.act[k]; if(!a) return null; const st=S.cards[id]; st.choice=k; if(k==='promise') S.counts.promise++; record(id,{act:k,score:a[0],comment:a[1]});
+  /* 전화 너머 상대의 반응은 곧바로 — 통화 창이 열려 있으면 그 안에 이어진다(Talk.reply) */
+  runBranch(id,k===c.best?'ok':k,{toastOnly:true})||runBranch(id,k,{toastOnly:true}); const br=(D.branches[id]||{})[k]||(k===c.best?(D.branches[id]||{}).ok:null); const after=(br&&br.after)||(k!==c.best&&c.after);
+  /* 전화 너머의 한마디는 **통화 대화창 안에서** 듣는다(45차 — 말풍선·알림 없음).
+     받기 화면(answerPhone)에서 부르면 keepAfter 로 돌려받아 같은 창에 잇고, 그 밖(자동 플레이·카드 단추)에서는
+     잠깐 대화창을 띄워 읽힌다. 메신저 대화방은 새로 파지 않는다(대표 "너무 산만해"). */
+  /* 끊은 뒤 한마디가 **옆자리 동료**(사수 등)의 말이면 그 사람에게 쌓아 두고 T 로 듣게 한다(말풍선 없음) */
+  if(after&&seatByName(after.who)&&window.Talk&&Talk.hear){ Talk.hear(after.who,after.text); return null; }
+  if(after&&!keepAfter){ if(window.Talk&&Talk.say) Talk.say(after.who,after.text,{role:'전화',sess:null}); else toast(after.text,after.who,5000,'cust'); }
+  return after||null; }
 function doPick(id,pick){ const c=CARD(id); const ok=(c.answerAny||[]).includes(pick); const pc=CARD(pick); S.cards[id].text=`"${pc.subj}" 건이요.`; record(id,{act:'reply',score:ok?100:60,comment:ok?(c.act.reply&&c.act.reply[1])||'':(c.fallback||''),text:S.cards[id].text}); runBranch(id,ok?'ok':'fallback'); }
 function doWork(id,ans){ const c=CARD(id), st=S.cards[id]; const w=checkWork(c,ans); const shown=workText(c,ans); st.answer=shown; S.counts.calcAll++;
   if(w.ok){ S.counts.calc++; st.workOk=true; toast('검산 결과가 맞아요.'); markStep(id,'work',{answer:shown,score:100}); return; }
   st.workTries=(st.workTries||0)+1; if(w.trap){ st.workOk=false; runBranch(id,'trap'); markStep(id,'work',{answer:shown,score:20,comment:'표의 숫자를 그대로 믿었어요.'}); if(c.deliver){ /* 전달 단계는 열리지 않는다 */ st.steps.deliver={at:S.t,score:0,skipped:true}; finalize(id); } return; }
   if(st.workTries>=3){ st.workOk=false; runBranch(id,'wrong'); markStep(id,'work',{answer:shown,score:0,comment:'세 번 틀렸어요.'}); if(c.deliver){ st.steps.deliver={at:S.t,score:0,skipped:true}; finalize(id); } return; }
   toast(w.wrong&&w.wrong.length?`아직 맞지 않은 칸: ${w.wrong.join(', ')}`:'답이 맞지 않아요. 사유별로 다시 세어 보세요.'); renderCardActs(id); }
+
+/* ---------- 방문객 도착(45차) ----------
+   「응대하러 가기」 단추 대신 방문객이 **먼저 들어와 소파에 앉는다** → 머리 위 표시 → 가서 T.
+   3D 계약 `visitorIn({visitor,name,gender}) → Promise<boolean>` · `visitorOut()` 이 있을 때만. 없으면 카드의 예전 단추로 한다. */
+function visitArrive(c){ const O=office(); const st=S.cards[c.id]; if(!O||NO_STAGE||!st||typeof O.visitorIn!=='function'||st.visitorComing||st.visitorHere) return;
+  const name=c.visitorName||c.from; st.visitorComing=true; if(S.cur===c.id) renderCardActs(c.id);
+  const vo={name}; if(c.visitor) vo.visitor=c.visitor; if(c.visitorGender) vo.gender=c.visitorGender;
+  Promise.resolve().then(()=>O.visitorIn(vo)).then(ok=>{ st.visitorComing=false;
+    if(ok&&st.status!=='done'){ st.visitorHere=true; try{ O.setTalkHint('visitor','T — 응대하기'); }catch(e){} }
+    if(S.cur===c.id) renderCardActs(c.id); },()=>{ st.visitorComing=false; if(S.cur===c.id) renderCardActs(c.id); }); }
+{ const _na=window.notifyArrive; if(typeof _na==='function') window.notifyArrive=function(c){ const r=_na.apply(this,arguments); try{ if(c&&c.mode==='visit') visitArrive(c); }catch(e){} return r; }; }
 
 /* ---------- 전달 · 질문 · 보고 · 방문 ---------- */
 function destOk(c,d,kind){ const target=kind==='ask'?{npc:c.npc,to:c.to}:{npc:c.deliver.npc,to:c.deliver.to}; if(target.npc&&d.name===target.npc) return true; if(target.to&&d.key&&d.key===target.to&&(!target.npc||!npcInfo(target.npc))) return true; return false; }
@@ -185,47 +230,61 @@ async function doDeliver(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=o
   $('card').classList.add('min'); $('cActs').innerHTML=''; note(`${escapeHtml(who)} 자리로 가는 중…`);
   const r=await travel('deliver',{seat:d.seat,who,teamKey:d.key,teamName:d.team,text,npcLine:line,ok,auto});
   $('card').classList.remove('min'); setStatusLine('');
-  if(!r||!r.present){ toast('자리에 안 계셔서 돌아왔어요'); renderCardActs(id); return; }
+  if(!r||!r.present){ toast('자리에 안 계셔서 돌아왔어요'); if(S.cur===id) renderCardActs(id); return; }
   st.lastSeat=d.seat; st.lastNpc=who;
   if(ok){ st.delivered=true; st.deliveredAt=S.t; S.counts.pass++; S.counts.rightNpc++; S.ncs['9'].push(100); const okBr=(D.branches[id]||{}).ok; if(dl.npc&&!c.pre&&!(okBr&&okBr.trust)) S.trust[dl.npc]=(S.trust[dl.npc]||0)+1; runBranch(id,'ok',{toastOnly:true}); scheduleChain(c); markStep(id,'deliver',{seat:d.seat,line:r.line||line,score:100}); if(stepsLeft(id).length) toast('전달했어요. 고객에게도 안내 회신을 보내야 완료예요.'); }
-  else { st.wrong=line; st.tries=(st.tries||0)+1; S.counts.wrongNpc++; S.ncs['9'].push(0); runBranch(id,'wrongNpc',{toastOnly:true}); renderCardActs(id); } }
+  else { st.wrong=line; st.tries=(st.tries||0)+1; S.counts.wrongNpc++; S.ncs['9'].push(0); runBranch(id,'wrongNpc',{toastOnly:true}); if(S.cur===id) renderCardActs(id); } }
 async function doAsk(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&O.busy){ toast('지금은 이동할 수 없어요'); return; } const who=d.name; const senior=D.dests.find(x=>x.seat==='senior'); const isSenior=senior&&d.name===senior.name; const ok=destOk(c,d,'ask');
   $('card').classList.add('min'); $('cActs').innerHTML=''; note(`${escapeHtml(who)} 자리로 가는 중…`);
   if(ok){ const answers=askAnswers(c); const r=await travel('ask',{seat:d.seat,who,teamKey:d.key,teamName:d.team,questions:c.question,answers,answer:c.answer,auto}); $('card').classList.remove('min'); setStatusLine('');
-    if(!r||!r.present||r.choice==null||r.choice<0){ toast('답을 못 듣고 돌아왔어요'); renderCardActs(id); return; }
+    if(!r||!r.present||r.choice==null||r.choice<0){ toast('답을 못 듣고 돌아왔어요'); if(S.cur===id) renderCardActs(id); return; }
     const cap=askCap(c,r.choice); st.ask={choice:r.choice,answer:r.answer,cap}; S.counts.ask++; st.lastSeat=d.seat; S.ncs['9'].push(cap>=100?100:cap>=60?60:40); if(cap>=100){ S.counts.rightNpc++; const okBr=(D.branches[id]||{}).ok; if(c.npc&&!c.pre&&!(okBr&&okBr.trust)) S.trust[c.npc]=(S.trust[c.npc]||0)+1; }
     runBranch(id,cap>=100?'ok':('q'+(r.choice+1)),{toastOnly:true}); st.steps=st.steps||{}; st.steps.ask={at:S.t,choice:r.choice};
     /* 메신저 카드는 별도 작성 창을 띄우지 않는다 — 대화창 아래에서 짧게 답한다(대표 지시) */
     if(c.type==='msg'){ if(window.Msg) Msg.refresh(); return; }
-    renderCardActs(id); openComposer(id,'reply'); return; }
+    /* T 로 물어본 경우 컴퓨터에는 다른 메일(쓰던 회신)이 열려 있을 수 있다 — 그때는 작성 칸을 덮어쓰지 않는다(45차) */
+    if(S.cur===id){ renderCardActs(id); openComposer(id,'reply'); } return; }
   const line=isSenior?(c.sasuLine||c.wrongNpcLine&&typeof c.wrongNpcLine==='string'&&c.wrongNpcLine||`그건 ${TEAM_NAMES[c.to]||'다른 팀'}에 물어봐요.`):wrongLine(c,d,'ask');
   const r=await travel('deliver',{seat:d.seat,who,teamKey:d.key,teamName:d.team,text:(c.question&&c.question[0])||'여쭤볼 게 있는데요.',npcLine:line,ok:false,auto}); $('card').classList.remove('min'); setStatusLine('');
-  st.wrong=line; st.lastSeat=d.seat; if(isSenior){ S.counts.sasu=(S.counts.sasu||0)+1; runBranch(id,'senior',{toastOnly:true}); } else { S.counts.wrongNpc++; S.ncs['9'].push(0); runBranch(id,'wrongNpc',{toastOnly:true}); } renderCardActs(id); }
+  st.wrong=line; st.lastSeat=d.seat; if(isSenior){ S.counts.sasu=(S.counts.sasu||0)+1; runBranch(id,'senior',{toastOnly:true}); } else { S.counts.wrongNpc++; S.ncs['9'].push(0); runBranch(id,'wrongNpc',{toastOnly:true}); } if(S.cur===id) renderCardActs(id); }
 async function doReport(id,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&O.busy){ toast('지금은 이동할 수 없어요'); return; } const rp=c.report||c; const keys=Object.keys(rp.choices||{}); const labels=keys.map(k=>rp.choices[k]); const best=keys.indexOf(c.best in (rp.score||{})?c.best:(rp.best||keys[0]));
   const lead=D.dests.find(x=>x.seat==='lead'); const who=c.npc||rp.npc||(lead&&lead.name); const lines=keys.map(k=>(rp.leadAfter&&rp.leadAfter[k])||((D.branches[id]||{})[k]&&(D.branches[id][k].now||{}).text)||'');
   $('card').classList.add('min'); $('cActs').innerHTML=''; note(`${escapeHtml(who)} 자리로 가는 중…`);
   const r=await travel('report',{seat:'lead',who,text:`${who.replace(' 팀장','')} 팀장님, ${c.subj.replace(/^\(대면\)\s*/,'')} 건 보고드립니다.`,ask:rp.leadAsk||'근거가 뭐야?',choices:labels,lines,best:best<0?0:best,auto:auto!=null?auto:undefined});
-  $('card').classList.remove('min'); setStatusLine(''); if(!r||r.choice==null||r.choice<0){ toast('보고를 못 하고 돌아왔어요'); renderCardActs(id); return; }
-  const k=keys[r.choice]; const score=(rp.score&&rp.score[k])!=null?rp.score[k]:(k===c.best?100:30); st.choice=k; st.reportChoice=k; const isBest=(k===c.best)||(score>=100);
+  $('card').classList.remove('min'); setStatusLine(''); if(!r||r.choice==null||r.choice<0){ toast('보고를 못 하고 돌아왔어요'); if(S.cur===id) renderCardActs(id); return; }
+  const k=keys[r.choice]; const score=(rp.score&&rp.score[k])!=null?rp.score[k]:(k===c.best?100:30); st.choice=k; st.reportChoice=k; st.lastNpc=who; st.lastSeat='lead';   /* 분기 반응의 「@npc」가 「상대」로 뜨지 않게 */ const isBest=(k===c.best)||(score>=100);
   st.reportBest=isBest; if(c.best&&['reject','confirm'].includes(c.best)){ S.counts.rejectAll++; if(isBest) S.counts.reject++; }
   if(isBest){ S.trust[who]=(S.trust[who]||0)+1; S.counts.rightNpc++; } runBranch(id,k,{toastOnly:true}); if(isBest) runBranch(id,'ok',{toastOnly:true});
-  const after=lines[r.choice]; if(after) setTimeout(()=>sayNpc(who,after,7),300);
+  /* 팀장의 답(lines[i])은 연출 안에서 이미 대화창으로 나왔다 — 예전처럼 한 번 더 흘리지 않는다(45차) */
+  const after=lines[r.choice];
   markStep(id,'report',{choice:k,score,line:after,comment:isBest?'':'근거가 약했어요.'}); }
 async function doVisit(id,auto){ const c=CARD(id), st=S.cards[id]; const keys=c.choiceOrder||Object.keys(c.choices||{}); const labels=keys.map(k=>c.choices[k]); const best=keys.indexOf(c.best); const open=(c.body.match(/"([^"]+)"/)||[])[1]||c.subj;
   const reacts=keys.map(k=>(c.reacts&&c.reacts[k])||((D.branches[id]||{})[k]&&(D.branches[id][k].now||{}).text)||'…알겠어요.'); const name=c.visitorName||c.from;
   $('card').classList.add('min'); $('cActs').innerHTML=''; note('방문객을 응대하러 갑니다…');
   let r=null; const O=office();
-  if(O&&!O.busy&&!NO_STAGE){ let timer=null; if(c.timeLimit&&auto==null){ timer=setTimeout(()=>{ try{ if(O.busy) O.choose(-1); }catch(e){} },c.timeLimit*1000); } try{ r=await O.interact('visit',{visitor:c.visitor||'acnh_29',name,lines:{open},choices:labels,reacts,best:best<0?0:best,auto}); }catch(e){} clearTimeout(timer); if(r&&r.choice==null) r=null; }
+  const here=!!(window.Talk&&Talk.here&&Talk.here(name,'visitor'));
+  if(here){ r=await travel('visit',{who:name,name,seat:'visitor',lines:{open},choices:labels,reacts,timeLimit:auto==null?(c.timeLimit||null):null,auto}); }
+  else if(O&&!O.busy&&!NO_STAGE){ let timer=null; if(c.timeLimit&&auto==null){ timer=setTimeout(()=>{ try{ if(O.busy) O.choose(-1); }catch(e){} },c.timeLimit*1000); }
+    /* 45차: 방문객 모델은 3D 가 사내 인물과 겹치지 않는 전용 변형으로 고른다 — 기본값(acnh_29=홍주임)을 넘기지 않는다.
+       대사·선택지는 대화창으로 온다(Talk.stage 가 3D 선택 패널을 옮긴다) */
+    const vo={name,lines:{open},choices:labels,reacts,best:best<0?0:best,auto,timeLimit:auto==null?(c.timeLimit||null):null}; if(c.visitor) vo.visitor=c.visitor;
+    try{ const go=()=>O.interact('visit',vo); r=await ((window.Talk&&Talk.stage)?Talk.stage(vo,go):go()); }catch(e){} clearTimeout(timer); if(r&&r.choice==null) r=null; }
   if(!r){ r=await travel('visit',{who:name,name,lines:{open},choices:labels,reacts,timeLimit:auto==null?c.timeLimit:null,auto}); }
   $('card').classList.remove('min'); setStatusLine('');
+  /* 소파에 앉아 있던 방문객은 응대가 끝나면 나간다 */
+  if(st.visitorHere){ st.visitorHere=false; try{ if(O&&typeof O.setTalkHint==='function') O.setTalkHint('visitor',''); if(O&&typeof O.visitorOut==='function') O.visitorOut(); }catch(e){} }
+  /* 연출이 길어 자동 플레이(pump)가 기다리다 다른 길로 먼저 끝낸 경우 — 두 번 기록하지 않는다(분기·예고가 겹친다) */
+  if(st.status==='done') return;
   let k=(r&&r.choice!=null&&r.choice>=0)?keys[r.choice]:null; if(!k){ st.choice='timeout'; record(id,{act:'timeout',score:10,comment:'말없이 시간을 넘겼어요. 접수·회신 시점·보고, 셋 중 하나라도 말해야 해요.'}); runBranch(id,'timeout'); return; }
-  const a=c.act[k]||[30,'']; st.choice=k; if(k==='refund') S.counts.promise++; record(id,{act:k,score:a[0],comment:a[1]}); runBranch(id,k===c.best?'ok':k)||runBranch(id,k); }
+  const a=c.act[k]||[30,'']; st.choice=k; if(k==='refund') S.counts.promise++; record(id,{act:k,score:a[0],comment:a[1]});
+  /* 방문객의 반응은 응대한 그 대화창에 곧바로 잇는다 */
+  runBranch(id,k===c.best?'ok':k,{toastOnly:true})||runBranch(id,k,{toastOnly:true}); }
 async function doSheetDeliver(id,auto){ const c=CARD(id), st=S.cards[id]; const d=c.deliver; const keys=Object.keys(d.choices||{}); const labels=keys.map(k=>d.choices[k]); const bestK=Object.entries(d.score||{}).sort((a,b)=>b[1]-a[1])[0]; const best=bestK?keys.indexOf(bestK[0]):0; const who=d.npc||'팀장';
   const lines=keys.map(k=>((D.branches[id]||{})[k]&&(D.branches[id][k].now||{}).text)||(k===(bestK&&bestK[0])?((D.branches[id]||{}).ok&&(D.branches[id].ok.now||{}).text)||'…괜찮네.':''));
   $('card').classList.add('min'); $('cActs').innerHTML=''; note(`${escapeHtml(who)} 자리로 가는 중…`);
   const seat=seatByName(who)||'lead'; const r=await travel('report',{seat,who,text:`${c.subj.replace(/^\[.*?\]\s*/,'')} 검산 결과 가져왔습니다. ${st.answer}입니다.`,ask:d.leadLine||'근거는?',choices:labels,lines,best,auto});
-  $('card').classList.remove('min'); setStatusLine(''); if(!r||r.choice==null||r.choice<0){ toast('전달을 못 하고 돌아왔어요'); renderCardActs(id); return; }
-  const k=keys[r.choice]; const score=(d.score&&d.score[k])!=null?d.score[k]:30; st.choice=k; const isBest=bestK&&k===bestK[0]; if(isBest){ S.trust[who]=(S.trust[who]||0)+1; S.counts.rightNpc++; } runBranch(id,isBest?'ok':k,{toastOnly:true});
+  $('card').classList.remove('min'); setStatusLine(''); if(!r||r.choice==null||r.choice<0){ toast('전달을 못 하고 돌아왔어요'); if(S.cur===id) renderCardActs(id); return; }
+  const k=keys[r.choice]; const score=(d.score&&d.score[k])!=null?d.score[k]:30; st.choice=k; st.lastNpc=who; st.lastSeat=seat; const isBest=bestK&&k===bestK[0]; if(isBest){ S.trust[who]=(S.trust[who]||0)+1; S.counts.rightNpc++; } runBranch(id,isBest?'ok':k,{toastOnly:true});
   markStep(id,'deliver',{choice:k,score,line:lines[r.choice]}); }
 
 /* ======================================================================
@@ -258,11 +317,15 @@ function msgActions(id,foot){ const c=CARD(id), st=S.cards[id];
   let drew=false;
   if(flow.includes('ask')&&!st.ask&&!steps.reply){
     tip(`${c.npc||'담당자'}에게 먼저 물어보고 답해야 만점이 나와요.`);
-    btns.appendChild(mkBtn('자리로 가서 물어보기','pri',()=>msgGo(id,'ask'))); drew=true; }
+    if(walkT()) tip('자리로 걸어가 T 로 여쭤보세요. 들은 답은 여기 대화에 옮겨 적어요.');
+    else btns.appendChild(mkBtn('자리로 가서 물어보기','pri',()=>msgGo(id,'ask')));
+    drew=true; }
   else if(st.ask){ tip(`${c.npc} 답: “${st.ask.answer}”`); }
   if(flow.includes('deliver')&&!steps.deliver){
     tip('직접 전달해야 하는 건이에요.');
-    btns.appendChild(mkBtn('자리로 가서 전달하기','pri',()=>msgGo(id,'deliver'))); drew=true; }
+    if(walkT()) tip('맞는 사람 자리로 걸어가 T 로 전달하세요.');
+    else btns.appendChild(mkBtn('자리로 가서 전달하기','pri',()=>msgGo(id,'deliver')));
+    drew=true; }
   const which=(steps.reply&&flow.includes('reply2')&&!steps.reply2)?'reply2':'reply';
   if(flow.includes(which)&&!steps[which]&&isTextCard(c)&&!(flow.includes('deliver')&&!steps.deliver)){
     const key=(c.best&&['reject','confirm'].includes(c.best)&&(hasCompose(c)||c.alsoReply))?c.best:'reply';
@@ -309,10 +372,14 @@ async function answerPhone(id){ const c=CARD(id), st=S.cards[id];
   if(!c||!st||!st.arrived||st.status==='done') return;
   $('phoneBar').classList.remove('open'); document.body.classList.remove('phone-on');
   const keys=c.choiceOrder||Object.keys(c.choices||{});
-  const i=await choosePanel(c.body||c.subj,keys.map(k=>c.choices[k]),c.timeLimit||null,{who:c.from,role:'전화 · '+(c.role||'')});
-  phoneQ=phoneQ.filter(x=>x!==id);
-  if(i==null||i<0){ if(c.timeLimit){ st.choice='timeout'; record(id,{act:'timeout',score:10,comment:'말없이 시간을 넘겼어요.'}); runBranch(id,'timeout'); } }
-  else doPhone(id,keys[i]);
+  /* 통화 한 판 — 고르고 나서 상대의 답까지 같은 대화창에서 듣고 끊는다 */
+  const T5=window.Talk&&Talk.begin?Talk:null; const s=T5?T5.begin({name:c.from,hold:true,role:'전화 · '+(c.role||'')}):null;
+  try{
+    const i=await choosePanel(c.body||c.subj,keys.map(k=>c.choices[k]),c.timeLimit||null,{who:c.from,role:'전화 · '+(c.role||'')});
+    phoneQ=phoneQ.filter(x=>x!==id);
+    if(i==null||i<0){ if(c.timeLimit){ st.choice='timeout'; record(id,{act:'timeout',score:10,comment:'말없이 시간을 넘겼어요.'}); runBranch(id,'timeout'); } }
+    else { const after=doPhone(id,keys[i],!!T5); if(after&&T5) await T5.say(after.who,after.text,{role:'전화 · '+(c.role||''),sess:s}); }
+  } finally { if(s) await T5.end(s); }   /* end 가 줄 선 대사(상대의 반응)를 다 들려준 뒤 닫는다 */
   renderPhoneBar(); if(window.Tel) Tel.refresh(); }
 { const tk=$('phoneTake'); if(tk) tk.onclick=()=>{ const id=phoneQ[0]; if(id) answerPhone(id); };
   const lt=$('phoneLater'); if(lt) lt.onclick=()=>{ const id=phoneQ.shift(); renderPhoneBar();
@@ -339,7 +406,7 @@ function captureClue(c,st,force){ if(!c.clue) return; const cl=c.clue; let ok=fo
   if(!ok){ if(cl.requiresReply) ok=!!(st.text||st.act==='reply'); else if(c.mode==='phone'){ ok=!!st.choice; if(st.choice==='promise') extra=' · 시한 약속함'; } else if(c.mode==='report'||c.type==='report') ok=st.reportBest!=null?!!st.reportBest:st.choice===c.best; else if(c.type==='sheet'||c.mode==='sheet') ok=!!st.workOk; else ok=st.act!=='none'&&st.act!=='hold'&&st.act!=='delegate'&&st.act!=='reject'&&st.act!=='timeout'&&(st.score==null||st.score>=45); }
   if(!ok) return; if(S.clues.some(k=>k.card===c.id)) return; S.clues.push({caseId:cl.caseId,day:S.ep,card:c.id,note:cl.note+extra,value:cl.value||null,at:S.t}); }
 function runBranch(id,key,opt={}){ const all=(D.branches||{})[id]||{}; let br=all[key]; if(!br&&key&&key.startsWith('forbid:')) br=all.forbid; if(!br) return false; const c=CARD(id); const st=S.cards[id];
-  if(br.now&&br.now.text){ const who=br.now.who==='@npc'?(st.lastNpc||npcBySeat(st.lastSeat)||'상대'):br.now.who==='팀장'?(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장':br.now.who==='고객'?(c.from||'고객'):br.now.who; if(opt.toastOnly) { if(seatByName(who)) toast(br.now.text,who,4200,''); else msgLine(who,br.now.text); } else setTimeout(()=>sayNpc(who,br.now.text,4.5),400); }
+  if(br.now&&br.now.text){ const who=br.now.who==='@npc'?(st.lastNpc||npcBySeat(st.lastSeat)||((c.mode==='phone'||c.mode==='visit')?(c.visitorName||msgWho(c)):'')||'상대'):br.now.who==='팀장'?(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장':br.now.who==='고객'?(c.from||'고객'):br.now.who; if(opt.toastOnly) { if(window.Talk&&Talk.reply) Talk.reply(who,br.now.text); else if(seatByName(who)) toast(br.now.text,who,4200,''); else msgLine(who,br.now.text); } else setTimeout(()=>sayNpc(who,br.now.text,4.5),400); }
   if(br.trust) for(const [n,d] of Object.entries(br.trust)){ const nm=n==='팀장'?(D.dests.find(x=>x.seat==='lead')||{}).name||n:n; S.trust[nm]=(S.trust[nm]||0)+d; }
   if(br.followup&&br.now&&br.now.text){ const fid=`fu_${id}_${S.extra.length}`; const fc={id:fid,type:c.type==='msg'?'msg':'email',from:br.now.who==='고객'?c.from:br.now.who,role:'재문의',subj:'RE: '+c.subj,body:br.now.text,arrive:S.t+1,followup:true,scored:false,act:{confirm:[0,'']},urgent:c.urgent||2,hint:'재문의는 1분 손실이에요. 처음 답장에 값을 다 넣으면 안 와요.'}; S.extra.push(fc); S.cards[fid]={arrived:false,status:'wait'}; }
   if(br.next&&br.next!=='없음'&&!/^없음/.test(br.next)) S.nexts.push({card:c.subj,text:br.next}); if(br.mistake) S.mistakes.push(id); if(br.clueGap) st.clueGap=true; st.branch=key; return true; }

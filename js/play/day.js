@@ -4,6 +4,23 @@
 
 /* ---------- 데이터 적재 ---------- */
 function loadStory(team,ep){ return new Promise((res,rej)=>{ const key=`${team}-ep${ep}`; if(window.STORY&&window.STORY[key]) return res(window.STORY[key]); const s=document.createElement('script'); s.src=`data/story/${key}.js?v=${Date.now()}`; s.onload=()=>{ const d=(window.STORY||{})[key]; d?res(d):rej(new Error('스토리 데이터가 비어 있어요')); }; s.onerror=()=>rej(new Error(`${ep}일차 데이터가 아직 없어요 (${key}.js)`)); document.head.appendChild(s); }); }
+/* ---------- 이름 자리표시자(45차) ----------
+   데이터는 학생 이름 자리에 「○○씨」(NPC 대사)·「○○○님」(메일 인사)·「○○○입니다」(모범 답안 서명)를 쓴다.
+   예전에는 대사 몇 군데에서만 `S.name||'○○'` 로 바꿔 이름이 없으면(데모) 「○○씨」가 그대로 보였다.
+   하루 데이터를 불러올 때 **한 번에** 바꾼다 — 대화창·전화·방문·연출·메일·메신저·디브리프가 전부 이 사본을 쓴다.
+   이름이 없을 때: 부르는 말은 「신입 씨」, 메일 인사 「○○○님」은 「담당자님」, 모범 답안 서명 「○○○입니다」는 그대로(서식 칸이다).
+   가린 번호(010-○○○○-2231)·가린 이름(김○정)·「○○은행」·「○○mm」 같은 서식 자리는 앞뒤 글자로 걸러 건드리지 않는다. */
+const NAME_B='(^|[^가-힣0-9A-Za-z\\-「○*])';
+const NAME_RX=[
+  [new RegExp(NAME_B+'○{2,3}(?=입니)','g'),(nm)=>nm||'○○○'],
+  [new RegExp(NAME_B+'○{2,3}\\s?씨','g'),(nm)=>nm?nm+' 씨':'신입 씨'],
+  [new RegExp(NAME_B+'○{3}\\s?님','g'),(nm)=>nm?nm+' 님':'담당자님'],
+  [new RegExp(NAME_B+'○{3}(?=[,，\\s])','g'),(nm)=>nm||'신입 씨']];
+function fillName(t){ if(typeof t!=='string'||t.indexOf('○')<0) return t; const nm=String((S&&S.name)||'').trim();
+  let out=t; for(const [rx,f] of NAME_RX){ rx.lastIndex=0; out=out.replace(rx,(m,pre)=>pre+f(nm)); } return out; }
+function fillNames(o,depth){ depth=depth||0; if(!o||typeof o!=='object'||depth>14) return o;
+  for(const k of Object.keys(o)){ const v=o[k]; if(typeof v==='string'){ if(v.indexOf('○')>=0) o[k]=fillName(v); } else if(v&&typeof v==='object') fillNames(v,depth+1); }
+  return o; }
 /* 분기 카드 조건: 전날 저장된 카드 결과와 대조. 전날 결과가 없으면 미등장 */
 function triggerMet(tr,prev){ if(!tr||!prev) return false; if(tr.anyOf) return tr.anyOf.some(t=>triggerMet(Object.assign({card:tr.card},t),prev)); const pc=prev.cards&&prev.cards[tr.card]; if(!pc) return false;
   if(tr.act!=null&&pc.act!==tr.act) return false; if(tr.choice!=null&&pc.choice!==tr.choice) return false; if(tr.report!=null&&pc.choice!==tr.report) return false;
@@ -54,7 +71,7 @@ function askAvatar(again){
   const q=(Q.get('avatar')||'').toLowerCase(); if(!again&&(q==='f'||q==='m')) return Promise.resolve(q);
   return new Promise(res=>{
   const put=(id,ch)=>{ const box=$(id); box.innerHTML=''; const src=avatarPic(ch);
-    if(src){ const im=document.createElement('img'); im.src=src; im.alt=''; box.appendChild(im); }
+    if(src){ const im=document.createElement('img'); im.alt=''; im.onerror=()=>{ if(im.parentNode===box) box.textContent='🙂'; }; im.src=src; box.appendChild(im); }
     else box.textContent='🙂'; };
   put('avFPic',playerChar('f')); put('avMPic',playerChar('m'));
   if(!again) $('loading').classList.add('off');
@@ -67,6 +84,7 @@ function askAvatar(again){
 async function startDay(ep){ S.ep=ep; S.phase='loading'; $('home').classList.remove('open'); $('loading').classList.remove('off');
   try{ D=await loadStory(S.team,ep); }catch(e){ $('loadMsg').textContent=e.message; $('loadBack').style.display='inline-block'; return; }
   D=JSON.parse(JSON.stringify(D));            /* 전날 결과에 따라 카드가 빠지므로 사본 */
+  fillNames(D);                               /* 「○○씨」 등 이름 자리 — 모든 출력 경로가 이 사본을 쓴다(45차) */
   /* 소개 페이지에서 바꾼 것이 있으면 그것을 따르고, 아직 고른 적이 없으면 한 번 묻는다 */
   { const pref=avatarPref();
     if(pref&&pref!==P.avatar){ P.avatar=pref; saveProgress(true); }
@@ -83,23 +101,99 @@ async function startDay(ep){ S.ep=ep; S.phase='loading'; $('home').classList.rem
 async function stageUp(){ if(NO_STAGE){ $('stage').style.display='none'; return; } const extra=Object.values(D.npcs||{}).filter(n=>n.seat&&!['lead','senior','chief','staff'].includes(n.seat)).map(n=>`${n.seat}:${n.ch}`).join(',');
   const seats=Object.values(D.npcs||{}).filter(n=>n.seat&&['chief','staff'].includes(n.seat)).map(n=>`${n.seat}:${n.ch}`).join(',');
   const me=playerChar(P&&P.avatar);
+  /* 캐릭터 교체로 무대를 다시 세울 때, 새 문서가 뜨기 전에는 contentWindow.__office 가 **옛 무대**다 —
+     그것의 ready() 가 참이라 곧바로 넘어가던 것을 막는다(45차) */
+  let oldO=null; try{ oldO=($('stage').contentWindow&&$('stage').contentWindow.__office)||null; }catch(e){}
   /* 고른 성별을 3D 로 넘긴다 — 대표 "여자로 설정해도 남자로 나온다".
      정본은 `?player=`(39차 제공). `&me=` 는 그 전 이름이라 함께 붙여 둔다. */
   $('stage').src=`office.html?embed=1&team=${S.team}${extra?'&extra='+extra:''}${seats?'&seats='+seats:''}&player=${me}&me=${me}`;
-  await new Promise(res=>{ const t0=Date.now(); const iv=setInterval(()=>{ let O=null; try{ O=$('stage').contentWindow&&$('stage').contentWindow.__office; }catch(e){} if(O){ /* 3D 쪽 진행 문구(「NPC 불러오는 중…」)는 화면에 옮기지 않는다 — 로딩은 「로딩 중」 한 줄이다 */
+  await new Promise(res=>{ const t0=Date.now(); const iv=setInterval(()=>{ let O=null; try{ O=$('stage').contentWindow&&$('stage').contentWindow.__office; }catch(e){} if(O===oldO) O=null; if(O){ /* 3D 쪽 진행 문구(「NPC 불러오는 중…」)는 화면에 옮기지 않는다 — 로딩은 「로딩 중」 한 줄이다 */
         try{ for(const [n,v] of Object.entries(D.npcs||{})) if(v.seat) O.setLabel(v.seat,n); const doc=$('stage').contentDocument; const st=doc&&doc.getElementById('status'); if(st) console.info('[사무실]',st.textContent); }catch(e){} if(O.ready&&O.ready()){ clearInterval(iv); res(); } } if(Date.now()-t0>150000){ clearInterval(iv); toast('사무실을 불러오지 못해 글로 진행해요'); res(); } },250); });
+  await warmWait(oldO);
   const O=office(); if(O){ try{ if(typeof O.setPlayerChar==='function') O.setPlayerChar(me); }catch(e){}
     try{ for(const [n,v] of Object.entries(D.npcs||{})) if(v.seat) O.setLabel(v.seat,n); O.camFollow(true); O.view('default'); }catch(e){}
     /* 말을 걸면 대화 모드가 열린다 — 대표 "말을 걸었으면 말을 할 수 있게 해줘, 이야기를." */
-    try{ if(typeof O.onTalk==='function') O.onTalk((info)=>{ if(window.Talk) Talk.onNpc(info); }); }catch(e){} } }
-/* 머리 위 안내 문구 — 오늘 그 사람에게 할 일이 있으면 그것을 적는다(없으면 기본 문구) */
+    try{ if(typeof O.onTalk==='function') O.onTalk((info)=>{ if(window.Talk) Talk.onNpc(info); }); }catch(e){}
+    /* 45차: 연출 대사·선택지는 말풍선·3D 패널이 아니라 대화창으로(js/play/talk.js). onChoose·sayWaits 는 45차에 3D 가 제공 — 옛 무대면 talk.js 가 iframe #choice 를 옮긴다 */
+    try{ if(typeof O.onSay==='function') O.onSay((p)=>window.Talk?Talk.onSay(p):undefined); }catch(e){}
+    try{ if(typeof O.onChoose==='function') O.onChoose((p)=>window.Talk?Talk.onChoose(p):Promise.resolve(-1)); }catch(e){}
+    refreshTalkHints(); } }
+/* ---------- 워밍업 대기(45차) ----------
+   대표 「렉 걸리는 거 렉 걸리지 않도록 렉 다 풀릴 때까지 로딩창 띄워. 게임 캐릭터가 보일 때는 렉이 걸리지 않도록」.
+   내 캐릭터가 준비된 뒤(ready)에도 셰이더 컴파일·텍스처 업로드로 한동안 끊겼다. 3D 가 그 일을 로딩 화면 뒤에서 끝내고
+   `warmupInfo().ready` 를 참으로 올릴 때까지 로딩 화면(조작법 카드면 「시작하기」)을 열어 두지 않는다.
+   함수가 없는 옛 무대면 동료까지 앉을 때(full)까지 기다린다. 어느 쪽이든 상한을 넘기면 들어간다(갇히지 않게). */
+async function warmWait(oldO){ if(NO_STAGE) return; const t0=Date.now(); const LIMIT=240000;
+  const lb=$('loading'), ls=$('loadStage'); let first=true;
+  lb.classList.remove('det'); lb.style.removeProperty('--pct'); if(ls) ls.textContent='';
+  {
+    for(;;){ let O=null; try{ O=$('stage').contentWindow&&$('stage').contentWindow.__office; }catch(e){}
+      if(!O||O===oldO) break;                              /* 무대가 없으면(불러오기 실패) 기다릴 것이 없다 */
+      let w=null; try{ if(typeof O.warmupInfo==='function') w=O.warmupInfo(); }catch(e){}
+      if(w){ const p=(window.Intro&&Intro.warmPct)?Intro.warmPct(w,first):(w.ready?1:0); first=false;
+        lb.classList.add('det'); lb.style.setProperty('--pct',Math.round(p*100)+'%');
+        if(ls) ls.textContent=(window.Intro&&Intro.warmText)?Intro.warmText(w):(w.stage||'');
+        if(w.ready){ if(w.timedOut) console.info('[사무실] 워밍업 안정 조건 시간 초과로 입장',w.ms+'ms'); break; } }
+      else { let full=false; try{ full=!!(O.full&&O.full()); }catch(e){}
+        if(ls) ls.textContent=full?'':'동료들이 자리에 앉는 중…';
+        if(full||Date.now()-t0>120000) break; }
+      if(Date.now()-t0>LIMIT){ console.warn('[사무실] 워밍업 대기 상한 — 그대로 입장'); break; }
+      await sleep(250); }
+  } }   /* 끝난 뒤에도 막대(100%)와 문구는 로딩 화면이 닫힐 때까지 그대로 둔다 — 지우면 닫히기 직전 한 번 깜빡인다 */
+/* 머리 위 안내 문구 — 그 사람이 **먼저 할 말**이 있거나(Talk.hear 로 쌓인 것) 오늘 그 사람에게 할 일이 있으면 적는다.
+   문구가 있는 자리에만 3D 가 머리 위 표시를 띄운다(없으면 기본 「T · 이름에게 말 걸기」).
+   45차: 말풍선이 없어졌으므로 이 표시가 「가서 들어라」의 유일한 신호다 — 전달 상대(dests)만이 아니라 자리 있는 사람 전부를 본다. */
 function refreshTalkHints(){ const O=office(); if(!O||typeof O.setTalkHint!=='function'||!D) return;
-  for(const d of (D.dests||[])){ if(!d.seat) continue; let tx='';
-    try{ const t=(window.Talk&&Talk.tasks)?Talk.tasks(d.name):[]; if(t.length) tx=t[0].hint||''; }catch(e){}
-    try{ O.setTalkHint(d.seat,tx); }catch(e){} } }
+  const seats={}; for(const [n,v] of Object.entries(D.npcs||{})) if(v&&v.seat&&!seats[v.seat]) seats[v.seat]=n;
+  for(const d of (D.dests||[])) if(d.seat&&!seats[d.seat]) seats[d.seat]=d.name;
+  for(const [seat,name] of Object.entries(seats)){ let tx='';
+    try{ if(window.Talk&&Talk.hasPending&&Talk.hasPending(name)) tx='T — 이야기 듣기';
+      else { const t=(window.Talk&&Talk.tasks)?Talk.tasks(name,{mark:true}):[]; if(t.length) tx=t[0].hint||''; } }catch(e){}
+    try{ O.setTalkHint(seat,tx); }catch(e){} } }
 function restoreDay(cur){ Object.assign(S,{t:cur.t,cards:cur.cards,order:cur.order,extra:cur.extra||[],ncs:cur.ncs,trust:cur.trust||{},counts:Object.assign(S.counts,cur.counts||{}),nexts:cur.nexts||[],mistakes:cur.mistakes||[],triage:cur.triage||null,clues:cur.clues||[]}); for(const a of AXES) if(!S.ncs[a]) S.ncs[a]=[];
   for(const c of D.cards) if(!S.cards[c.id]) S.cards[c.id]={arrived:false,status:'wait'};
+  /* 방문객이 소파에 앉아 있던 표시는 3D 가 새로 떴으니 무효다(45차) */
+  for(const st of Object.values(S.cards)){ if(st){ delete st.visitorHere; delete st.visitorComing; } }
   S.phase=cur.phase==='triage'?'triage':'work'; S.running=S.phase==='work'; lastTick=0; renderClock(); rehydrateBoxes(); renderInbox(); renderCounts(); toast(`이어서 합니다 — ${fmtClock(S.t)}부터`); if(S.phase==='triage'){ $('triage').classList.add('open'); renderTriage(); } }
+
+/* ---------- 다음 업무까지 넘기기(45차 · 대표 승인) ----------
+   할 일이 하나도 없을 때 다음 카드가 올 때까지 멍하니 기다리지 않게 한다. 누르면 게임 시계가 **다음 카드 도착 시각에 딱 맞춰** 넘어가고,
+   더 올 카드가 없으면 퇴근 시각까지 넘어가 팀장이 부른다(callWrap).
+   보이는 조건 — 전부 0 이어야 한다: 도착했는데 안 끝난 카드 · 쌓인 T 대화(Talk.hear/부르기) · 떠 있는 대화창 · 3D 연출(busy) ·
+   답장 작성 중 · 브리핑 전/분류/퇴근 뒤/일시정지.
+   점수 보호 — 마감 판정(core.js checkLate)은 **안 끝난 카드**만 본다. 넘길 수 있을 때는 안 끝난 카드가 0 이므로 늦음이 생기지 않고,
+   새로 오는 카드는 도착 시각(arrivedAt=카드의 arrive)부터 마감을 세므로 도착 시각을 넘어서 건너뛰지 않는 한 창이 줄지 않는다(그래서 정확히 그 시각으로).
+   기록 — S.counts.skipN(넘긴 횟수) · skipMin(넘긴 게임 분, 표시 분 = ×DISP_MUL). 저장·결과(counts)에 함께 남는다. 채점에는 쓰지 않는다. */
+function nextArrivalMin(){ if(!D) return null; let next=null;
+  for(const c of D.cards.concat(S.extra)){ const st=S.cards[c.id]; if(!st||st.arrived) continue;
+    if(c.requires&&!requireMet(c)) continue;                 /* 조건이 안 찬 체인 카드는 시간이 가도 오지 않는다 */
+    const at=+((c.requires&&st.readyAt!=null)?st.readyAt:c.arrive); if(!isFinite(at)) continue;
+    if(next==null||at<next) next=at; }
+  return next; }
+function skipBlock(){
+  if(!D||D.kind==='ep7'||S.phase!=='work'||!S.running||S.ended||S.paused) return 'phase';
+  if(S.composing) return 'compose';
+  if(window.Talk&&(Talk.isOpen()||(Talk.anyPending&&Talk.anyPending()))) return 'talk';
+  const O=office(); if(O&&O.busy) return 'busy';
+  if(D.cards.concat(S.extra).some(c=>{ const st=S.cards[c.id]; return st&&st.arrived&&st.status!=='done'&&st.status!=='skipped'; })) return 'cards';
+  for(const id of ['endNotice','triage','avatar','debrief']){ const e=$(id); if(e&&e.classList.contains('open')) return 'overlay'; }
+  if(dayEndMin()-S.t<=0.01) return 'end';
+  return ''; }
+function skipNext(){ const why=skipBlock(); if(why) return {ok:false,why};
+  const end=dayEndMin(), nx=nextArrivalMin(); const toEnd=!(nx!=null&&nx<end); const target=toEnd?end:nx;
+  const min=Math.max(0,target-S.t); if(min<=0) return {ok:false,why:'now'};
+  S.counts.skipN=(S.counts.skipN||0)+1; S.counts.skipMin=Math.round(((S.counts.skipMin||0)+min)*100)/100;
+  lastTick=0; advance(min+1e-6);                              /* 도착 판정은 at<=S.t — 부동소수 오차로 한 틱 늦지 않게 아주 조금 더 */
+  renderSkip(); saveProgress();
+  return {ok:true,to:fmtClock(S.t),toEnd,min:Math.round(min*100)/100}; }
+function renderSkip(){ const why=skipBlock(); const end=dayEndMin(), nx=D?nextArrivalMin():null; const toEnd=!(nx!=null&&nx<end);
+  const label=toEnd?'퇴근까지 넘기기':'다음 업무까지 넘기기';
+  /* 상단 바는 자리가 좁다(1280px 에서 「홈으로」가 밀려났다) — 「넘기기」를 떼고 전체 이름은 title·aria-label 로 */
+  for(const id of ['skipBtn','pcSkip']){ const b=$(id); if(!b) continue; const hide=!!why; if(b.hidden!==hide) b.hidden=hide;
+    const tx=id==='skipBtn'?label.replace(/\s*넘기기$/,' ⏵'):label;
+    if(!hide&&b.textContent!==tx){ b.textContent=tx; b.setAttribute('aria-label',label); b.title=`${label} — 지금 할 일이 없을 때만 떠요`; } } }
+for(const id of ['skipBtn','pcSkip']){ const b=$(id); if(b) b.onclick=(ev)=>{ ev.stopPropagation(); const r=skipNext(); if(!r.ok) renderSkip(); }; }
+setInterval(()=>{ try{ renderSkip(); }catch(e){} },400);
 
 /* ---------- 권한 · 사규집 · 조직도 ---------- */
 function renderUnlocks(){ const box=$('unlocks'); box.innerHTML=''; for(const k of ['rulebook','approval','orgchart','report','decide']){ const on=(D.unlock||[]).includes(k); const s=h('span','chip '+(on?'on':''),(on?'':'🔒 ')+UNLOCK_LABEL[k]); s.title=on?'열림':`${UNLOCK_DAY[k]}일차에 열립니다`; box.appendChild(s); }
@@ -153,12 +247,36 @@ function renderProgTab(){ const box=$('tab_prog'); box.innerHTML=''; box.appendC
   const tr=Object.entries(Object.assign({},P&&P.trust||{})); for(const [n,v] of Object.entries(S.trust||{})){ const i=tr.findIndex(x=>x[0]===n); if(i>=0) tr[i][1]+=v; else tr.push([n,v]); } if(tr.length) box.appendChild(h('div','muted','신뢰: '+tr.map(([n,v])=>`${n} ${v>0?'+':''}${v}`).join(', ')));
   const cl=S.clues.length+((P&&P.clues&&Object.values(P.clues).reduce((a,b)=>a+b.length,0))||0); box.appendChild(h('div','muted',`모은 단서 ${cl}개`)); const ft=h('div','paneFoot'); box.appendChild(ft); ft.appendChild(mkBtn('홈으로','',()=>goHome(true))); }
 
-/* ---------- 브리핑 ---------- */
-function startBriefing(){ S.phase='briefing'; S.briefI=0; $('dialog').classList.add('open'); showBrief(); }
-function showBrief(){ const L=D.dialog.briefing||[]; const l=L[S.briefI]; if(!l){ endBriefing(); return; } $('dWho').textContent=`${l.who}${l.role?' ('+l.role+')':''}`; $('dTx').textContent=(l.text||'').replace(/○○씨/g,(S.name||'○○')+'씨'); $('dNext').textContent=S.briefI===L.length-1?'업무 시작':'다음';
-  const O=office(); if(O){ try{ if(l.view) O.view(l.view); bubble(l.who,l.text,9); }catch(e){} } }
+/* ---------- 브리핑 ----------
+   45차(대표 「말풍선 없애고 직접 가서 대화로 모든 것들을 듣게 해」): 3D 사무실이 있으면 컷신이 아니라 **부르기**다.
+   팀장(팀장이 말하지 않는 날은 먼저 말하는 자리 있는 사람) 머리 위에 「T — 이야기 듣기」가 뜨고 알림이 한 줄 온다.
+   가서 T 를 누르면 브리핑 대사가 얼굴 카메라 대화창으로 나오고, 다 들은 뒤에야 시계가 가고 카드가 온다
+   (phase 가 'briefing' 인 동안 clockTick·arrivals 가 돌지 않는다). 다른 사람의 대사는 그 사람 이름표로 같은 판에 나온다.
+   3D 가 없으면(?stage=0) 예전 대사 창. 자동 플레이·__play.skip 은 endBriefing() 을 바로 불러 들은 것으로 친다. */
+let briefCall=null, wrapCall=null;
+function talkByT(){ return !NO_STAGE&&!!office()&&!!(window.Talk&&Talk.call); }
+/* 「김민아 팀장」→「김민아 팀장님이」 · 「박선임」→「박선임님이」 */
+const calledBy=(n)=>`${n}님이`;
+function briefGate(L){ const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'';
+  const seated=(who)=>{ const k=Talk.norm?Talk.norm(who):who; return seatByName(k)?k:null; };
+  if(lead&&seatByName(lead)&&(L.some(l=>seated(l.who)===lead)||!L.some(l=>seated(l.who)))) return lead;
+  for(const l of L){ const k=seated(l.who); if(k) return k; }
+  return lead&&seatByName(lead)?lead:null; }
+function startBriefing(){ S.phase='briefing'; S.briefI=0; S.briefT=false;
+  const L=(D.dialog&&D.dialog.briefing)||[];
+  const gate=L.length&&talkByT()?briefGate(L):null;
+  if(gate){ S.briefT=true;
+    briefCall=Talk.call(gate,L.map(l=>({who:l.who,text:l.text,role:l.role})),{
+      notice:`${calledBy(gate)} 부르세요. 자리로 가서 T 로 이야기를 들어요. (들어야 하루가 시작돼요)`, remind:30000,
+      onHeard:()=>{ briefCall=null; if(S.phase==='briefing') endBriefing(); } });
+    return; }
+  $('dialog').classList.add('open'); showBrief(); }
+function showBrief(){ const L=D.dialog.briefing||[]; const l=L[S.briefI]; if(!l){ endBriefing(); return; } $('dWho').textContent=`${l.who}${l.role?' ('+l.role+')':''}`; $('dTx').textContent=fillName(l.text||''); $('dNext').textContent=S.briefI===L.length-1?'업무 시작':'다음';
+  /* 45차: 말풍선을 띄우지 않는다 — 대사는 이 대사 창에만 나온다 */
+  const O=office(); if(O){ try{ if(l.view) O.view(l.view); }catch(e){} } }
 $('dNext').onclick=()=>{ if(S.phase!=='briefing') return; S.briefI++; showBrief(); }; $('dSkip').onclick=()=>{ if(S.phase==='briefing') endBriefing(); };
-function endBriefing(){ $('dialog').classList.remove('open'); const O=office(); if(O){ try{ O.hush(); O.view('default'); }catch(e){} } S.phase='work'; S.running=true; lastTick=0; arrivals();
+function endBriefing(){ if(briefCall){ briefCall.cancel(); briefCall=null; }
+  $('dialog').classList.remove('open'); const O=office(); if(O&&!S.briefT){ try{ O.hush(); O.view('default'); }catch(e){} } S.phase='work'; S.running=true; lastTick=0; arrivals();
   if(D.triage&&!(S.triage&&S.triage.done)){ startTriage(); return; }
   const L=D.todoLabels||['답할 것','넘길 것','물어볼 것']; toast(`메일함이 열렸어요. ${L.join(' / ')}을 나눠 보세요.`); saveProgress(); }
 $('triageGo').onclick=()=>finishTriage();
@@ -170,8 +288,8 @@ $('triageGo').onclick=()=>finishTriage();
    필요한 API 는 docs/office-api-requests.md 「leadVisit」에 적어 두었다. */
 async function onDayEnd(){ S.running=false; closeComposer(); $('endbar').classList.remove('open');
   const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장';
-  toast('퇴근 시간입니다. 팀장이 결과를 보러 옵니다.',lead,4500,'cust');
-  try{ bubble(lead,'30분 지났어요. 결과 볼까요?',6); }catch(e){}
+  if(talkByT()&&seatByName(lead)){ callWrap('time'); return; }
+  /* 45차: 말풍선·알림으로 흘리지 않는다 — 가운데 안내 한 장이 전부다 */
   $('enTitle').textContent='퇴근 시간입니다'; $('enSub').textContent=`${lead}이 결과를 보러 옵니다.`;
   $('endNotice').classList.add('open');
   const O=office(); if(O&&typeof O.leadVisit==='function'){ try{ await O.leadVisit(); }catch(e){} }
@@ -184,8 +302,29 @@ function checkAllDone(){ if(!D||S.phase!=='work'||S.ended) return;
   const un=D.cards.concat(S.extra).filter(c=>{ const st=S.cards[c.id]; return st&&st.arrived&&st.status!=='done'; });
   if(un.length){ $('endbar').classList.remove('open'); return; }
   $('endbarTx').textContent='오늘 할 일을 다 했습니다.'; $('endbar').classList.add('open'); }
-$('finishBtn').onclick=()=>finish(); $('moreBtn').onclick=()=>{ $('endbar').classList.remove('open'); toast('더 보고 있어도 됩니다. 다 봤으면 일시정지 메뉴에서 「오늘 그만하기」를 누르세요.'); };
-function finish(){ if(S.phase==='debrief') return; S.phase='debrief'; S.running=false; closeComposer(); $('endbar').classList.remove('open');
+$('finishBtn').onclick=()=>{ const lead=(D&&D.dests.find(x=>x.seat==='lead')||{}).name||'';
+  if(talkByT()&&lead&&seatByName(lead)){ S.running=false; closeComposer(); $('endbar').classList.remove('open'); callWrap('done'); } else finish(); };
+/* 45차: 퇴근 마무리도 **부르기**다. 결과는 먼저 계산해 저장해 두고(finish defer), 팀장 머리 위 표시 + 알림 →
+   가서 T → 팀장이 오늘 평가 한마디(debrief lead 줄)를 한 뒤 결과 화면이 열린다.
+   자동 플레이·「오늘 그만하기」가 finish() 를 부르면 그 자리에서 결과 화면으로 넘어간다(들은 것으로 친다). */
+function callWrap(why){ if(S.phase==='wrap'||S.phase==='debrief') return; const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장';
+  const res=finish({defer:true}); if(!res) return;
+  /* 팀장 말투를 맞춘다 — 반말 쓰는 팀장(물류팀 등)이 이 한 줄만 존댓말이면 어색하다. 오늘 그 팀장의 대사에 「~요」가 없으면 반말 */
+  const leadSays=((D.dialog&&D.dialog.briefing)||[]).filter(l=>l&&l.who&&(l.who===lead||lead.endsWith(l.who)||l.who.endsWith(lead))).map(l=>l.text).join(' ')+' '+(res.leadLine||'');
+  const banmal=leadSays.trim()&&!/요[.?!…]|요\s*$/.test(leadSays);
+  const first=why==='done'
+    ?(banmal?'○○씨, 오늘 할 일 다 했다며? 수고했어. 같이 한번 보자.':'○○씨, 오늘 할 일 다 했다며요? 수고했어요. 같이 한번 볼까요?')
+    :(banmal?'○○씨, 퇴근 시간이야. 오늘 한 거 같이 보자.':'○○씨, 퇴근 시간이에요. 오늘 한 거 같이 볼까요?');
+  const lines=[{who:lead,text:first}]; if(res.leadLine) lines.push({who:lead,text:res.leadLine});
+  wrapCall=Talk.call(lead,lines,{ notice:`${calledBy(lead)} 부르세요. 자리로 가서 T 로 오늘 마무리를 들어요.`, remind:30000,
+    onHeard:()=>{ wrapCall=null; showDebrief(res); } });
+  $('enTitle').textContent=why==='done'?'오늘 할 일을 다 했습니다':'퇴근 시간입니다'; $('enSub').textContent=`${calledBy(lead)} 부르세요 — 가서 T 로 마무리를 들어요.`;
+  $('endNotice').classList.add('open'); setTimeout(()=>$('endNotice').classList.remove('open'),2600); } $('moreBtn').onclick=()=>{ $('endbar').classList.remove('open'); toast('더 보고 있어도 됩니다. 다 봤으면 일시정지 메뉴에서 「오늘 그만하기」를 누르세요.'); };
+function finish(opt){ opt=opt||{};
+  if(S.phase==='debrief') return;
+  /* 팀장이 부르는 중(wrap)에 다시 불리면 — 자동 플레이·「오늘 그만하기」 — 들은 것으로 치고 결과 화면으로 */
+  if(S.phase==='wrap'){ if(opt.defer) return S.wrapRes; showDebrief(S.wrapRes); return; }
+  S.phase='debrief'; S.running=false; closeComposer(); $('endbar').classList.remove('open');
   for(const c of D.cards.concat(S.extra)){ const st=S.cards[c.id]; if(!st||st.status==='done') continue;
     if(!st.arrived){ st.status='skipped'; st.act='none'; st.score=null; continue; }
     const steps=st.steps||{};
@@ -200,7 +339,11 @@ function finish(){ if(S.phase==='debrief') return; S.phase='debrief'; S.running=
   /* 디브리프 추가 대사(예: 조력자가 먼저 연락 — 신뢰 조건)와 그 단서 */
   for(const ex of ((D.dialog.debrief||{}).extra||[])){ if(!extraCondMet(ex)) continue; if(ex.clue&&!S.clues.some(k=>k.card===(ex.clue.card||'extra'))) S.clues.push({caseId:ex.clue.caseId,day:S.ep,card:ex.clue.card||'extra',note:ex.clue.note,value:ex.clue.value||null,label:ex.clue.day||null}); }
   const res=buildResult(); P.done[String(S.ep)]=res; P.day=Math.max(P.day||1,S.ep+1); P.cur=null; for(const [n,v] of Object.entries(S.trust)) P.trust[n]=(P.trust[n]||0)+v; for(const k of S.clues){ (P.clues[k.caseId]=P.clues[k.caseId]||[]); if(!P.clues[k.caseId].some(x=>x.card===k.card&&x.day===k.day)) P.clues[k.caseId].push(k); } P.unlocked=uniq((P.unlocked||[]).concat(D.unlock||[]));
-  saveProgress(true); renderDebrief(res); $('debrief').classList.add('open'); }
+  saveProgress(true);
+  if(opt.defer){ S.phase='wrap'; S.wrapRes=res; return res; }
+  showDebrief(res); }
+function showDebrief(res){ if(wrapCall){ wrapCall.cancel(); wrapCall=null; } if(window.Talk&&Talk.isOpen()) Talk.close();   /* 결과 화면 밑에 남은 대화창·줄 선 대사를 걷는다 */
+  S.phase='debrief'; $('endNotice').classList.remove('open'); renderDebrief(res); $('debrief').classList.add('open'); }
 function extraCondMet(ex){ if(!ex.cond) return true; const who=ex.cond.npc||ex.who; if(ex.cond.trustMin!=null&&trustOf(who)<ex.cond.trustMin) return false; return true; }
 function ncsAvg(){ const out={}; for(const a of AXES){ const v=S.ncs[a]; if(v&&v.length) out[a]=Math.round(v.reduce((x,y)=>x+y,0)/v.length); } return out; }
 function metricValue(rule){ const m=(rule&&rule.metric)||'done'; const c=S.counts; if(m==='cite') return c.cite; if(m==='calc') return c.calc; if(m==='rightNpc') return c.rightNpc; if(m==='rejectRight') return c.reject; if(m==='deadline') return c.promise; return c.done; }
@@ -221,7 +364,7 @@ function roleHue(who){ const v=npcInfo(who); const r=(v&&v.role)||'';
   return '#5b6675'; }
 function sayRow(host,who,text,cls){ if(!text) return; const d=h('div','say'); d.style.setProperty('--rc',roleHue(who));
   const w2=h('div','who'); const av=h('span','av',(who||'?').trim().charAt(0)); w2.appendChild(av); w2.appendChild(h('span',null,who));
-  d.appendChild(w2); d.appendChild(h('div','tx '+(cls||''),text.replace(/○○씨/g,(S.name||'○○')+'씨'))); host.appendChild(d); }
+  d.appendChild(w2); d.appendChild(h('div','tx '+(cls||''),fillName(text))); host.appendChild(d); }
 function renderDebrief(r){ const w=$('dbWrap'); w.innerHTML=''; const say=(who,text,cls)=>sayRow(w,who,text,cls);
   w.appendChild(h('h1',null,`${D.teamName} ${D.ep}일차 「${D.title}」 끝`)); w.appendChild(h('div','sub',`${fmtClock(D.minutes)} 퇴근 준비. 팀장이 다가옵니다.`));
   const grid=h('div','grid'); w.appendChild(grid);
@@ -329,7 +472,7 @@ $('cClose').onclick=closeCard;
 
 /* ---------- 스모크·자동 플레이용 ---------- */
 window.__play={ get ready(){ return !!window.__playReady; }, state:()=>({t:S.t,clock:fmtClock(S.t),phase:S.phase,ended:S.ended,paused:S.paused,ep:S.ep,team:S.team,cards:JSON.parse(JSON.stringify(S.cards)),ncs:ncsAvg(),trust:S.trust,counts:S.counts,nexts:S.nexts,mistakes:S.mistakes,order:S.order,clues:S.clues,triage:S.triage}),
-  skip:(min)=>{ if(S.phase==='briefing') endBriefing(); advance(+min||0); return fmtClock(S.t); }, skipBriefing:()=>{ if(S.phase==='briefing') endBriefing(); }, open:(id)=>openCard(id), office, finish, data:()=>D, progress:()=>P, save:()=>P&&P.done[String(S.ep)], triage:(assign)=>{ if(!S.triage) return null; Object.assign(S.triage.assign,assign); finishTriage(); return S.triage; },
+  skip:(min)=>{ if(S.phase==='briefing') endBriefing(); advance(+min||0); return fmtClock(S.t); }, skipNext:()=>skipNext(), skipBlock:()=>skipBlock(), skipBriefing:()=>{ if(S.phase==='briefing') endBriefing(); }, open:(id)=>openCard(id), office, finish, data:()=>D, progress:()=>P, save:()=>P&&P.done[String(S.ep)], triage:(assign)=>{ if(!S.triage) return null; Object.assign(S.triage.assign,assign); finishTriage(); return S.triage; },
   async act(id,key,p={}){ const c=CARD(id); if(!c) throw new Error('없는 카드: '+id); if(!S.cards[id].arrived) throw new Error('아직 도착 안 함: '+id); openCard(id);
     if(key==='reply'||key==='reply2'||key==='reject'||key==='confirm'){ if(c.mode==='reflect'){ doPick(id,p.id); return S.cards[id]; } openComposer(id,key==='reply2'?'reply2':'reply',key==='reply2'?'reply':key); $('composeText').value=p.text||''; $('composeText').dispatchEvent(new Event('input')); await sendCompose(id,p.text||'',key==='reply2'?'reply2':'reply',key==='reply2'?'reply':key,p.answer!=null?String(p.answer):null); return S.cards[id]; }
     if(key==='approval'){ openComposer(id,'approval'); await sendCompose(id,p.text||'',"approval",'reject',p.answer!=null?String(p.answer):null); return S.cards[id]; }

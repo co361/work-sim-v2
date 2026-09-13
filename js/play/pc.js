@@ -27,7 +27,7 @@
     locks=Math.max(0,locks+(on?-1:1)); try{ O.setControl(locks===0); }catch(e){} }
 
   /* ── 화면 켜고 끄기 ───────────────────────────────────────────────── */
-  function openPc(force){ const ok=D2.open(force); if(ok){ control(false); hideHint(); const d=$('pcDot'); if(d) d.hidden=true; } syncBtn(); return ok; }
+  function openPc(force){ const was=pcOn(); const ok=D2.open(force); if(ok){ if(!was) control(false); hideHint();   /* 45차 배포 검사: 켜진 채로 카드를 열 때마다 잠금이 쌓여 PC 를 꺼도 3D 조작(E·T)이 안 돌아와 퇴근 T 를 못 했다 — 꺼짐→켜짐일 때만 잠근다 */ const d=$('pcDot'); if(d) d.hidden=true; } syncBtn(); return ok; }
   function closePc(){ if(pcOn()) control(true); D2.close(); syncBtn(); showHint(); }
 
   /* ── 상단 단추 · 안내 띠 ───────────────────────────────────────────── */
@@ -117,7 +117,8 @@
 
   /* 업무가 시작되면 안내 띠를 띄운다 */
   const _endBriefing=window.endBriefing;
-  window.endBriefing=function(){ const r=_endBriefing.apply(this,arguments); talkEnd(); syncBtn(); showHint(); return r; };
+  /* 45차: 3D 가 있으면 브리핑은 컷신이 아니라 「팀장에게 가서 T」다 — 그때는 조작을 잠그지 않는다(S.briefT). 잠금은 대화창이 알아서 한다 */
+  window.endBriefing=function(){ const legacy=!S.briefT; const r=_endBriefing.apply(this,arguments); if(legacy) talkEnd(); syncBtn(); showHint(); return r; };
   const _restoreDay=window.restoreDay;
   if(_restoreDay) window.restoreDay=function(){ const r=_restoreDay.apply(this,arguments); syncBtn(); showHint(); return r; };
   /* 하루가 끝나면 컴퓨터를 끄고 사무실로 — 디브리프는 사무실 위에서 본다 */
@@ -162,7 +163,7 @@
   window.__pcTalk=function(on){ on?talkStart():talkEnd(); };
 
   const _startBriefing=window.startBriefing;
-  if(_startBriefing) window.startBriefing=function(){ talkStart(); return _startBriefing.apply(this,arguments); };
+  if(_startBriefing) window.startBriefing=function(){ const r=_startBriefing.apply(this,arguments); if(!S.briefT) talkStart(); return r; };
 
   function pcNoti(who,text,ms){
     const box=$('pcNotis'); if(!box) return false;

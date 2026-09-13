@@ -4,8 +4,8 @@
 const RULE_ID=/\b[A-Z]{2,4}-\d{2}\b/g;
 function normNum(s){ return String(s==null?'':s).replace(/[\s,원건일회%]/g,'').replace(/만$/,''); }
 function includesAny(text,arr){ return (arr||[]).some(k=>k&&text.includes(k)); }
-/* 금지 표현: 바로 뒤에 부정("…이 아니라", "…지 않", "…수 없", "…지 마세요")이 오면 안내문으로 보고 넘어간다 */
-function forbidHit(text,k){ let i=text.indexOf(k); while(i>=0){ const tail=text.slice(i+k.length,i+k.length+28); if(!/^(?:[^.。\n]{0,26})?(아니|않|없|마세요|말고|금지|안 |못 )/.test(tail)) return true; i=text.indexOf(k,i+1); } return false; }
+/* 금지 표현(45차: 「어렵습니다·불가합니다·곤란합니다」도 부정으로 본다): 바로 뒤에 부정("…이 아니라", "…지 않", "…수 없", "…지 마세요")이 오면 안내문으로 보고 넘어간다 */
+function forbidHit(text,k){ let i=text.indexOf(k); while(i>=0){ const tail=text.slice(i+k.length,i+k.length+28); if(!/^(?:[^.。\n]{0,26})?(아니|않|없|마세요|말고|금지|안 |못 |어렵|어려|불가|곤란)/.test(tail)) return true; i=text.indexOf(k,i+1); } return false; }
 /* 값 하나가 들어 있나: mustAlt 로 대체 표기 허용 */
 function hasValue(text,k,alt){ if(text.includes(k)) return true; const a=(alt&&alt[k])||[]; return a.some(x=>text.includes(x)); }
 
@@ -42,7 +42,7 @@ function checkWorkCells(c,ans){ const cells=workCells(c); const got=(typeof ans=
 function workText(c,ans){ const cells=workCells(c); if(!cells) return String(ans==null?'':ans); const got=(typeof ans==='string')?(()=>{ try{ return JSON.parse(ans); }catch(e){ return {}; } })():(ans||{});
   return cells.map(x=>{ const v=String(got[x.key]==null||got[x.key]===''?'-':got[x.key]); const u=x.unit||''; return `${x.label||x.key} ${v}${(!u||v==='-'||v.endsWith(u))?'':u}`; }).join(' · '); }
 /* 결재 검토: 지적 항목 개수 */
-function countFlags(c,text){ const f=c.mustFlag||(c.compose&&c.compose.mustInclude)||[]; if(!f.length) return {n:0,all:0}; return {n:f.filter(k=>text.includes(k)).length,all:f.length}; }
+function countFlags(c,text){ const f=c.mustFlag||(c.compose&&c.compose.mustInclude)||[]; if(!f.length) return {n:0,all:0}; return {n:f.filter(k=>[].concat(k).some(x=>x&&text.includes(x))).length,all:f.length}; }   /* 45차: 지적 항목 하나를 [동의어…] 배열로도 받는다 */
 
 /* AI 첨삭 훅 — Backend.grade 가 있으면 호출, 실패·미설정이면 규칙 채점 그대로 */
 async function gradeWithAI(c,text,spec,rule){ if(!aiOn()) return null;

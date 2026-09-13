@@ -16,11 +16,28 @@ window.EP7=(function(){
     return dayLabel(r.day)+' 업무'; };
   function rowFilled(row){ const ks=clues(); return ks.find(k=>(row.cards||[]).includes(k.card)||(k.label&&row.day===k.label)||(k.card==='evening'&&/저녁/.test(row.day))); }
   function missingRows(){ return E.clueRows.filter(r=>!rowFilled(r)); }
+  /* 빈 칸 이름 — 화면에 나가므로 카드 아이디(source) 대신 일차 + 단서 첫 조각 */
+  const missName=(r)=>`${dayLabel(r.day)} 「${rename(String(r.label||'').split(/\s*·\s*/)[0])}」`;
 
-  function start(){ E=D.ep7; S.phase='ep7'; S.running=false; $('ep7').classList.add('open'); ['inbox','card','side','endbar'].forEach(id=>{ const e=$(id); if(e) e.style.display='none'; });
+  /* 45차: 브리핑·마무리도 1~6일차(day.js startBriefing·callWrap)처럼 **부르기**다 — 팀장 머리 위 표시 + 알림 → 가서 T 로 듣기.
+     듣기 전에는 결정 화면이 열리지 않는다. ?stage=0(3D 없음)·이어 하기는 예전처럼 곧바로 화면.
+     자동 플레이(EP7.auto)·__play.skip·skipBriefing 은 들은 것으로 친다(endBriefing 을 여기서 감싼다). */
+  let briefCallE=null, wrapCallE=null;
+  const byT=()=>typeof talkByT==='function'&&talkByT();
+  const leadName=()=>(D.dests.find(x=>x.seat==='lead')||{}).name||'';
+  function openPanel(){ S.phase='ep7'; $('ep7').classList.add('open'); render(); go(D.cards.length&&!Object.keys(preRes).length?'pre':'clue'); saveProgress(); }
+  function start(){ E=D.ep7; S.phase='ep7'; S.running=false; ['inbox','card','side','endbar'].forEach(id=>{ const e=$(id); if(e) e.style.display='none'; });
     for(const c of D.cards) S.cards[c.id]=S.cards[c.id]||{arrived:true,arrivedAt:0,status:'new'};
-    const cur=P.cur; if(cur&&cur.day===7&&cur.ep7&&Q.get('fresh')!=='1'){ Object.assign(F,cur.ep7.form||{}); preRes=cur.ep7.pre||{}; toast('이어서 합니다'); }
-    render(); go(D.cards.length&&!Object.keys(preRes).length?'pre':'clue'); saveProgress(); }
+    const cur=P.cur; let resumed=false; if(cur&&cur.day===7&&cur.ep7&&Q.get('fresh')!=='1'){ Object.assign(F,cur.ep7.form||{}); preRes=cur.ep7.pre||{}; resumed=true; toast('이어서 합니다'); }
+    const L=(D.dialog&&D.dialog.briefing)||[];
+    const gate=(!resumed&&L.length&&byT()&&typeof briefGate==='function')?briefGate(L):null;
+    if(gate){ S.phase='briefing'; S.briefT=true;
+      briefCallE=Talk.call(gate,L.map(l=>({who:l.who,text:l.text,role:l.role})),{
+        notice:`${gate}님이 부르세요. 자리로 가서 T 로 이야기를 들어요. (들어야 결정 화면이 열려요)`, remind:30000,
+        onHeard:()=>{ briefCallE=null; if(S.phase==='briefing') openPanel(); } });
+      return; }
+    openPanel(); }
+  function heardBrief(){ if(briefCallE){ briefCallE.cancel(); briefCallE=null; } if(S.phase==='briefing'&&E) openPanel(); }
   function snapshot(){ return {form:JSON.parse(JSON.stringify(F)),pre:preRes}; }
   /* 칸을 채울 때마다(0.8초 뒤) 진행을 저장한다 — 탭을 옮기지 않고 새로고침해도 쓴 것이 남게 */
   let bumpTm=null; function bump(){ clearTimeout(bumpTm); bumpTm=setTimeout(()=>{ try{ saveProgress(); }catch(e){} },800); }
@@ -59,54 +76,101 @@ window.EP7=(function(){
     box.appendChild(h('h3',null,'④ 결정')); for(const f of E.decisionFields){ box.appendChild(inputRow(f,'',F.decision[f],v=>{ F.decision[f]=v; },'')); } const td=document.createElement('textarea'); td.value=F.dropped; td.placeholder='버린 안 1개와 이유'; td.oninput=()=>{ F.dropped=td.value; bump(); }; box.appendChild(h('label','lbl','버린 안과 이유')); box.appendChild(td);
     box.appendChild(mkBtn('보고서로 →','pri',()=>go('report'))); }
   /* 4) 보고서 */
-  function renderReport(box){ box.appendChild(h('h3',null,'보고서 1장 — 5칸 (각 0/1/2점)')); for(const r of E.report){ const d=h('div','rfield'); d.appendChild(h('label','lbl',r.title)); d.appendChild(h('div','muted',r.desc)); const ta=document.createElement('textarea'); ta.value=F.report[r.key]||''; ta.placeholder='좋은 예: '+r.example.replace(/^"|"$/g,''); ta.oninput=()=>{ F.report[r.key]=ta.value; bump(); }; d.appendChild(ta); box.appendChild(d); }
+  function renderReport(box){ box.appendChild(h('h3',null,'보고서 1장 — 5칸 (각 0/1/2점)')); for(const r of E.report){ const d=h('div','rfield'); d.appendChild(h('label','lbl',r.title)); d.appendChild(h('div','muted',r.desc)); const ta=document.createElement('textarea'); ta.value=F.report[r.key]||''; ta.placeholder='쓰는 법: '+(r.desc||'')+' — 좋은 예는 발표가 끝나면 채점표에서 보여 줘요'; ta.oninput=()=>{ F.report[r.key]=ta.value; bump(); }; d.appendChild(ta); box.appendChild(d); }
     box.appendChild(h('h3',null,'회고 (참고 · 점수에는 넣지 않습니다)')); const tr=document.createElement('textarea'); tr.value=F.reflection; tr.placeholder=E.reflection; tr.oninput=()=>{ F.reflection=tr.value; bump(); }; box.appendChild(tr);
     box.appendChild(mkBtn('발표로 →','pri',()=>go('present'))); }
   /* 5) 발표 */
   function renderPresent(box){ box.appendChild(h('h3',null,'발표 — 핵심 문장 하나를 골라 읽고, 팀장 질문 3개에 답해요')); const sel=document.createElement('select'); for(const r of E.report){ const o=document.createElement('option'); o.value=r.key; o.textContent=`${r.title}: ${(F.report[r.key]||'(비어 있음)').split('\n')[0].slice(0,50)}`; sel.appendChild(o); } sel.value=F.key; sel.onchange=()=>{ F.key=sel.value; bump(); }; box.appendChild(sel);
     E.questions.forEach((q,i)=>{ const d=h('div','qbox'); d.appendChild(h('div','q',`팀장: "${q.q}"`)); q.choices.forEach((c,j)=>{ const l=document.createElement('label'); l.className='opt'; const r=document.createElement('input'); r.type='radio'; r.name='q'+i; r.checked=F.q[i]===j; r.onchange=()=>{ F.q[i]=j; bump(); }; l.appendChild(r); l.appendChild(document.createTextNode(' '+c.label)); d.appendChild(l); }); box.appendChild(d); });
     box.appendChild(mkBtn('발표 끝 — 팀장 판단 듣기','pri',()=>submit())); }
-  /* 채점 */
-  function gradeReport(){ const R=E.report.map(r=>r.key); const T={}; for(const k of R) T[k]=F.report[k]||''; const all=Object.values(T).join('\n')+'\n'+Object.values(F.decision).join(' ')+' '+F.dropped;
+  /* 채점 — 팀마다 사건이 달라서 낱말·위반 판정은 전부 ep7 데이터에서 읽는다(45차: 고객상담팀 낱말 고정을 걷어냄).
+     report[i].keywords  : [[낱말…],[낱말…]] 묶음 목록 — 묶음 안 낱말 하나만 있어도 그 묶음을 채운 것
+     report[i].keywordsNeed : 2점에 필요한 묶음 수(기본 ①·③은 전부, ④는 2)
+     report[3].dropWords : 「버린 안」으로 볼 낱말을 더한다(기본 낱말은 아래 DROP) */
+  const groupsOf=(r)=>(r&&Array.isArray(r.keywords)&&r.keywords.length)?r.keywords.map(g=>[].concat(g).filter(Boolean)).filter(g=>g.length):null;
+  const groupHits=(text,groups)=>groups.filter(g=>g.some(w=>text.includes(w))).length;
+  const DROP=/버린|대신|접었|검토했지만|하지 않은 이유|안 한 이유|반대/;
+  function reportOf(k){ return (E.report||[]).find(r=>r.key===k)||{}; }
+  function gradeReport(){ const R=E.report.map(r=>r.key); const T={}; for(const k of R) T[k]=F.report[k]||''; for(const k of ['p1','p2','p3','p4','p5']) if(T[k]==null) T[k]=''; const all=Object.values(T).join('\n')+'\n'+Object.values(F.decision).join('\n')+'\n'+F.dropped;
     const rub={}, fb={}; const miss=missingRows(); const calcOk=E.criteria.filter(c=>F.calc[c.key]&&normNum(F.calc[c.key])===normNum(c.answer)).length; const tableOk=E.table.filter(t=>F.table[t.key]&&normNum(F.table[t.key])===normNum(t.answer)).length;
     const cl=clues(); const clueHits=cl.filter(k=>{ const ns=nums(k.note+' '+(k.value||'')); return ns.some(n=>T.p2.includes(n)); }).length;
-    const p1=T.p1; rub.p1=(nums(p1).length>=1&&/상담원|사람|폭언|배제|휴직/.test(p1)&&/반품|비용|회/.test(p1))?2:(nums(p1).length>=1||p1.length>=30)?1:0;
+    const p1=T.p1; const g1=groupsOf(reportOf('p1')); const k1=g1?groupHits(p1,g1)>=(reportOf('p1').keywordsNeed||g1.length):p1.length>=40; rub.p1=(nums(p1).length>=1&&k1)?2:(nums(p1).length>=1||p1.length>=30)?1:0;
     const p2=T.p2; const calcIn=E.criteria.some(c=>p2.includes(String(c.answer))); rub.p2=(clueHits>=3&&nums(p2).length>=5&&calcIn)?2:(nums(p2).length>=2||clueHits>=1)?1:0; if(miss.length>=2) rub.p2=Math.min(rub.p2,1);
-    const p3=T.p3; const hasWhen=/\d+월|\d+일|부터|뒤|이후|주\b/.test(p3); const hasRevert=/되돌|재검토|철회|다시 검토|원래대로|유지,|아니면/.test(p3); const hasCond=/조건|초과|이상|이면|경우|넘기면|넘으면/.test(p3); rub.p3=(p3.length>=20&&hasWhen&&hasRevert)?2:(p3.length>=10&&(hasWhen||hasCond))?1:0;
-    const p4=T.p4+' '+F.dropped; const imp=['순마진|마진','여론|확산|문의','상담원|사람','비용|처리비','매출'].filter(re=>new RegExp(re).test(p4)).length; const dropped=/버린|대신|접었|검토했지만|하지 않은 이유|안 한 이유|반대|제한은/.test(p4); rub.p4=(imp>=2&&dropped)?2:(imp>=1||dropped)?1:0;
-    const cr=citedRules(T.p5+' '+T.p3); const viol=violations(all,T.p5); rub.p5=viol.length?0:(cr.ids.length>=2&&!cr.unknown.length)?2:cr.ids.length>=1?1:0;
-    let total=0; for(const k of R){ total+=rub[k]; fb[k]=(E.feedback[k]&&E.feedback[k][String(rub[k])])||''; if(k==='p5'&&viol.length) fb[k]=fb[k].replace('[위반 항목]',viol.map(v=>v.text).join(' / ')); if(k==='p2'&&rub[k]===1&&miss.length) fb[k]+=' 빈 칸: '+miss.map(m=>`${m.day}일차 ${m.source}`).join(', '); }
+    const p3=T.p3; const hasWhen=/\d+월|\d+일|부터|뒤|이후|주\b/.test(p3); const hasRevert=/되돌|재검토|철회|다시 검토|원래대로|유지,|아니면/.test(p3); const hasCond=/조건|초과|이상|이면|경우|넘기면|넘으면/.test(p3); const g3=groupsOf(reportOf('p3')); const k3=g3?groupHits(p3,g3)>=(reportOf('p3').keywordsNeed||g3.length):true; rub.p3=(p3.length>=20&&hasWhen&&hasRevert&&k3)?2:(p3.length>=10&&(hasWhen||hasCond))?1:0;
+    const p4=T.p4+' '+F.dropped; const r4=reportOf('p4'); const g4=groupsOf(r4); const imp=g4?groupHits(p4,g4):(nums(p4).length>=2?2:nums(p4).length); const dropped=DROP.test(p4)||(r4.dropWords||[]).some(w=>w&&p4.includes(w)); rub.p4=(imp>=(r4.keywordsNeed||2)&&dropped)?2:(imp>=1||dropped)?1:0;
+    const cr=citedRules(T.p5+' '+T.p3); const viol=violations(all,T); rub.p5=viol.length?0:(cr.ids.length>=2&&!cr.unknown.length)?2:cr.ids.length>=1?1:0;
+    let total=0; for(const k of R){ total+=rub[k]; fb[k]=(E.feedback[k]&&E.feedback[k][String(rub[k])])||''; if(k==='p2'&&rub[k]===1&&miss.length) fb[k]+=' 빈 칸: '+miss.map(missName).join(', '); }
     const qs=E.questions.map((q,i)=>{ const j=F.q[i]; const c=q.choices[j]; return {i,j,score:c?c.score:0,react:c?c.react:'(답하지 않음)',label:c?c.label:''}; }); const qAvg=Math.round(qs.reduce((a,b)=>a+b.score,0)/Math.max(1,qs.length));
-    if(qs[2]&&qs[2].score===0&&/오늘부터/.test(qs[2].label)) viol.push({text:'사전 고지 없이 오늘부터 적용(발표 답변)',rules:['CS-02']});
+    /* 발표 답변 위반 — 선택지에 violation(위반 번호 또는 {text,rules})이 달린 것을 고르면 */
+    E.questions.forEach((q,i)=>{ const c=q.choices[F.q[i]]; if(!c||c.violation==null) return; const V=E.violations||[]; const v=typeof c.violation==='number'?V[c.violation]:c.violation; if(!v) return; const text=`${visibleText(v.text)} (발표 답변 「${c.label}」)`; if(!viol.some(x=>x.text===text)) viol.push({text,rules:v.rules||[],say:v.say||null}); });
     if(qs[0]&&qs[0].score===0) rub.p2=Math.min(rub.p2,1);
     if(rub.p4>0&&qs[1]&&qs[1].score<=10&&/그대로 두/.test(qs[1].label)&&/현상 유지|그대로/.test(F.dropped)) rub.p4-=1;
-    total=R.reduce((a,k)=>a+rub[k],0); if(viol.length) rub.p5=0;
+    if(viol.length){ rub.p5=0; fb.p5=((E.feedback.p5||{})['0']||'').replace('[위반 항목]',viol.map(v=>v.text).join(' / ')); }
+    total=R.reduce((a,k)=>a+rub[k],0);
     let ending='B'; if(viol.length) ending='C'; else if(total>=8&&rub.p5>=1&&miss.length<2&&rub.p2>=2) ending='A';
     return {rubric:rub,total,feedback:fb,violations:viol,missing:miss,calcOk,tableOk,qs,qAvg,ending}; }
-  function violations(all,p5){ const V=E.violations||[]; const out=[]; const lab=(i,def)=>({text:(V[i]&&V[i].text)||def,rules:(V[i]&&V[i].rules)||[]});
-    if(/(오늘부터|즉시 적용|바로 적용|지금부터|당장)/.test(all)&&!/고지/.test(all)) out.push(lab(0,'사전 고지 없이 오늘부터 적용'));
-    if(/소급/.test(all)&&!/소급하지|소급 없이|소급은 안|소급 않/.test(all)) out.push(lab(1,'이미 접수된 반품에 소급 차감'));
-    if(/(녹취|상담 기록|통화 내용).{0,12}(공개|올리|SNS|커뮤니티)/.test(all)) out.push(lab(2,'상담 기록·녹취 외부 공개'));
-    if(/접수(를| 자체를)? 거부|민원.{0,6}거부|받지 않는다/.test(all)) out.push(lab(3,'민원 접수 자체 거부'));
-    const money=(all.match(/(\d{1,3}(?:,\d{3})+|\d{4,})\s*원/g)||[]).map(x=>+x.replace(/[^\d]/g,'')); if(money.some(m=>m>30000)&&/보상|쿠폰|적립금|위로금/.test(all)&&!/결재|승인/.test(all)) out.push(lab(4,'결재 없이 30,000원 초과 보상'));
-    if(/16시/.test(all)&&/약속|까지 답|안에 결정|안에 답/.test(all)) out.push(lab(5,'고객이 정한 시한(16시)을 약속'));
-    for(const c of D.cards){ const hint=c.violationHint||''; const ids=hint.match(/[A-Z]{2,4}-\d{2}/g)||[]; if(!ids.length) continue; const pr=preRes[c.id]; if(pr&&pr.act===c.best) continue; if(!ids.some(i=>p5.includes(i))) out.push({text:hint.replace(/^7화 C 위반 후보\s*/,''),rules:ids}); }
+  /* 위반 판정 — ep7.violations[i] = {text, rules,
+       match:[정규식…]   한 문장 안에서 전부 맞아야 한다(문장 = 줄바꿈·마침표·물음표·세미콜론으로 나눈 조각)
+       except:정규식      같은 문장에 있으면 위반이 아니다(예: "고지", "결재")
+       negate:false       기본(true)은 맞은 곳 바로 뒤 부정("…하지 않는다·안 한다·금지")이면 넘어간다. 부정 자체가 위반인 항목만 false
+       where:"text"       문장 단위가 아니라 보고서 전체에서 match 를 보고, except 도 전체에서 본다
+       field:"p5"         그 칸(p1~p5·decision·dropped)만 본다
+       amountOver:30000   같은 문장에 이 금액(원)을 넘는 돈이 있어야 한다
+       past:[{day,card,act?,choice?,forbidHit?,replyBanHit?,delivered?}]  1~6일차 그 카드에서 그렇게 했으면 글과 무관하게 위반
+       pastUnless:정규식   past 에 걸렸어도 보고서에 이 정규식이 있으면(바로잡는 내용을 썼으면) 위반으로 보지 않는다
+       say:"…"          엔딩 C 에서 팀장이 읽어 줄 문장(없으면 rules[0] 조항의 첫 문장) }
+     match 가 없고 past 도 없는 항목은 판정하지 않는다(이름표만). 발표 답변 위반은 questions[].choices[].violation. */
+  const NEG=/^[^.\n]{0,14}?(하지 않|지 않|않는다|않고|않음|않습니다|않겠|안 한다|안 합니다|안 함|안 하고|안 하며|말 것|말고|금지|불가|못 한다|하지 말)/;
+  const reCache={}; const RX=(s)=>{ if(s instanceof RegExp) return s; try{ return reCache[s]||(reCache[s]=new RegExp(s)); }catch(e){ console.warn('위반 판정식 오류',s); return /$^/; } };
+  const splitSent=(t)=>String(t||'').split(/\n|[.。!?;](?!\d)|\s\/\s/).map(x=>x.trim()).filter(Boolean);
+  const wonIn=(t)=>{ const out=[]; const re=/(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?\s*(억|만\s*원|만|원)/g; let m; while((m=re.exec(t))){ const n=parseFloat(m[1].replace(/,/g,'')+(m[2]?'.'+m[2]:'')); const u=m[3].replace(/\s/g,''); out.push(u==='억'?n*1e8:u.startsWith('만')?n*1e4:n); } return out; };
+  /* 화면에 내보내는 위반 이름 — 괄호 속 제작 메모(「…면 자동」 등)는 뺀다 */
+  const visibleText=(s)=>String(s||'').replace(/\s*[—-]\s*[^—()]*(자동|취합표에 자동 표시)[^()]*$/,'').replace(/\s{2,}/g,' ').trim();
+  function pastHit(conds){ for(const c of [].concat(conds||[])){ const r=P&&P.done&&P.done[String(c.day)]; const st=r&&r.cards&&r.cards[c.card]; if(!st) continue;
+      const ok=Object.entries(c).every(([k,v])=>{ if(k==='day'||k==='card') return true; const got=st[k]; return Array.isArray(v)?v.includes(got):got===v; }); if(ok) return true; } return false; }
+  function violationHit(v,all,T){ if(v.past&&pastHit(v.past)&&!(v.pastUnless&&RX(v.pastUnless).test(all))) return true; const m=[].concat(v.match||[]).filter(Boolean); if(!m.length) return false;
+    const src=v.field?(v.field==='decision'?Object.values(F.decision).join('\n'):v.field==='dropped'?F.dropped:(T[v.field]||'')):all;
+    if(v.where==='text'){ if(!m.every(p=>RX(p).test(src))) return false; if(v.except&&RX(v.except).test(src)) return false; return true; }
+    for(const s of splitSent(src)){ if(!m.every(p=>RX(p).test(s))) continue; if(v.except&&RX(v.except).test(s)) continue;
+      if(v.amountOver!=null&&!wonIn(s).some(n=>n>v.amountOver)) continue;
+      if(v.negate!==false&&m.some(p=>{ const mm=RX(p).exec(s); return mm&&NEG.test(s.slice(mm.index+mm[0].length)); })) continue;
+      return true; }
+    return false; }
+  function violations(all,T){ const V=E.violations||[]; const out=[];
+    for(const v of V){ if(violationHit(v,all,T)) out.push({text:visibleText(v.text),rules:v.rules||[],say:v.say||null}); }
+    for(const c of D.cards){ const hint=c.violationHint||''; const ids=hint.match(/[A-Z]{2,4}-\d{2}/g)||[]; if(!ids.length) continue; const pr=preRes[c.id]; if(pr&&pr.act===c.best) continue; if(!ids.some(i=>(T.p5||'').includes(i))) out.push({text:hint.replace(/^7화 C 위반 후보\s*/,''),rules:ids}); }
     return out; }
   async function submit(){ const empty=E.report.filter(r=>!(F.report[r.key]||'').trim()); if(empty.length&&!confirm(`보고서 ${empty.length}칸이 비어 있어요. 그대로 발표할까요?`)) return; if(Object.keys(F.q).length<E.questions.length&&!confirm('답하지 않은 질문이 있어요. 그대로 발표할까요?')) return;
     const O=office(); const lead=(D.dests.find(x=>x.seat==='lead')||{}).name;
     const g=gradeReport(); result=g;
     const day7ncs={'1':Math.round((g.rubric.p1+g.rubric.p3)/4*100),'2':Math.round(g.calcOk/Math.max(1,E.criteria.length)*100),'3':Math.round(((g.rubric.p3+g.rubric.p4)/4*100+g.qAvg)/2),'7':Math.round((g.rubric.p5/2*100+g.tableOk/Math.max(1,E.table.length)*100)/2),'4':F.reflection.trim()?100:0};
-    const res={team:S.team,ep:7,day:7,at:new Date().toISOString(),ending:g.ending,rubric:g.rubric,total:g.total,feedback:g.feedback,violations:g.violations,missingClues:g.missing.map(m=>`${m.day}일차 ${m.source}`),report:F.report,decision:F.decision,dropped:F.dropped,idea:F.idea,table:F.table,calc:F.calc,reflection:F.reflection,questions:g.qs,ncs:day7ncs,cards:preRes,counts:{done:E.report.length-empty.length,all:E.report.length}};
+    const res={team:S.team,ep:7,day:7,at:new Date().toISOString(),ending:g.ending,rubric:g.rubric,total:g.total,feedback:g.feedback,violations:g.violations,missingClues:g.missing.map(missName),report:F.report,decision:F.decision,dropped:F.dropped,idea:F.idea,table:F.table,calc:F.calc,reflection:F.reflection,questions:g.qs,ncs:day7ncs,cards:preRes,counts:{done:E.report.length-empty.length,all:E.report.length}};
     P.done['7']=res; P.day=8; P.cur=null; for(const [n,v] of Object.entries(S.trust)) P.trust[n]=(P.trust[n]||0)+v; saveProgress(true);
-    if(O&&lead){ try{ bubble(lead,g.ending==='A'?'채택.':g.ending==='B'?'다시 정리해 와. 내일 아침.':'이 안은 못 올려.',8); }catch(e){} }
+    /* 45차: 3D 가 있으면 결정 화면을 접고 팀장이 부른다 — 가서 T 로 판단을 들은 뒤 엔딩 화면이 열린다(1~6일차 퇴근 마무리와 같은 방식) */
+    const ld=leadName(); if(byT()&&ld&&typeof seatByName==='function'&&seatByName(ld)){ callWrap7(res,ld); return; }
     renderEnding(res); }
+  function callWrap7(res,lead){ const leadText=endingLeadText(res);
+    /* 팀장 말투 — 브리핑·판단 대사에 「~요」가 없으면 반말(day.js callWrap 과 같은 규칙) */
+    const leadSays=((D.dialog&&D.dialog.briefing)||[]).filter(l=>l&&l.who&&(l.who===lead||lead.endsWith(l.who)||l.who.endsWith(lead))).map(l=>l.text).join(' ')+' '+leadText;
+    const banmal=leadSays.trim()&&!/요[.?!…]|요\s*$/.test(leadSays);
+    const lines=[{who:lead,text:banmal?'○○씨, 발표 잘 들었어. 내 판단 말할게.':'○○씨, 발표 잘 들었어요. 제 판단을 말할게요.'}]; if(leadText) lines.push({who:lead,text:leadText});
+    $('ep7').classList.remove('open'); S.phase='wrap';
+    wrapCallE=Talk.call(lead,lines,{ notice:`${lead}님이 부르세요. 자리로 가서 T 로 발표 결과를 들어요.`, remind:30000,
+      onHeard:()=>{ wrapCallE=null; showEnding(res); } });
+    $('enTitle').textContent='발표를 마쳤습니다'; $('enSub').textContent=`${lead}님이 부르세요 — 가서 T 로 판단을 들어요.`;
+    $('endNotice').classList.add('open'); setTimeout(()=>$('endNotice').classList.remove('open'),2600); }
+  function showEnding(res){ if(wrapCallE){ wrapCallE.cancel(); wrapCallE=null; } if(window.Talk&&Talk.isOpen&&Talk.isOpen()) Talk.close(); $('endNotice').classList.remove('open'); S.phase='ep7'; $('ep7').classList.add('open'); renderEnding(res); }
+  /* 엔딩 팀장 대사 — B 는 ② 점수에 따라 둘 중 하나, C 는 위반 조항을 읽어 준다 */
+  function endingLeadText(res){ const en=E.endings[res.ending]||{};
+    let leadText=en.lead||''; if(res.ending==='B'){ const parts=leadText.split(/\s*\/\s*\[②[^\]]*\]\s*/); leadText=(res.rubric.p2<=1&&parts[1])?parts[1]:parts[0]; leadText=leadText.replace(/\[빈 칸 이름[^\]]*\]/,res.missingClues.length?res.missingClues.join(', '):'근거'); }
+    if(res.ending==='C'){ const RB=window.OC&&OC.data&&OC.data.RULEBOOK; const reads=[]; for(const v of res.violations){ if(v.say){ reads.push(v.say); continue; } for(const id of (v.rules||[]).slice(0,1)){ let art=null; if(RB) for(const b of RB.books) for(const a of b.articles) if(a.id===id) art=a; reads.push(art?`"${art.body.split('. ')[0]}." ${id}.`:id); } if(!v.rules||!v.rules.length) reads.push(v.text); } leadText=leadText.replace(/^\[위반 항목[^\]]*\][^\n]*/,reads.join(' ')); }
+    return leadText; }
   function renderEnding(res){ const body=$('ep7Body'); body.innerHTML=''; document.querySelectorAll('#ep7 .stepb').forEach(b=>b.classList.remove('cur')); const en=E.endings[res.ending]||{}; const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장';
     body.appendChild(h('h2',null,`엔딩 ${res.ending} — ${en.name||''}`));
-    let leadText=en.lead||''; if(res.ending==='B'){ const parts=leadText.split(/\s*\/\s*\[②[^\]]*\]\s*/); leadText=(res.rubric.p2<=1&&parts[1])?parts[1]:parts[0]; leadText=leadText.replace(/\[빈 칸 이름[^\]]*\]/,res.missingClues.length?res.missingClues.join(', '):'근거'); }
-    if(res.ending==='C'){ const RB=window.OC&&OC.data&&OC.data.RULEBOOK; const reads=[]; for(const v of res.violations){ for(const id of (v.rules||[]).slice(0,1)){ let art=null; if(RB) for(const b of RB.books) for(const a of b.articles) if(a.id===id) art=a; reads.push(art?`"${art.body.split('. ')[0]}." ${id}.`:id); } if(!v.rules||!v.rules.length) reads.push(v.text); } leadText=leadText.replace(/^\[위반 항목[^\]]*\][^\n]*/,reads.join(' ')); }
+    const leadText=endingLeadText(res);
     const say=(who,text,cls)=>sayRow(body,who,text,cls);   /* 화자별 색·아바타는 day.js 와 한 벌이다 */
     say(lead,leadText); for(const st of (en.stage||[])) body.appendChild(h('div','stage',`(${st})`)); for(const o of (en.others||[])) say(o.who,o.text);
-    const box=h('div','box'); box.style.setProperty('--bc',BOX_HUE.summary); box.appendChild(h('h3',null,`보고서 채점 ${res.total}/10`)); const t=document.createElement('table'); t.className='sheet'; for(const r of E.report){ const tr=t.insertRow(); tr.appendChild(h('td',null,r.title)); tr.appendChild(h('td','v',String(res.rubric[r.key]))); tr.appendChild(h('td',null,res.feedback[r.key]||'')); } box.appendChild(t);
+    const box=h('div','box'); box.style.setProperty('--bc',BOX_HUE.summary); box.appendChild(h('h3',null,`보고서 채점 ${res.total}/10`)); const t=document.createElement('table'); t.className='sheet'; for(const r of E.report){ const tr=t.insertRow(); tr.appendChild(h('td',null,r.title)); tr.appendChild(h('td','v',String(res.rubric[r.key]))); const fd=h('td',null,res.feedback[r.key]||''); if(r.example){ fd.appendChild(h('div','muted','좋은 예: '+String(r.example).replace(/^"|"$/g,''))); } tr.appendChild(fd); } box.appendChild(t);
     if(res.violations.length) box.appendChild(h('div','bad','규정 위반: '+res.violations.map(v=>v.text).join(' / '))); if(res.missingClues.length) box.appendChild(h('div','muted','놓친 단서: '+res.missingClues.join(', ')));
     const qs=h('ul'); for(const q of res.questions){ qs.appendChild(h('li',null,`"${E.questions[q.i].q}" → ${q.label||'(답 없음)'} · ${q.score}점 ${q.react?'— '+q.react:''}`)); } box.appendChild(qs); body.appendChild(box);
     say((D.dests.find(x=>x.seat==='senior')||{}).name||'사수',D.dialog.debrief.senior); say(peerName(),D.dialog.debrief.peer,'msg');
@@ -115,13 +179,20 @@ window.EP7=(function(){
   function weekNcs(){ const acc={}; for(let d=1; d<=7; d++){ const r=P.done[String(d)]; if(!r||!r.ncs) continue; for(const [a,v] of Object.entries(r.ncs)){ (acc[a]=acc[a]||[]).push(v); } } const out={}; for(const [a,v] of Object.entries(acc)) out[a]=Math.round(v.reduce((x,y)=>x+y,0)/v.length); return out; }
   function weekTable(){ const t=document.createElement('table'); t.className='sheet week'; const hd=t.insertRow(); hd.appendChild(h('th',null,'')); for(const a of AXES) hd.appendChild(h('th',null,CIRC[a])); for(let d=1; d<=7; d++){ const r=P.done[String(d)]; const tr=t.insertRow(); tr.appendChild(h('td',null,`${d}일차`)); for(const a of AXES) tr.appendChild(h('td',null,r&&r.ncs&&r.ncs[a]!=null?String(r.ncs[a]):'·')); } return t; }
   /* 자동 플레이(스모크) */
-  async function auto(opts={}){ const fail=opts.path==='fail';
+  async function auto(opts={}){ const fail=opts.path==='fail'; heardBrief(); if(wrapCallE){ wrapCallE.cancel(); wrapCallE=null; } if(S.phase==='wrap') S.phase='ep7'; if(!$('ep7').classList.contains('open')){ $('ep7').classList.add('open'); if(!$('ep7Body')) render(); }
     for(const c of D.cards){ if(preRes[c.id]) continue; const k=c.best; const textual=(k===c.best&&c.compose)||k==='reply'; submitPre(c,k,textual?(c.compose&&c.compose.model)||'확인했습니다. 보고하겠습니다. 죄송합니다.':null); }
-    for(const t of E.table) F.table[t.key]=t.answer; for(const c of E.criteria) F.calc[c.key]=c.answer; F.idea=(E.ideaExamples&&E.ideaExamples[0])||'숫자 하나를 바꾸자'; for(const f of E.decisionFields) F.decision[f]=f+': 정함'; F.dropped='버린 안: 이용 제한(약관 14조) — 남용 입증 부담과 분쟁 5개월, 영업본부 반대 때문에 접었다.';
+    for(const t of E.table) F.table[t.key]=t.answer; for(const c of E.criteria) F.calc[c.key]=c.answer; F.idea=(E.ideaExamples&&E.ideaExamples[0])||'숫자 하나를 바꾸자'; for(const f of E.decisionFields) F.decision[f]=f+': 정함';
+    /* 버린 안은 그 팀 ④칸 「좋은 예」에서 가져온다(45차: 고객상담팀 문장 고정을 걷어냄) */
+    const ex4=String((reportOf('p4').example)||'').replace(/^"|"$/g,''); const mDrop=ex4.match(/버린 안[\s\S]*$/); F.dropped=mDrop?mDrop[0]:'버린 안: 현재 방식 — 근거가 약해 접었다.';
     for(const r of E.report) F.report[r.key]=r.example.replace(/^"|"$/g,''); F.reflection='3일차를 다시 하고 싶다. 표를 먼저 세는 습관을 들이고 싶어서.'; F.key='p3';
     E.questions.forEach((q,i)=>{ let bi=0; q.choices.forEach((c,j)=>{ if(c.score>q.choices[bi].score) bi=j; }); if(fail&&i===2){ const w=q.choices.findIndex(c=>c.score===0); bi=w>=0?w:bi; } F.q[i]=bi; });
     const g=gradeReport(); result=g; const day7ncs={'1':Math.round((g.rubric.p1+g.rubric.p3)/4*100),'2':Math.round(g.calcOk/Math.max(1,E.criteria.length)*100),'3':Math.round(((g.rubric.p3+g.rubric.p4)/4*100+g.qAvg)/2),'7':Math.round((g.rubric.p5/2*100+g.tableOk/Math.max(1,E.table.length)*100)/2),'4':100};
-    const res={team:S.team,ep:7,day:7,at:new Date().toISOString(),ending:g.ending,rubric:g.rubric,total:g.total,feedback:g.feedback,violations:g.violations,missingClues:g.missing.map(m=>`${m.day}일차 ${m.source}`),report:F.report,decision:F.decision,dropped:F.dropped,idea:F.idea,table:F.table,calc:F.calc,reflection:F.reflection,questions:g.qs,ncs:day7ncs,cards:preRes,counts:{done:5,all:5}};
+    const res={team:S.team,ep:7,day:7,at:new Date().toISOString(),ending:g.ending,rubric:g.rubric,total:g.total,feedback:g.feedback,violations:g.violations,missingClues:g.missing.map(missName),report:F.report,decision:F.decision,dropped:F.dropped,idea:F.idea,table:F.table,calc:F.calc,reflection:F.reflection,questions:g.qs,ncs:day7ncs,cards:preRes,counts:{done:5,all:5}};
     P.done['7']=res; P.day=8; P.cur=null; saveProgress(true); renderEnding(res); return res; }
-  return {start,snapshot,auto,grade:()=>gradeReport(),form:F,result:()=>result};
+  /* 검사용(tools/ep7_grade_test.mjs) — 화면 없이 데이터만 얹어 채점한다 */
+  function _test(ep7){ E=ep7; preRes={}; for(const k of Object.keys(F)) if(F[k]&&typeof F[k]==='object') F[k]={}; else F[k]=''; F.key='p3'; return {form:F,grade:gradeReport}; }
+  return {start,snapshot,auto,heardBrief,grade:()=>gradeReport(),form:F,result:()=>result,_test};
 })();
+/* 7일차에 __play.skip·skipBriefing 이 부르는 endBriefing(day.js) 은 카드 하루를 시작한다 — 7일차는 「브리핑을 들은 것으로 치고 결정 화면」으로 돌린다 */
+(function(){ const _eb=window.endBriefing; if(typeof _eb!=='function') return;
+  window.endBriefing=function(){ if(typeof D!=='undefined'&&D&&D.kind==='ep7'){ return EP7.heardBrief(); } return _eb.apply(this,arguments); }; })();

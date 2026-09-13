@@ -12,8 +12,13 @@
 
    붙는 자리: day.js startDay() 의 stageUp() 앞뒤 — Intro.start() … await Intro.ready().
    카드 문구는 office.html 의 실제 키 처리에서 옮겼다(고칠 때 반드시 대조할 것):
-     KEYMAP(WASD·방향키) · CTRL.fast=e.shiftKey · KeyE=ctrlAct(앉기/일어서기·문) ·
-     KeyT=ctrlTalk(말 걸기) · KeyQ/KeyR=rigTurn(90°) · KeyZ=rigZoom · SCREEN.cb(모니터 클릭=PC)
+     KEYMAP(WASD·방향키) · CTRL.fast=e.shiftKey · KeyE=ctrlAct(앉기/일어서기·문·내 자리 컴퓨터) ·
+     KeyT=ctrlTalk(사람에게 하는 모든 것) · KeyQ/KeyR=rigTurn(90°) · KeyZ=rigZoom · SCREEN.cb(모니터 클릭=PC)
+
+   45차(대표 「렉 다 풀릴 때까지 로딩창 띄워. 게임 캐릭터가 보일 때는 렉이 걸리지 않도록」):
+     「시작하기」는 3D 의 `warmupInfo().ready` 가 참이 된 뒤에만 뜬다(day.js warmWait 가 기다린 뒤 Intro.ready()).
+     아래 진행 줄은 warmupInfo 의 stage 문구와 진행 막대를 그대로 보여 준다. 함수가 없으면 ready()/full() 로 짐작.
+     E/T 카드 문구는 대표 확정 「E = 앉기·문·PC, T = 사람에게 하는 모든 것」에 맞췄다.
    ====================================================================== */
 window.Intro=(function(){
 'use strict';
@@ -32,14 +37,14 @@ const CARDS=[
      +'가고 싶은 <b>바닥을 클릭</b>하면 그 자리까지 알아서 걸어갑니다.' },
 
   { keys:'<kbd class="k acc">E</kbd>',
-    h:'E — 앉기 · 일어서기 · 문 열기',
-    p:'내 자리 앞에서 <b>E</b>를 누르면 앉고, 앉은 채로 다시 누르면 일어섭니다. 문 앞에서도 <b>E</b>.<br>'
-     +'지금 누를 수 있는 것은 <b>머리 위에 떠 있어요</b> — 「E · 내 자리에 앉기」처럼.' },
+    h:'E — 앉기 · 문 · 컴퓨터',
+    p:'<b>E</b>는 <b>자리와 물건</b>에 씁니다. 내 자리 앞에서 앉고 일어서기, 문 앞에서 드나들기, 내 자리 컴퓨터 켜기.<br>'
+     +'사람에게는 E 를 쓰지 않아요. 지금 누를 수 있는 것은 <b>화면에 떠 있어요</b> — 「E · 내 자리에 앉기」처럼.' },
 
   { keys:'<kbd class="k acc">T</kbd>',
-    h:'T — 사람에게 말 걸기',
-    p:'동료 가까이 다가가 <b>T</b>를 누르면 대화가 시작됩니다.<br>'
-     +'머리 위에 <b>화살표</b>가 떠 있는 사람은 <b>오늘 볼일이 있는 사람</b>이에요. 먼저 찾아가 보세요.' },
+    h:'T — 사람에게 하는 모든 것',
+    p:'말 걸기 · 질문 · 보고 · 서류 제출 · 업무 지시 듣기는 전부 <b>T</b>예요. 가까이 가서 누르면 <b>얼굴을 보며 대화</b>합니다.<br>'
+     +'머리 위에 <b>표시</b>가 뜬 사람은 <b>할 말이나 볼일이 있는 사람</b>이에요. 말풍선은 없으니 직접 찾아가 들어 보세요.' },
 
   { keys:'<kbd class="k acc">Q</kbd><kbd class="k acc">R</kbd><kbd class="k acc">Z</kbd>',
     h:'Q · R · Z — 카메라',
@@ -47,8 +52,8 @@ const CARDS=[
      +'책상이나 기둥에 가려 안 보일 때는 카메라를 한 번 돌려 보세요.' },
 
   { keys:'<kbd class="k wide acc">마우스 클릭</kbd>',
-    h:'모니터를 클릭하면 컴퓨터',
-    p:'내 자리에 앉아 책상 위 <b>모니터를 클릭</b>하면 컴퓨터가 켜집니다.<br>'
+    h:'컴퓨터는 내 자리에서',
+    p:'내 자리에서 책상 위 <b>모니터를 클릭</b>하면 컴퓨터가 켜집니다(자리 앞에 서서 <b>E</b>를 눌러도 돼요).<br>'
      +'<b>메일과 문서는 전부 컴퓨터 안</b>에 있어요. 오늘 할 일도 메일로 들어옵니다.' },
 
   { keys:'<kbd class="k wide acc">09:00</kbd><span class="sep">→</span><kbd class="k wide">18:00</kbd>',
@@ -80,18 +85,36 @@ function paint(){
   el('tutNext').textContent=hold?'시작하기':(last?'다 봤어요':'다음');
 }
 
-/* 아래 진행 문구 — 3D 쪽 신호(__office.ready / full / preloadInfo)를 그대로 옮긴다 */
+/* ---------- 워밍업 진행(45차) ----------
+   3D 의 warmupInfo() → {ready, done, total, stage}. 단계마다 done/total 의 뜻이 달라(사람 수 → 텍스처 → 안정 프레임)
+   막대가 단계마다 0 으로 떨어지면 뒤로 가는 것처럼 보인다. 알려진 단계는 전체 막대의 구간으로 옮기고, 절대 줄지 않게 붙잡는다. */
+const WARM_SPAN={'캐릭터 준비 중':[0,.45],'그래픽 준비 중':[.45,.8],'마무리 중':[.8,1],'준비 완료':[1,1]};
+let warmTop=0;
+function officeOf(){ try{ const f=el('stage'); return f&&f.contentWindow&&f.contentWindow.__office||null; }catch(e){ return null; } }
+function warmInfo(O){ O=O||officeOf(); try{ return (O&&typeof O.warmupInfo==='function')?O.warmupInfo():null; }catch(e){ return null; } }
+/* 0~1 전체 진행. 새 무대(캐릭터 교체)로 다시 셀 때는 reset */
+function warmPct(w,reset){ if(reset){ warmTop=0; } if(!w) return warmTop;
+  if(w.ready) return (warmTop=1);
+  const part=w.total>0?Math.max(0,Math.min(1,w.done/w.total)):0;
+  const sp=WARM_SPAN[w.stage]; const v=sp?sp[0]+(sp[1]-sp[0])*part:Math.max(warmTop,part*.95);
+  warmTop=Math.max(warmTop,Math.min(.99,v)); return warmTop; }
+function warmText(w){ if(!w) return ''; const n=w.total>1&&w.stage!=='마무리 중'?` ${Math.min(w.done,w.total)}/${w.total}`:'';
+  return `${w.stage||'준비 중'}…${n}`; }
+function setTutBar(p){ const b=el('tutBarFill'); if(b) b.style.width=Math.round(p*100)+'%'; }
+
+/* 아래 진행 문구 — 3D 쪽 신호(warmupInfo, 없으면 ready / full)를 그대로 옮긴다 */
 function stat(){
   const box=el('tutLoad'), tx=el('tutLoadTx'); if(!box) return;
-  let O=null; try{ const f=el('stage'); O=f&&f.contentWindow&&f.contentWindow.__office; }catch(e){}
-  if(loaded){ box.classList.add('ok');
-    let full=false; try{ full=!!(O&&O.full&&O.full()); }catch(e){}
-    tx.textContent=(!O||full)?'준비 끝 — 언제든 들어갈 수 있어요':'준비 끝 — 동료들은 들어간 뒤에 자리에 앉아요';
+  const O=officeOf();
+  if(loaded){ box.classList.add('ok'); setTutBar(1);
+    tx.textContent='준비 끝 — 이제 끊기지 않고 들어갈 수 있어요';
     return; }
   box.classList.remove('ok');
   if(!O){ tx.textContent='사무실을 여는 중…'; return; }
-  let rdy=false; try{ rdy=!!(O.ready&&O.ready()); }catch(e){}
-  tx.textContent=rdy?'거의 다 됐어요…':'내 캐릭터를 준비하는 중…';
+  const w=warmInfo(O);
+  if(w){ tx.textContent=warmText(w); setTutBar(warmPct(w)); return; }
+  let rdy=false, full=false; try{ rdy=!!(O.ready&&O.ready()); full=!!(O.full&&O.full()); }catch(e){}
+  tx.textContent=!rdy?'내 캐릭터를 준비하는 중…':!full?'동료들이 자리에 앉는 중…':'거의 다 됐어요…';
 }
 
 function go(n){ if(phase!=='cards') return; i=Math.max(0,Math.min(CARDS.length-1,n)); t0=Date.now(); paint(); }
@@ -157,5 +180,5 @@ function state(){ return {on:started&&phase!=='done',phase,card:i+1,total:CARDS.
 /* 스모크·촬영용 */
 window.__intro={ state, next, skip, go, cards:()=>CARDS.length };
 
-return { start, ready, state, skip, off:OFF };
+return { start, ready, state, skip, off:OFF, warmInfo, warmPct, warmText };
 })();

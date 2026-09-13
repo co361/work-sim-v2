@@ -22,9 +22,12 @@ const UNLOCK_LABEL={rulebook:'사규집',approval:'결재 검토',orgchart:'조�
 const UNLOCK_DAY={rulebook:2,approval:3,orgchart:4,report:5,decide:7};
 const DAY_TITLES={1:'첫 출근',2:'사규집',3:'숫자',4:'옆 팀',5:'거절',6:'위기',7:'결정'};
 const SPEED=Math.max(0.1,+(Q.get('speed')||1));
-/* 게임 1분 = 실시간 22초/speed → 하루 30분이 실시간 11분이다.
-   38차에 12초(=6분)에서 늦췄다 — 대표 "벌써 끝이야?". `?speed=` 로 조절하는 구조는 그대로다. */
-const SEC_PER_MIN=22/SPEED;
+/* 게임 1분 = 실시간 80초/speed → 하루 30분이 실시간 40분이다(소개 페이지 「하루 40분씩」과 같다).
+   38차 12초(=6분) → 22초(=11분) → 45차 80초. 대표 「하루 플레이타임을 늘리는게 좋을 것 같아」 —
+   시나리오 검토(docs/review-scenario-playtime-45.md): 보통 학생이 22초에서는 하루 업무의 32%, 80초에서는 99%를 끝낸다.
+   `?speed=` 로 조절하는 구조는 그대로다(검사·시연은 ?speed=N). 자동 플레이(auto.js)는 advance(게임 분)로 건너뛰므로 이 값과 무관하다.
+   실제 초로 적힌 것(방문·전화 응답 제한 timeLimit, 알림 표시 시간)은 게임 분이 아니라 반응 시간이라 그대로 둔다. */
+const SEC_PER_MIN=80/SPEED;
 const NO_STAGE=Q.get('stage')==='0';             /* 3D 사무실 없이(저사양·검사용) — 이동 연출은 글로 대신한다 */
 const ACT_LABELS_DEFAULT={reply:'회신',hold:'보류',delegate:'전달',confirm:'상신',reject:'거절',approve:'승인',verify:'본인 확인',mail:'메일로 안내',tell:'바로 알려 줌',deliver:'직접 전달',ask:'직접 질문',report:'보고',visit:'응대',work:'검산',none:'미처리',pick:'선택',stopShip:'출고 중지',timeout:'무응답',accept:'접수·보고',dismiss:'돌려보냄',refund:'즉시 환불',notify:'접수·회신 시점 안내',promise:'시한 약속',refuse:'규정상 불가'};
 
@@ -41,7 +44,8 @@ const CARD=(id)=>(D&&D.cards.find(c=>c.id===id))||S.extra.find(c=>c.id===id);
    대표 "하루가 09시 30분에 끝나는 게 어색해". 데이터·채점 로직은 손대지 않는다. */
 const DISP_MUL=18;
 const dispMin=(m)=>Math.round((+m||0)*DISP_MUL);
-const fmtClock=(m)=>{ const t=9*60+dispMin(m); return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); };
+/* 45차: 마지막 카드가 늦게 오는 날은 dayEndMin 이 30 을 넘겨 「18:18」처럼 보였다 — 데이터에서 도착을 당겨 고쳤고(tools/arrive45.py), 표시만 18:00 을 넘지 않게 막아 둔다(내부 분·채점은 그대로) */
+const fmtClock=(m)=>{ const t=Math.min(18*60,9*60+dispMin(m)); return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); };
 /* 점심(표시상 12:00~13:00) — 데이터는 그대로 흐르고 상단에 표시만 잠깐 붙는다 */
 const isLunch=(m)=>{ const t=9*60+dispMin(m); return t>=12*60&&t<13*60; };
 const escapeHtml=(s)=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -60,7 +64,7 @@ const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>re
 /* ---------- 알림 · 말풍선 ---------- */
 function toast(text,who,ms=4200,cls=''){ const box=$('toasts'); if(!box) return; while(box.children.length>=3) box.firstChild.remove(); const el=h('div','toast '+cls); if(who){ el.appendChild(h('b',null,who)); } el.appendChild(document.createTextNode(text)); box.appendChild(el); setTimeout(()=>el.remove(),ms); }
 const stage=()=>$('stage');
-function office(){ if(NO_STAGE) return null; try{ const w=stage().contentWindow; return w&&w.__office&&w.__office.ready&&w.__office.ready()?w.__office:null; }catch(e){ return null; } }
+function office(){ if(NO_STAGE) return null; try{ const w=stage().contentWindow; const O=w&&w.__office&&w.__office.ready&&w.__office.ready()?w.__office:null; if(O&&!checkOfficeCast.done) checkOfficeCast(O); return O; }catch(e){ return null; } }
 function bubble(who,text,ttl=4){ const seat=seatByName(who); const O=office(); if(seat&&O){ try{ const c=O.npcAt(seat); if(c){ O.say(c,text,{ttl}); return true; } }catch(e){} } return false; }
 function sayNpc(who,text,ttl=4){ const shown=bubble(who,text,ttl);
   /* 이 방에 자리가 있는 사람은 3D 말풍선(대면), 자리가 없는 사람은 사내 메신저(전자) */
@@ -78,26 +82,37 @@ const LS_KEY=()=>`ws7.progress.${(S.code||('demo-'+S.team)).toLowerCase()}`;
 function emptyProgress(){ return {code:S.code,team:S.team,name:S.name||'',day:1,avatar:null,done:{},clues:{},trust:{},unlocked:[],cur:null,updatedAt:null}; }
 
 /* ---------- 플레이어 캐릭터(여성·남성) ----------
-   남성은 3D 의 기본값(acnh_25) 그대로다. 여성은 **그날 화면에 서는 NPC 와 겹치지
-   않는** 번호를 고른다 — 같은 얼굴이 둘이면 누가 나인지 알 수 없다.
-   🔴 아래 OFFICE_CAST 는 office.html 의 CAST 를 옮겨 적은 것이다. 3D 파일은 이 작업에서
-      건드리지 않기로 되어 있어 읽어 올 길이 없다. office.html 의 배역이 바뀌면 여기도 고친다.
-   3D 에 번호를 넘기는 길(`?me=`)은 docs/office-api-requests.md 에 요청해 두었다.
-   아직 안 붙었으면 3D 는 기본 얼굴로 뜨고 나머지는 그대로 돈다. */
-const OFFICE_CAST={ cs:['acnh_30','acnh_31','acnh_19','acnh_33'], logi:['acnh_45','acnh_23','acnh_18'],
-  acct:['acnh_34','acnh_39','acnh_20'], ga:['acnh_24','acnh_19','acnh_22'], rec:['acnh_35','acnh_26','acnh_17'],
-  plan:['acnh_41','acnh_42','acnh_38'], qc:['acnh_27','acnh_28','acnh_32'], pr:['acnh_40','acnh_44','acnh_33'],
-  edu:['acnh_43','acnh_46','acnh_29'], buy:['acnh_37','acnh_36','acnh_21'] };
-/* 얼굴 그림이 있는 여성부터 — 미리보기에 실제 얼굴을 보여 줄 수 있어야 고르는 뜻이 있다 */
-const FEMALE_PICK=['acnh_17','acnh_33','acnh_19','acnh_31','acnh_30',
-  'acnh_44','acnh_46','acnh_40','acnh_38','acnh_35','acnh_34','acnh_22','acnh_20','acnh_42','acnh_32','acnh_21'];
-const AVATAR_PIC={acnh_17:'av_c17.png',acnh_19:'av_c19.png',acnh_25:'av_c25.png',
-  acnh_30:'av_c30.png',acnh_31:'av_c31.png',acnh_33:'av_c33.png',acnh_39:'av_c39.png'};
-function usedChars(){ const u=new Set(OFFICE_CAST[S.team]||[]);
-  for(const v of Object.values((D&&D.npcs)||{})) if(v.ch) u.add(v.ch);
-  return u; }
-function playerChar(g){ if(g!=='f') return 'acnh_25'; const u=usedChars(); return FEMALE_PICK.find(c=>!u.has(c))||'acnh_44'; }
-function avatarPic(ch){ const f=AVATAR_PIC[ch]; return f?('assets/home/w/'+f):''; }
+   남성은 3D 의 기본값(acnh_25 — 어느 팀에도 없는 전용 모델) 그대로다.
+   45차(대표 「신입사원 여성으로 선택했을 때 동일한 인물이 앉아 있음」): 원인은 둘이었다.
+     ① 아래 OFFICE_CAST 가 office.html CAST 의 **낡은 사본**이었다(44차에 구매팀·고객지원팀 배역이 바뀌었는데 안 고쳐짐).
+     ② 고르는 규칙이 「지금 팀만」 피해서 다른 팀 방에 가면 같은 사람이 앉아 있었다 — 서른한 명이 전부 배역이라 피할 수가 없다.
+   그래서 여성은 **전용 모델 한 명**을 쓴다 — PLAYER_F = acnh_49(09-13 결정, 새로 만드는 중). 무조건 이것을 넘긴다.
+   파일이 아직 없으면 office.html 이 스스로 FEMALE_FALLBACK 규칙(acnh_17, 내 팀이 인사팀이면 acnh_33)으로 대체하고
+   그 모델을 쓰는 NPC 에게 겉모습 변형(TWIN_LOOK)을 입힌다. PLAYER_F 를 null 로 두면 여기서 바로 대체 모델을 넘긴다.
+   ⚠ 소개·아바타 미리보기 그림(assets/home/w/av_c49.png)은 아직 없다 — 생기면 아래 AVATAR_HAVE_MAX 를 49 로 올린다. 없는 동안은 🙂.
+   🔴 PLAYER_F 는 office.html 의 RESERVED.playerF 와 **같이 고친다.**
+   🔴 OFFICE_CAST 는 office.html CAST 를 옮겨 적은 것이다(게임이 3D 를 띄우기 전에 알아야 해서 읽어 올 수가 없다).
+      배역을 바꾸면 **양쪽을 같이** 고친다. 어긋나면 3D 가 준비될 때 콘솔에 경고한다(checkOfficeCast). */
+const PLAYER_F='acnh_49';
+const FEMALE_FALLBACK=['acnh_17','acnh_33'];   /* 인사팀 김선임 · 홍보팀 표주임 — 45차부터 17~48 전원 얼굴 그림(av_c17~48)이 있어 둘 다 미리보기가 나온다 */
+/* 45차: 팀장 외모 6쌍 맞교환(대표 승인) — office.html CAST 와 같이 바꿨다 */
+const OFFICE_CAST={ cs:['acnh_30','acnh_31','acnh_21','acnh_34'], logi:['acnh_45','acnh_23','acnh_18'],
+  acct:['acnh_19','acnh_37','acnh_20'], ga:['acnh_24','acnh_22','acnh_27'], rec:['acnh_32','acnh_17','acnh_43'],
+  plan:['acnh_41','acnh_40','acnh_38'], qc:['acnh_26','acnh_28','acnh_35'], pr:['acnh_42','acnh_44','acnh_33'],
+  edu:['acnh_29','acnh_46','acnh_36'], buy:['acnh_39','acnh_47','acnh_48'] };
+/* 얼굴 사진 — 규칙 하나: assets/home/w/av_cNN.png (NN = acnh 번호). 대화창·메신저·캐릭터 고르기가 전부 이것을 쓴다.
+   45차: 17~48 은 파일이 다 있다(일람 shots/review45/sheet_avatars.jpg). 번호 목록을 따로 두지 않고 범위 하나로 믿는다.
+   49·50·51 이 생기면 **AVATAR_HAVE_MAX 한 숫자만** 올린다. 없는 파일을 시험 삼아 불러 보는 방식(onerror·목록 파일)은 쓰지 않는다 —
+   여성 플레이어(acnh_49)를 고르면 대사마다 404 가 콘솔 오류로 찍혀 「콘솔 오류 0」 기준을 깬다.
+   그림을 붙이는 쪽(talk.js · day.js)은 그래도 onerror 로 이모지에 물러선다(파일이 지워진 경우 대비). */
+const AVATAR_MIN=17, AVATAR_HAVE_MAX=48;
+function playerChar(g){ if(g!=='f') return 'acnh_25'; if(PLAYER_F) return PLAYER_F;
+  const mine=new Set(OFFICE_CAST[S.team]||[]); return FEMALE_FALLBACK.find(c=>!mine.has(c))||FEMALE_FALLBACK[0]; }
+/* 3D 가 준비되면 한 번 — 사본이 어긋났는지 본다 */
+function checkOfficeCast(O){ if(checkOfficeCast.done||!O||!O.CAST) return; checkOfficeCast.done=true;
+  const bad=[]; for(const [t,list] of Object.entries(O.CAST)){ const a=list.map(x=>x[0]).join(','), b=(OFFICE_CAST[t]||[]).join(','); if(a!==b) bad.push(`${t}: office ${a} / core ${b}`); }
+  if(bad.length) console.warn('[core.js] OFFICE_CAST 가 office.html CAST 와 다릅니다 — 같이 고치세요\n'+bad.join('\n')); }
+function avatarPic(ch){ const m=/^acnh_(\d+)$/.exec(String(ch||'')); if(!m||+m[1]<AVATAR_MIN||+m[1]>AVATAR_HAVE_MAX) return ''; return 'assets/home/w/av_c'+m[1]+'.png'; }
 /* 이 기기에 남는 선호값 — 소개 페이지에서 바꾼 것을 게임이 따라간다 */
 function avatarPref(){ try{ return localStorage.getItem('ws7.avatar')||''; }catch(e){ return ''; } }
 function setAvatarPref(g){ try{ localStorage.setItem('ws7.avatar',g); }catch(e){} }
@@ -133,7 +148,7 @@ function renderClock(){ const el=$('clock'); if(!el) return; el.textContent=fmtC
   const lf=$('clockLeft'); if(!lf) return;
   if(!D){ lf.textContent=''; return; }
   /* 남은 것은 **실제 시간**으로 적는다 — 표시 시각(하루)과 남은 시간(세션)은 단위가 다르다.
-     게임 1분 = 실시간 SEC_PER_MIN 초이므로 하루 30분은 speed 1 에서 11분이다. */
+     게임 1분 = 실시간 SEC_PER_MIN 초이므로 하루 30분은 speed 1 에서 40분이다. */
   const sec=Math.max(0,Math.ceil((dayEndMin()-S.t)*SEC_PER_MIN));
   lf.textContent=S.ended?'퇴근 시간':(sec>=60?`남은 ${Math.ceil(sec/60)}분`:`남은 ${sec}초`);
   lf.classList.toggle('over',!!S.ended); }

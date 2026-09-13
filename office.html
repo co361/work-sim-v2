@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="data:,">   <!-- 45차: favicon.ico 404 를 콘솔에서 없앤다(아이콘을 안 쓴다는 뜻의 빈 데이터 URL) -->
 <title>WORK SIM v2 — 팀 사무실</title>
 <style>
   html,body{margin:0;height:100%;background:#eceae6;font:13px/1.4 -apple-system,system-ui,sans-serif;overflow:hidden;color:#eee}
@@ -50,7 +51,7 @@
   <div class="row" id="teamnav"></div>
   <div id="status">불러오는 중…</div>
 </div>
-<div id="hint">WASD·방향키로 걷기(Shift 빠르게) · 바닥을 클릭해도 그 자리로 · E = 앉기/일어서기·문 열기 · T = 말 걸기 · Q/R 90° 회전, Z 줌 · 카메라는 내 캐릭터를 뒤에서 따라옵니다</div>
+<div id="hint">WASD·방향키로 걷기(Shift 빠르게) · 바닥을 클릭해도 그 자리로 · E = 내 자리 앉기/일어서기·문 열기·내 컴퓨터 · T = 사람에게 하는 모든 것(말 걸기·질문·보고·서류 전달) · Q/R 90° 회전, Z 줌</div>
 <div id="bubbles"></div>
 <div id="choice"></div>
 <div id="pad"><div id="padk"></div></div>
@@ -73,7 +74,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';   /
    ====================================================================== */
 const Q=new URLSearchParams(location.search);
 const TEAM=(Q.get('team')||'cs').toLowerCase();
-const TEAM_NAMES={cs:'고객지원팀',logi:'물류팀',acct:'회계팀',ga:'총무팀',rec:'인사팀',plan:'기획팀',qc:'품질팀',pr:'홍보팀',edu:'교육팀',buy:'구매팀'};
+/* 45차: 팀 표시 이름은 **이야기 데이터(data/story/*.js 의 teamName)가 정본**이다 — 문패·방 이름·안내 문구가 전부 여기서 나온다.
+   예전 값(고객지원팀·인사팀·기획팀·품질팀)이 시나리오(고객상담팀·채용팀·경영기획팀·품질관리팀)와 달랐다. js/play/core.js TEAM_NAMES 와 같다 */
+const TEAM_NAMES={cs:'고객상담팀',logi:'물류팀',acct:'회계팀',ga:'총무팀',rec:'채용팀',plan:'경영기획팀',qc:'품질관리팀',pr:'홍보팀',edu:'교육팀',buy:'구매팀'};
 const TEAM_NAME=TEAM_NAMES[TEAM]||(TEAM.toUpperCase()+'팀');
 document.getElementById('team').textContent=TEAM_NAME+' 사무실';
 /* 34차: 복도·타팀 방. HOME = 플레이어 팀(내 방). 복도 문은 TEAM_ORDER 순서(내 팀이 목록에 없으면 끝에 붙인다) */
@@ -92,30 +95,63 @@ const TEAM_ORDER=['cs','logi','acct','ga','rec','plan','qc','pr','edu','buy'].co
    **머리색·머리 모양·피부톤을 바꾼 변형**으로 채운다. 원본과 같은 방에는 절대 두지 않는다.
    네 번째 값이 그 겉모습이다. */
 const CAST={
-  cs:  [['acnh_30','김민아 팀장'],['acnh_31','박선임'],['acnh_21','이주임'],['acnh_19','윤사원']],
+  cs:  [['acnh_30','김민아 팀장'],['acnh_31','박선임'],['acnh_21','이주임'],['acnh_34','윤사원']],
   logi:[['acnh_45','강태호 팀장'],['acnh_23','오대리'],['acnh_18','장주임']],
-  acct:[['acnh_34','서지현 팀장'],['acnh_39','한주임'],['acnh_20','문주임']],
-  ga:  [['acnh_24','이재훈 팀장'],['acnh_22','최주임'],['acnh_26','권주임']],
-  rec: [['acnh_35','노윤아 팀장'],['acnh_17','김선임'],['acnh_29','홍주임']],
-  plan:[['acnh_41','조성민 팀장'],['acnh_42','류선임'],['acnh_38','신주임']],
-  qc:  [['acnh_27','배정훈 팀장'],['acnh_28','남선임'],['acnh_32','도주임']],
-  pr:  [['acnh_40','황서연 팀장'],['acnh_44','진선임'],['acnh_33','표주임']],
-  edu: [['acnh_43','문경수 팀장'],['acnh_46','손선임'],['acnh_36','반주임']],
+  acct:[['acnh_19','서지현 팀장'],['acnh_37','한주임'],['acnh_20','문주임']],
+  ga:  [['acnh_24','이재훈 팀장'],['acnh_22','최주임'],['acnh_27','권주임']],
+  rec: [['acnh_32','노윤아 팀장'],['acnh_17','김선임'],['acnh_43','홍주임']],
+  plan:[['acnh_41','조성민 팀장'],['acnh_40','류선임'],['acnh_38','신주임']],
+  qc:  [['acnh_26','배정훈 팀장'],['acnh_28','남선임'],['acnh_35','도주임']],
+  pr:  [['acnh_42','황서연 팀장'],['acnh_44','진선임'],['acnh_33','표주임']],
+  edu: [['acnh_29','문경수 팀장'],['acnh_46','손선임'],['acnh_36','반주임']],
   /* 44차: 구선임·엄주임을 새로 만든 acnh_47·48 로 교체 — 전에는 acnh_23(물류팀 오대리)·acnh_29(인사팀 홍주임)를
      색만 바꿔 재사용해 얼굴이 겹쳤다(대표 「다른 사무실에 있어도 동일하게 생기면 안 돼」). 이제 모델 자체가 다르다 */
-  buy: [['acnh_37','양지훈 팀장'],
+  buy: [['acnh_39','양지훈 팀장'],
         ['acnh_47','구선임'],
         ['acnh_48','엄주임']],
 };
-/* 통행인 — 복도에서만 보인다. 사무실 사람과 겹치지 않게 겉모습을 크게 바꾼다 */
-const PASSER_LOOK=[
-  ['acnh_22',{hairCol:'#6b4a30',hairSide:0.14,skinCol:'#efc49f'}],
-  ['acnh_28',{hairCol:'#2b2320',hairTop:0.10,hairBack:0.08}],
-  ['acnh_36',{hairCol:'#7a5638',hairSide:0.10,hairTop:0.06,skinCol:'#f6d3b0'}],
+/* 45차: 팀장 외모 6쌍 맞교환(대표 승인 「전부 교체」 — 근거 docs/review-characters-45.md, 비교 shots/review45/sheet_leader_swap.jpg).
+   이름·자리는 그대로 두고 **모델만** 서로 바꿨다(두 사람의 성별이 같다):
+     edu 팀장 43↔29 rec 홍주임 · rec 팀장 35↔32 qc 도주임 · acct 팀장 34↔19 cs 윤사원 ·
+     buy 팀장 37↔39 acct 한주임 · qc 팀장 27↔26 ga 권주임 · pr 팀장 40↔42 plan 류선임
+   모델 번호에 걸린 설정(CHAR_TUNE·tune.json·얼굴 아틀라스·FEMALE)은 **모델을 따라간다** — 옮길 것이 없다.
+   🔴 js/play/core.js OFFICE_CAST 와 이야기 데이터(tools/align_cast.py, 시나리오 총괄 소유)도 같이 바뀌어야 한다. */
+/* ══ 45차: 배역에 쓰지 않는 「예비 인물」 ══════════════════════════════
+   대표 ①「신입사원 여성으로 선택했을 때 동일한 인물이 앉아 있음」 ②「홍주임이 다른 누군가랑 같이 한자리에」.
+   ②의 원인 중 하나가 **방문객이 인사팀 홍주임(acnh_29)과 같은 모델**이었던 것이다.
+   acnh_17~48 서른두 명은 위 CAST 서른하나 + 플레이어(남) acnh_25 로 이미 꽉 찼다.
+   어느 팀에도 없는 것은 acnh_01(여)·acnh_02(남) 둘뿐이라 처음엔 이 둘을 예비로 못 박았으나,
+   **나란히 렌더해 보니 화풍이 다른 세대였다**(손가락 없는 공 모양 손 · 주황빛 피부 · 큰 머리 · 사원증 줄 —
+   shots/fix/_chk_heads.jpg · _chk_bodies.jpg). 배포 목록(ROSTER 17~48)에도 없어 라이브에서 404 가 난다.
+   그래서 쓰지 않고, 09-13 대표 결정으로 **전용 인물을 새로 만든다**(다른 에이전트 제작 — 이미지 작업 중이라 파일은 아직 없다).
+     playerF  = acnh_49 (여성 플레이어)   visitorM = acnh_50 (남성 방문객)   visitorF = acnh_51 (여성 방문객 — 크레딧이 남을 때만)
+   **파일이 없으면 저절로 대체한다**(assetExists 로 `<번호>_rigged.glb` 를 본다) — 파일이 도착하면 번호만 확인하면 된다.
+     플레이어 : acnh_49 없음 → 여성 대체(acnh_17, 내 팀이 인사팀이면 acnh_33) + 그 모델을 쓰는 NPC 에게 TWIN_LOOK
+     방문객   : 이름으로 성별을 고른다(visitorGender) — 여성 51 → 50 → 임시 변형(VISITOR_POOL) / 남성 50 → 임시 변형
+   🔴 js/play/core.js 의 PLAYER_F · tools/deploy_build.py 의 ROSTER(49~51) 와 같이 고칠 것. */
+const RESERVED={ playerF:'acnh_49', visitorM:'acnh_50', visitorF:'acnh_51' };
+/* 45차: 여성 플레이어 대체 모델(acnh_49 파일이 오기 전) — 내 팀 배역과 **이번 화 ?seats=·?extra= 에 앉는 모델**을 피해서 고른다.
+   (rec-ep4 는 표주임 acnh_33 이 조력자로 앉아 옛 규칙의 대체 모델 33 과 겹쳤다) 소개 그림(av_c17·av_c33)이 있는 둘을 먼저 본다 */
+const FEMALE_FALLBACK=(()=>{ const avoid=new Set([...(CAST[TEAM]||[]).map(x=>x[0]),...String((Q.get('seats')||'')+','+(Q.get('extra')||'')).split(',').map(x=>x.split(':')[1]).filter(Boolean)]);
+  return ['acnh_17','acnh_33','acnh_44','acnh_40','acnh_34','acnh_46','acnh_42','acnh_32'].find(c=>!avoid.has(c))||'acnh_17'; })();
+/* 45차: 플레이어가 고른 모델(?player=)을 어느 팀 NPC 도 쓰고 있으면, **그 NPC** 에게 이 겉모습을 입힌다.
+   플레이어 쪽을 바꾸지 않는 이유 — 소개 페이지 아바타 미리보기(assets/home/w/av_c*.png)가 원래 모습이라서다.
+   임시 방편이다(얼굴 데칼·옷은 같다). 여성 플레이어 전용 모델이 생기면 RESERVED.playerF 에 번호를 적고 core.js PLAYER_F 도 같이 바꾼다. */
+const TWIN_LOOK={hairCol:'#8a6446',hairSide:0.14,hairTop:0.08,skinCol:'#eab893'};
+const EXTRA_LOOK={hairCol:'#6f4f36',hairTop:0.12,hairBack:0.06,skinCol:'#f7d6b4'};   /* ?extra= 자리에 이미 쓰는 모델이 올 때 */
+const twinLook=(ch)=>(ch&&ch===PLAYER_USE&&ch!=='acnh_25')?TWIN_LOOK:null;   /* PLAYER_USE = 대체까지 거친 실제 플레이어 모델 */
+/* 45차: 복도 가짜 통행인(PASSER_LOOK 12벌)은 없앴다 — 이제 실제 직원이 오간다(TRAF, 「복도 왕래」 절) */
+/* 45차: 방문객(외부 고객) 후보 — 모델은 사내 인물이지만 겉모습을 크게 바꾼다.
+   visit() 가 **지금 방에 앉아 있지 않은** 첫 모델을 고른다(같은 방에 쌍둥이 금지). */
+const VISITOR_POOL=[
+  ['acnh_28',{hairCol:'#8d6a45',hairSide:0.16,hairTop:0.10,skinCol:'#e4b58e'}],
+  ['acnh_36',{hairCol:'#5a4032',hairBack:0.14,hairTop:0.06,skinCol:'#f2c9a3'}],
+  ['acnh_22',{hairCol:'#9a7048',hairSide:0.10,skinCol:'#efc49f'}],
 ];
 const CAST_SEATS=['lead','senior','chief','staff'];   /* 43차: 고객상담팀의 네 번째 자리까지 여기서 채운다 */
 const NOCHAR=Q.get('nochar')==='1';               /* 방만 볼 때 (캐릭터 없이) */
 const PLAYER_CH=Q.get('player')||'acnh_25';       /* 39차: 엔진이 고른 플레이어 캐릭터(성별 반영). 없으면 종전과 같은 acnh_25 */
+let PLAYER_USE=PLAYER_CH;   /* 45차: 파일이 없어 대체한 뒤의 실제 모델(placeCharacters 가 정한다) */
 /* 39차(대표 「앉을 때 앉는 과정 생략해버려」): sitdown·standup 클립은 중간 프레임에서 몸이 의자·책상을 뚫는 장면이 그대로 노출된다.
    기본은 재생하지 않고 짧은 플래시 뒤 최종 자세로 스냅한다. 클립은 지우지 않았고 ?anim=1 로 다시 켤 수 있다 */
 const PEND_SHADOW=Q.get('pend')==='1';   /* 44차: 펜던트 전구 그림자. **기본 끔** —
@@ -124,11 +160,25 @@ const PEND_SHADOW=Q.get('pend')==='1';   /* 44차: 펜던트 전구 그림자. *
    **모듈 스코프에 둔다** — 예전에는 buildRoom 안에 있어서 화질 조절(applyQuality)에서 보이지 않아
    「PEND_SHADOW is not defined」로 페이지가 통째로 죽었다. */
 const ANIM_SIT=Q.get('anim')==='1';
-const ARMFIX=Q.get('armfix')!=='0';   /* 41차: 걷기 팔 각도 하한. ?armfix=0 이면 옛 동작(비교 스냅용) */
+const ARMFIX=Q.get('armfix')!=='0';
+const SINKFIX=Q.get('sinkfix')!=='0';   /* 45차: 앉은 발이 바닥에 박히면 올린다(footIK) */   /* 41차: 걷기 팔 각도 하한. ?armfix=0 이면 옛 동작(비교 스냅용) */
 const NPC_LIMIT=Q.has('npc')?+Q.get('npc'):4;      /* NPC 수(0~4) */
 const EMBED=Q.get('embed')==='1';                   /* 30차: play.html 이 iframe 무대로 쓸 때 — HUD·힌트·마커 숨김, __office 는 그대로 노출 */
-const EXTRA_NPC=(Q.get('extra')||Q.get('seats')||'').split(',').filter(Boolean).map(s=>s.split(':'));   /* 30차: ?extra=staff2:acnh_39 — 빈 좌석에 NPC 추가 (docs/office-api-requests.md 는 ?seats= 도 같은 뜻으로 적고 있어 둘 다 받는다) */
+/* 30차: ?extra=staff2:acnh_39 — 빈 좌석에 NPC 추가. ?seats= 도 받는다.
+   45차 버그: 예전 `(Q.get('extra')||Q.get('seats'))` 는 ?extra= 가 있으면 ?seats= 를 **통째로 버렸다** — play 는 chief·staff 를 ?seats=,
+   나머지를 ?extra= 로 나눠 보내므로 cs 밖 팀의 staff 자리 조력자가 안 앉았다(rec-ep4 표주임). 둘을 합친다(같은 자리가 겹치면 ?extra= 가 이긴다). */
+const parseSeatArg=(v)=>String(v||'').split(',').filter(Boolean).map(x=>x.split(':')).filter(x=>x[0]&&x[1]);
+const EXTRA_NPC=[...new Map([...parseSeatArg(Q.get('seats')),...parseSeatArg(Q.get('extra'))].map(x=>[x[0],x])).values()];
 const LABELS={};                                    /* 30차: 좌석별 이름표 덮어쓰기(setLabel) — NPC 가 나중에 로드돼도 적용 */
+/* 45차: 「타 팀 지원 나감」 — 이번 화에 내 방 **배역 밖 자리**(staff2·staff3…)에 앉는 다른 팀 사람(그 팀 CAST 모델).
+   같은 사람이므로 ① 복도 왕래·손님 직원 후보에서 빠지고 ② 자기 팀 방의 원래 자리는 비워 둔다(ensureRoom).
+   이름표(setLabel)가 그 모델의 배역 이름과 다르면 「남의 얼굴을 빌린 배역 밖 인물」(예: cs-ep4 유대리)이라 지원이 아니다 → loanCheck 가 풀고 겉모습을 바꾼다. */
+const LOANED={};
+{ const homeCastN=Math.min((CAST[HOME]||[]).length,CAST_SEATS.length);
+  for(const [seat,ch] of EXTRA_NPC){ const i=CAST_SEATS.indexOf(seat); if(i>=0&&i<homeCastN) continue;
+    for(const [t,list] of Object.entries(CAST)){ if(t===HOME) continue; const e=list.find(x=>x[0]===ch); if(e){ LOANED[ch]={to:HOME,seat,team:t,name:e[1]}; break; } } } }
+const castNameOf=(ch)=>{ for(const list of Object.values(CAST)){ const e=list.find(x=>x[0]===ch); if(e) return e[1]; } return null; };
+const normName=(n)=>String(n||'').replace(/\s+/g,'');
 const logEl=document.getElementById('log'); if(Q.get('log')==='1') logEl.style.display='block';
 const log=(...a)=>{ logEl.textContent+=a.join(' ')+'\n'; if(Q.get('log')==='1') console.log(...a); };
 const status=(s)=>{ document.getElementById('status').textContent=s; };
@@ -514,7 +564,10 @@ function placeSlot(type,x,y,z,ry,size,note){ const s=slot(type,x,y,z,ry,size,not
 function screenOverlay(t,root){ if(t==='monitor'){ const f=new THREE.Mesh(new THREE.PlaneGeometry(0.29,0.15),M.screen); f.position.set(0,0.16,0.0195); root.add(f); }
   else if(t==='laptop'){ const f=new THREE.Mesh(new THREE.PlaneGeometry(0.132,0.066),M.lapScreen); const y=0.074; f.position.set(0,y,-0.236*y-0.033+0.003); f.rotation.x=-0.232; root.add(f); } }
 /* 소파(코드 가구, furn): 중심 (-3.66,-0.3) 회전 π/2 → +x 를 보고 앉음. 좌면 윗면 y 0.32. 방문객 자리는 +z 쪽 끝(쿠션 반대편, 팔걸이 안쪽) */
-const SOFA={x:-4.85,z:-0.35,ry:Math.PI/2,seatY:0.32,spot:{x:-4.87,z:-0.13}};
+const SOFA={x:-4.85,z:-0.35,ry:Math.PI/2,seatY:0.32,spot:{x:-4.87,z:-0.13},fwd:Q.has('sofafwd')?+Q.get('sofafwd'):0.16,lift:Q.has('sofalift')?+Q.get('sofalift'):0.03};
+/* 45차(캐릭터 검토 「엉덩이가 좌면에 묻히고 다리가 소파 몸통을 뚫어 신발이 받침 아래로 나온다」): 좌면이 깊어(0.47) 짧은 다리가 앞선에 못 미쳤다.
+   엉덩이를 앞으로 fwd 0.16·위로 lift 0.03 — 무릎이 좌면 앞선(x −4.615)을 넘고 엉덩이는 좌면 위 6~9cm(묻히지 않음).
+   세 인물(28·36·22) 실측·스냅 비교 tools/_gpu_sofa45.mjs · shots/fix/_sofa45_cmp*.jpg. 좌면이 높아(0.32) 발은 살짝 뜬다(앉은 키가 작은 화풍) */
 const markerTex=canvasTex(128,128,(g)=>{ g.clearRect(0,0,128,128); g.strokeStyle='rgba(255,230,160,0.95)'; g.lineWidth=10; g.beginPath(); g.arc(64,64,50,0,Math.PI*2); g.stroke(); g.fillStyle='rgba(255,230,160,0.35)'; g.beginPath(); g.arc(64,64,40,0,Math.PI*2); g.fill(); });
 /* 씬 공통 조명(방·복도가 모두 원점에 겹쳐 있고 한 번에 하나만 보이므로 반구광·햇빛은 하나면 된다) */
 scene.add(new THREE.HemisphereLight('#ffffff','#cfcac4',1.5));   /* 28차: 화이트 톤 — 반구광 주광, 펜던트는 장식(1.2), 창 햇빛 1.2 로 부드러운 그림자 */   /* 펜던트 점광원이 세면 머리카락 결마다 흰 줄이 서서(28차 실측) 점광 5 + 반구광 0.95 로 균형 */
@@ -700,6 +753,17 @@ yield;
   const doc=box(0.2,0.006,0.28,M.paper); doc.position.set(1.62,0.442,2.98); doc.rotation.y=0.3; furn.add(doc); placeSlot('mug',1.45,0.436,3.1,0,[0.05,0.05,0.06],'회의 원탁 머그');
   const rug=new THREE.Mesh(new THREE.PlaneGeometry(1.7,1.3),new THREE.MeshStandardMaterial({color:RS.rug,roughness:1})); rug.rotation.x=-Math.PI/2; rug.position.set(-4.4,0.012,-0.35); rug.receiveShadow=true; furn.add(rug); }
 yield;
+/* 45차: 타 팀 조력자 추가 자리 staff3·staff4 — 회의 원탁 스툴(데이터 정렬: 한 화에 자리를 받는 조력자 최대 3명, cs 방은 배역 밖 자리가 staff2 하나뿐).
+   책상을 새로 놓으면 통로가 막혀서 이미 있는 원탁 스툴에 앉힌다(원탁 상판 0.42 = 책상 높이라 타자 자세가 그대로 맞는다).
+   좌석 원점은 스툴 중심에서 원탁 반대쪽으로 0.12 — sitAt 이 사람을 원점 앞 약 0.19 에 앉히므로 엉덩이가 스툴 가운데 온다.
+   의자 객체는 없다(chair:null — seatFit 가 스툴을 옮기지 않는다). 좌면이 의자보다 2cm 높아 lift 0.02.
+   원탁 뒤쪽(a=0.6) 스툴은 등이 카메라를 향해 비워 둔다. 좌석 규칙(evictSeat·seatSanity·roomGuard)은 다른 자리와 같다 */
+{ const RT={x:1.6,z:3.0,r:0.5};
+  for(const [id,a] of [['staff3',4.2],['staff4',2.6]]){ const cx=RT.x+Math.cos(a)*RT.r, cz=RT.z+Math.sin(a)*RT.r, ry=-a-Math.PI/2, fx=Math.sin(ry), fz=Math.cos(ry);
+    const x=cx-fx*0.12, z=cz-fz*0.12; const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry; furn.add(g);
+    const wp=(lx,ly,lz)=>{ const v=new THREE.Vector3(lx,ly,lz); g.updateMatrixWorld(true); return g.localToWorld(v); };
+    SEATS[id]={id,group:g,x,z,ry,desk:DESK,label:'조력자 자리',ch:null,chair:null,wp,occupant:null,lift:0.02,stool:{x:cx,z:cz}}; } }
+yield;
 /* 오른벽 낮은 캐비닛 2 · 섬 러그 */
 { for(const z of [-0.9,-0.3,0.3]){ const c=cabinetLow(0.53,0.27,0.53); c.position.set(X1-0.145,0,z); c.rotation.y=-Math.PI/2; furn.add(c); } const files=box(0.2,0.12,0.14,M.paper); files.position.set(X1-0.145,0.60,-0.9); furn.add(files);
   const irug=new THREE.Mesh(new THREE.PlaneGeometry(2.7,2.4),new THREE.MeshStandardMaterial({color:RS.rug2,roughness:1})); irug.rotation.x=-Math.PI/2; irug.position.set(ISL.x,0.010,ISL.z); irug.receiveShadow=true; furn.add(irug); }
@@ -801,12 +865,25 @@ yield;
   STATIONS.sofa_in={x:-4.6,z:0.55,label:'소파 옆',hidden:true}; STATIONS.sofa_front={x:-4.5,z:-0.05,label:'소파 앞',hidden:true};
   STATIONS.table_front={x:-3.45,z:-0.3,label:'접객 테이블 앞',hidden:true}; STATIONS.door_out={x:+(X0-0.45).toFixed(3),z:DOOR_Z,label:'문 밖',hidden:true};
   STATIONS.cooler={x:4.55,z:3.35,label:'정수기',hidden:true}; STATIONS.shelf={x:4.4,z:+(Z0+0.75).toFixed(3),label:'책장',hidden:true}; STATIONS.table_side={x:0.75,z:3.45,label:'원탁',hidden:true}; }   /* 40차: 원탁 접근은 원탁 왼쪽에서 — (1.6,3.75) 는 원탁·스툴 한가운데였다 */
+/* 45차: staff3·staff4(원탁 스툴) 옆 서는 자리 — 가구에 안 겹치고 기존 노드까지 직선이 막히지 않는 가장 가까운 점을 찾아 잇는다.
+   (팀마다 협업 코너 회전이 달라 손으로 적으면 어느 팀에선가 막힌다) */
+const GUEST_LINKS=[];
+{ const SOL=solidsOf([furn,props]); const RB=0.13;   /* R_BODY(0.115)×1.15 — R_BODY 는 이 함수가 처음 불릴 때 아직 선언 전이라 숫자로 */
+  const hit=(x,z)=>x<X0+0.3||x>X1-0.3||z<Z0+0.3||z>Z1-0.3||SOL.some(q=>x>q.x0-RB&&x<q.x1+RB&&z>q.z0-RB&&z<q.z1+RB);
+  const clear=(a,b)=>{ const L=Math.hypot(b.x-a.x,b.z-a.z), n=Math.max(2,Math.ceil(L/0.05)); for(let t=1;t<n;t++){ const u=t/n; if(hit(a.x+(b.x-a.x)*u,a.z+(b.z-a.z)*u)) return false; } return true; };
+  const BASE={D:{x:0.3,z:2.15},G:{x:4.45,z:2.15},B:{x:0.7,z:-1.35},table_side:STATIONS.table_side};
+  for(const id of ['staff3','staff4']){ const s=SEATS[id]; if(!s) continue; const c=s.stool; let best=null;
+    for(const r of [0.5,0.6,0.7,0.85]) for(let k=0;k<24;k++){ const th=k/24*Math.PI*2, p={x:c.x+Math.cos(th)*r,z:c.z+Math.sin(th)*r}; if(hit(p.x,p.z)) continue;
+      for(const [nk,n] of Object.entries(BASE)){ if(!n||!clear(p,n)) continue; const d=Math.hypot(n.x-p.x,n.z-p.z)+r*2; if(!best||d<best.d) best={p,nk,d}; } }
+    if(best){ STATIONS[id+'_side']={x:+best.p.x.toFixed(3),z:+best.p.z.toFixed(3),label:'조력자 자리 옆',hidden:true,npc:id}; GUEST_LINKS.push([id+'_side',best.nk]); }
+    else log(`[${R.name}] ${id} 옆 서는 자리를 못 찾음`); } }
 /* 40차: D·G 를 z 2.6 → 2.15 로 내렸다. 2.6 은 회의 원탁 상판(z 2.70~3.30)과 스툴(2.41~2.71)을 스쳐 자동 이동이 관통했다 */
 const NODES={ A:{x:-3.1,z:-1.35}, B:{x:0.7,z:-1.35}, C:{x:3.9,z:-1.35}, D:{x:0.3,z:2.15}, E:{x:-3.1,z:2.6}, F:{x:4.45,z:-2.2}, G:{x:4.45,z:2.15}, ...STATIONS };
 const EDGES=[['me','A'],['me','B'],['A','B'],['B','C'],['C','lead'],['C','board'],['B','senior'],['C','senior'],['B','window'],['A','window'],['A','door'],['E','door'],['D','E'],['D','B'],['A','E'],
   ['me_side','A'],['me_side','staff2_side'],['staff2_side','E'],['chief_side','B'],['chief_side','staff_side'],['staff_side','D'],['senior_side','C'],['senior_side','board'],
   ['lead_front','C'],['lead_front','lead'],['F','C'],['F','lead_side'],['F','board'],['sofa_in','door'],['sofa_in','E'],['sofa_in','sofa_front'],['table_front','A'],['table_front','E'],['door_out','door'],
   ['G','D'],['G','board'],['G','cooler'],['shelf','C'],['table_side','D'],['G','C']];   /* 40차: shelf–window(팀장 의자 관통) · cooler–D·table_side–G(원탁 관통) 제거 — 각각 C·G 로 돌아간다 */   /* 40차: D–C 대각선은 협업 코너를 가로지르므로 빼고 G(오른쪽) 로 우회한다 */
+EDGES.push(...GUEST_LINKS);   /* 45차: staff3·4 옆 서는 자리 */
 const ADJ={}; for(const [a,b] of EDGES){ (ADJ[a]=ADJ[a]||[]).push(b); (ADJ[b]=ADJ[b]||[]).push(a); }
 const markers=new THREE.Group(); room.add(markers);
 for(const [k,s] of Object.entries(STATIONS)){ if(s.hidden) continue; const m=new THREE.Mesh(new THREE.CircleGeometry(0.16,32),new THREE.MeshBasicMaterial({map:markerTex,transparent:true,depthWrite:false})); m.rotation.x=-Math.PI/2; m.position.set(s.x,0.018,s.z); m.userData.station=k; m.name='marker:'+k; markers.add(m); }
@@ -848,7 +925,7 @@ function doorUnit(parent,x,y,z,ry=0){ const g=new THREE.Group(); g.position.set(
    ====================================================================== */
 const CORR={len:17.6,w:5.0,gap:3.3};   /* gap = 「같은 벽에 걸린 이웃 문 사이」 간격. 앞뒤 벽이 1.65 씩 엇갈리므로 통로를 걸으며 만나는 문 간격은 1.65 다 */
 function buildCorridor(){
-  const R={team:'corridor',name:'복도',group:new THREE.Group(),WALLS:[],DOOR_CTL:{hinge:null,want:0},PROP_SLOTS:[],chars:[],loaded:true,loading:null,loadMs:0,doors:{},zones:[]};
+  const R={team:'corridor',name:'복도',group:new THREE.Group(),WALLS:[],DOOR_CTL:{hinge:null,want:0},PROP_SLOTS:[],chars:[],loaded:true,loading:null,loadMs:0,doors:{},doorInfo:{},zones:[]};
   const g=R.group; g.name='corridor'; g.visible=false; scene.add(g); const L=CORR.len, W=CORR.w, X0c=-L/2, X1c=L/2, Zb=-W/2, Zf=W/2;
   const ceilG=new THREE.Group(); g.add(ceilG); R.ceilG=ceilG;
   const floorMat=new THREE.MeshStandardMaterial({map:tileTex,roughness:0.9,metalness:0}); floorMat.map=tileTex.clone(); floorMat.map.wrapS=floorMat.map.wrapT=THREE.RepeatWrapping; floorMat.map.repeat.set(L/0.8,W/0.8); floorMat.map.needsUpdate=true;
@@ -888,6 +965,7 @@ function buildCorridor(){
   TEAM_ORDER.forEach((t)=>{ const x=DOORX[t], back=DOORBACK[t], zw=back?Zb:Zf, ry=back?Math.PI/2:-Math.PI/2, sgn=back?-1:1;
     const num=back?(701+bn++):(706+fn++);
     doorUnit(g,x,0,zw,ry).ctl&&(R.doors[t]=DOORS[DOORS.length-1]);
+    R.doorInfo[t]={x,zw,back,sgn};   /* 45차: 통행인이 이 문으로 드나든다(sgn = 방 쪽 z 부호) */
     /* 문 뒤 얕은 벽감은 「복도 밖」 물건이다 — 카메라가 그 벽 바깥으로 나가면 통째로 숨긴다(안 그러면 복도 밖에 책상이 떠 있는 것처럼 보인다) */
     const nook=new THREE.Group(); g.add(nook); R.WALLS.push({mesh:nook,n:new THREE.Vector3(0,0,sgn),c:new THREE.Vector3(x,0.6,zw),extra:[]});
     const pk=new THREE.Mesh(new THREE.BoxGeometry(DOOR.w+0.2,DOOR.h+0.16,0.7),peekMat); pk.position.set(x,(DOOR.h+0.16)/2-0.08,zw+sgn*0.35); nook.add(pk);
@@ -897,17 +975,8 @@ function buildCorridor(){
        43차: 0.52×0.19 → 0.84×0.29 (부감 카메라에서 글자가 30px 밖에 안 돼 안 읽혔다) */
     for(const sg of [1,-1]){ const plate=new THREE.Mesh(new THREE.PlaneGeometry(0.84,0.29),new THREE.MeshStandardMaterial({map:ptex,roughness:0.8}));
       plate.position.set(x,DOOR.h+0.30,zw+sg*(WALL_T/2+0.014)); plate.rotation.y=(sg>0)?0:Math.PI; g.add(plate); }
-    /* 43차: 문 앞 바닥 표지. 카메라가 위에서 내려다보므로 **바닥 글씨가 가장 잘 읽힌다**
-       (대표 「지금 구도로는 어디가 어떤 방인지 확인하기 어려워」). 화면 기준으로 똑바로 읽히게 눕힌다. */
-    { const ftex=canvasTex(512,192,(c,w,h)=>{ c.clearRect(0,0,w,h);
-        c.fillStyle='rgba(255,255,255,0.78)'; c.beginPath(); c.roundRect(4,4,w-8,h-8,26); c.fill();
-        c.fillStyle=acc; c.beginPath(); c.roundRect(4,4,18,h-8,9); c.fill();
-        c.fillStyle='#241f1c'; c.font='bold 108px sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(name,w/2+10,h/2+6); });
-      const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.30,0.49),new THREE.MeshBasicMaterial({map:ftex,transparent:true,depthWrite:false,toneMapped:false}));
-      /* 벽에서 1.4 — 1.0 이던 때는 ① 문 앞 진입 지점(벽에서 0.8)에 선 사람이 표지를 밟고 서서 이름을 가렸고
-         ② 앞줄(카메라 쪽) 표지가 문 위 명패와 화면에서 겹쳐 두 글자가 붙어 보였다 */
-      sign.rotation.x=-Math.PI/2; sign.position.set(x, 0.012, zw+sgn*-1.4);
-      sign.renderOrder=2; g.add(sign); }
+    /* 45차: 문 앞 **바닥 표지 삭제**(대표 「복도 바닥에 있는 표시 삭제」). 43차에 넣었던 1.30×0.49 눕힌 이름판이다.
+       방 이름은 문 위 명패(양면)로만 알린다. */
     const nm=new THREE.Mesh(new THREE.PlaneGeometry(0.085,0.085),new THREE.MeshStandardMaterial({map:canvasTex(64,64,(c,w,h)=>{ c.fillStyle='#f3efe6'; c.fillRect(0,0,w,h); c.strokeStyle='#9a948a'; c.lineWidth=3; c.strokeRect(2,2,w-4,h-4); c.fillStyle='#4a443d'; c.font='bold 26px sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(String(num),w/2,h/2+1); }),roughness:0.8}));
     nm.position.set(x+DOOR.w/2+0.14,1.12,zw-sgn*(WALL_T/2+0.014)); nm.rotation.y=(sgn<0)?0:Math.PI; g.add(nm); });
   /* 엘리베이터 홀(왼끝) · 화장실(오른끝) */
@@ -995,13 +1064,15 @@ function mergeStatic(R){
 /* ---- 현재 방(또는 복도) 참조: 걷기·연출·벽 숨김이 이 변수들을 본다. setRoom 이 갈아 끼운다 ---- */
 let SEATS,STATIONS,NODES,EDGES,ADJ,WALLS,DOOR_CTL,markers,room;
 const ROOMS={};   /* CUR 는 카메라 리그가 먼저 참조하므로 위(§2)에서 선언한다 */
-function setRoom(R){ if(CUR===R) return; if(CUR){ CUR.group.visible=false; for(const c of CUR.chars) c.model.visible=false; } CUR=R; R.group.visible=true; for(const c of R.chars) c.model.visible=true;
+function setRoom(R){ if(CUR===R) return; if(CUR){ CUR.group.visible=false; for(const c of CUR.chars) c.model.visible=false; } CUR=R; R.group.visible=true;
+  for(const k in ROOMS){ if(ROOMS[k]!==R) for(const c of ROOMS[k].chars) c.model.visible=false; }   /* 45차: 떠나는 방만이 아니라 **다른 모든 방** 사람을 숨긴다(새어 나온 사람 정리) */
+  for(const c of R.chars) c.model.visible=!c.trip;   /* 45차: 왕래 중인 사람은 trafficOnRoom 이 정한다 */
   if(R.LIGHTS) for(const l of R.LIGHTS) l.shadow.needsUpdate=true;   /* 44차 성능: 새 방은 첫 프레임에 그림자를 전부 채운다 */
-  if(R!==CORRIDOR) passersHide();   /* 39차: 복도 통행인은 복도에서만 */
   document.getElementById('team').textContent=R.team==='corridor'?'복도 (7층)':(R.name+' 사무실'+(R.team===HOME?'':' · 방문 중'));
   if(SCREEN.glow) SCREEN.glow.visible=false; SCREEN.node=(R.screenSlot&&R.screenSlot.node)||null; SCREEN.glow=R.screenGlow||null;   /* 35차: 모니터 클릭 대상은 지금 방 것 */
   if(RIG.on){ rigPreset(R.team==='corridor'?'corridor':'room'); RIG.follow=true; }
-  SEATS=R.SEATS; STATIONS=R.STATIONS; NODES=R.NODES; EDGES=R.EDGES; ADJ=R.ADJ; WALLS=R.WALLS; DOOR_CTL=R.DOOR_CTL; markers=R.markers; room=R.group; if(EMBED) markers.visible=false; }
+  SEATS=R.SEATS; STATIONS=R.STATIONS; NODES=R.NODES; EDGES=R.EDGES; ADJ=R.ADJ; WALLS=R.WALLS; DOOR_CTL=R.DOOR_CTL; markers=R.markers; room=R.group; if(EMBED) markers.visible=false;
+  trafficOnRoom(R); }   /* 45차: 복도 왕래 직원의 보이기·복귀 */
 const ndist=(a,b)=>Math.hypot(NODES[a].x-NODES[b].x,NODES[a].z-NODES[b].z);
 function route(from,to){ const dist={},prev={},todo=new Set(Object.keys(NODES)); for(const k of todo) dist[k]=Infinity; dist[from]=0;
   while(todo.size){ let u=null; for(const k of todo) if(u===null||dist[k]<dist[u]) u=k; todo.delete(u); if(u===to) break; for(const v of (ADJ[u]||[])){ const d=dist[u]+ndist(u,v); if(d<dist[v]){ dist[v]=d; prev[v]=u; } } }
@@ -1120,32 +1191,153 @@ async function npcErrand(c){
   }catch(err){ log('NPC 심부름 오류',(err&&err.message)||err); try{ c.sitAt(seat,false); }catch(e2){} }
   NPCAI.movers=Math.max(0,NPCAI.movers-1); c.ai.busy=false; c.ai.why=''; c.ai.next=SIM_T+rnd(40,90);
 }
-/* 복도 통행인: 문에서 나와 반대편으로 걸어가 사라지는 단순 왕복. 플레이어와 가까우면 옆 차선으로 비켜선다 */
-const PASSERS={list:[],loading:false};
-async function ensurePassers(){ if(PASSERS.loading||PASSERS.list.length||NOCHAR) return; PASSERS.loading=true;
-  for(const [ch,look] of PASSER_LOOK){
-    try{ const c=await loadCharacter(ch,{anims:{idle:'idle',walk:'walk'},look}); c.label=''; c.model.visible=false; scene.add(c.model); CHARS.push(c);
-      PASSERS.list.push({c,t:rnd(1,8),active:false,dir:1,lane:0.9}); }catch(e){ log('통행인 로드 실패',ch); }
-  } PASSERS.loading=false; }
-function passerStart(p){ const c=p.c; p.dir=Math.random()<0.5?1:-1; p.lane=(Math.random()<0.5?-1:1)*rnd(0.5,1.3);
-  const X=CORR.len/2-0.4; c.model.position.set(p.dir>0?-X:X,c.model.userData.base||0,p.lane);
-  c.model.rotation.y=(p.dir>0)?Math.PI/2:-Math.PI/2; c.model.visible=true; p.active=true;
-  c.mode='walk'; c.play('walk'); c.walkSpeed&&c.walkSpeed(1.0);
-  if(c.clipKey!=='walk'){ c.mode='idle'; c.play('idle'); }   /* 걷기 클립이 없으면 최소한 서 있게 */ }
-function passersTick(dt){
-  if(!PASSERS.list.length){ ensurePassers(); return; }
-  const X=CORR.len/2-0.4;
-  for(const p of PASSERS.list){ const c=p.c;
-    if(!p.active){ c.model.visible=false; p.t-=dt; if(p.t<=0&&PASSERS.list.filter(q=>q.active).length<3) passerStart(p); continue; }
-    c.model.position.x+=1.0*dt*p.dir;
-    let lane=p.lane;
-    if(PLAYER&&PLAYER.model.visible){ const dx=c.model.position.x-PLAYER.model.position.x, dz=c.model.position.z-PLAYER.model.position.z;
-      if(Math.hypot(dx,dz)<1.0) lane=p.lane+(dz>=0?0.6:-0.6); }   /* 비켜서기 */
-    c.model.position.z+=(lane-c.model.position.z)*Math.min(1,dt*3);
-    if(c.mode!=='walk'||c.clipKey!=='walk'){ c.mode='walk'; c.play('walk'); c.walkSpeed&&c.walkSpeed(1.0); }   /* 44차: 클립까지 확인 — 걷기 클립이 안 걸리면 기마자세로 굳는다 */
-    if((p.dir>0&&c.model.position.x>X)||(p.dir<0&&c.model.position.x<-X)){ p.active=false; c.model.visible=false; p.t=rnd(5,14); } }
-}
-function passersHide(){ if(!PASSERS.list.length) return; for(const p of PASSERS.list){ p.active=false; p.c.model.visible=false; p.t=rnd(1,6); } }
+/* ══ 45차: 복도 왕래 = **실제 사무실 직원** ═══════════════════════════════════════════
+   대표 ① 「시간이 지나도 계속 동일한 사람들이 왔다갔다」 ② 「방에서 나오고 방으로 들어가게 해. 다른 부서에 일을 보고하거나
+        찾으러 가는 느낌으로. 지금은 복도 끝에서 나와 끝으로 가다가 벽에서 사라져」 ③ 「너무 자주 계속 나와」
+   09-13 결정: 가짜 통행인(겉모습만 바꾼 12벌)을 없애고 **이미 불러온 방의 직원**이 오간다. 같은 사람이라 얼굴 중복이 원천적으로 없다.
+   한 번의 왕래(trip):
+     out   — 자기 자리에서 일어나(그 방은 지금 안 보인다) 자기 팀 문으로 복도에 나와 → 다른 팀 문으로 들어간다
+     visit — 그 방에서 12~25초 머문다. 플레이어가 그 방에 있으면 팀장 책상 앞에 서 있고, 그동안은 떠나지 않는다
+     back  — 다시 복도로 나와 자기 팀 문으로 들어가 **자기 homeSeat 에 앉는다**
+   규칙
+     · 플레이어가 **지금 있는 방의 사람은 출발하지 않는다**(보고 있는 방에서 사람이 사라지지 않게). 팀장은 자리를 지킨다.
+     · 플레이어가 그 사람의 방에 들어가면(setRoom) 이미 돌아와 앉아 있다 — 연출(interact)이 그 사람을 찾을 때 비어 있지 않게.
+     · 복도에 동시에 최대 2명, 새 출발은 20~40초 간격. 복도에 들어오면 첫 등장은 6~12초 뒤.
+     · 문은 열리고 닫힌다. 문턱을 넘을 때 스며 나오고 스며든다(setOpacity). **복도 끝·벽에서 사라지지 않는다.**
+     · 지나가는 동안 플레이어·다른 직원과 부딪히면 통로에서는 옆으로 비키고 문 앞에서는 잠깐 선다.
+   위치는 플레이어가 어디에 있든 계속 진행된다(복도에 들어오는 순간 그 자리에 보인다). 그림은 복도·방문한 방에 있을 때만 그린다. */
+const TRAF={trips:[],next:-1,recent:[],hist:[],guests:[],guestLoading:false,guestNext:0,guestLog:[]};
+const TRAF_CFG={gap:[20,40],first:[6,12],visit:[12,25],speed:1.0,fadeD:0.7,maxCorr:2,maxTrips:3,recentN:3,guestMax:6};
+/* ── 45차 보강: 「손님 직원」(대표 첫 지적 「시간이 지나도 계속 동일한 사람들이 왔다갔다」) ──
+   불러온 방이 내 방뿐이면 복도에 내 팀 직원 둘셋만 반복해서 오간다. 복도에서는 방 안이 보이지 않으므로
+   다른 팀 **방을 짓지 않고 그 팀 직원 모델만** 불러 문에서 스며 나오게 한다.
+   · **로딩 화면 단계에서** 내 팀 동료와 **동시에** 받는다(warm, 기본). 최대 6명(팀당 1명).
+     실측(tools/_gpu_guest45.mjs, 캐시 있음): ready 3.0·3.6초 → 5.2·5.4초(+2초) — 게임 중 끊김 0.
+     대안 ?guests=bg(준비 뒤 내 방에서 한 명씩): 12.5초 동안 50ms 넘는 프레임 11번·최대 150ms → 대표가 렉에 민감해 기본에서 뺐다.
+     ?guests=0 끔.
+   · 그 팀 방에 처음 들어가면(ensureRoom) 새로 불러오지 않고 **그 사람을 그대로 자리에 앉힌다**(같은 사람 두 벌 금지). */
+const GUESTS_MODE=(Q.get('guests')||'warm').toLowerCase();
+const trafCorr=()=>TRAF.trips.filter(t=>t.phase!=='visit');
+function doorFree(team){ return !trafCorr().some(t=>t.from===team||t.dest===team); }
+function trafficRoute(tr,from,to){ const D=CORRIDOR.doorInfo, a=D[from], b=D[to], dir=Math.sign(b.x-a.x)||1, lane=dir>0?0.45:-0.45;
+  Object.assign(tr,{a,b,from,dest:to,i:0,off:0,wait:0,closeFrom:false,openTo:false,shown:false,hold:0.55,x:a.x,z:a.zw+a.sgn*0.12});
+  tr.pts=[{x:a.x,z:a.zw-a.sgn*0.8},{x:a.x+dir*0.5,z:lane},{x:b.x-dir*0.5,z:lane},{x:b.x,z:b.zw-b.sgn*0.8},{x:b.x,z:b.zw+b.sgn*0.12}];
+  if(CORRIDOR.doors[from]) CORRIDOR.doors[from].want=1.35; }
+function trafficStart(){
+  if(BUSY||!CORRIDOR||trafCorr().length>=TRAF_CFG.maxCorr||TRAF.trips.length>=TRAF_CFG.maxTrips) return false;
+  const D=CORRIDOR.doorInfo||{}; const P0=(CUR===CORRIDOR&&PLAYER&&PLAYER.model.visible)?PLAYER.model.position:null;
+  const nearDoor=(t)=>P0&&Math.hypot(P0.x-D[t].x,P0.z-(D[t].zw-D[t].sgn*0.8))<1.6;
+  const cands=[]; const onTrip=new Set(TRAF.trips.map(t=>t.c.CH));
+  for(const k in ROOMS){ const R=ROOMS[k]; if(R===CUR||!R.loaded||!D[k]||!doorFree(k)||nearDoor(k)) continue;
+    for(const c of R.chars){ if(!c.homeSeat||c.homeSeat.id==='lead'||c.extraSeat||c.loan||LOANED[c.CH]||c.trip||c.seat!==c.homeSeat||TRAF.recent.includes(c)||onTrip.has(c.CH)) continue;
+      if(c.ai&&(c.ai.busy||c.ai.talking)) continue; cands.push({c,R:{team:k,name:R.name}}); } }
+  for(const c of TRAF.guests){ const k=c.guestTeam; if(c.trip||LOANED[c.CH]||!D[k]||ROOMS[k]||(CUR&&CUR.team===k)||!doorFree(k)||nearDoor(k)||TRAF.recent.includes(c)||onTrip.has(c.CH)) continue;
+    cands.push({c,R:{team:k,name:TEAM_NAMES[k]||k}}); }
+  if(!cands.length) return false;
+  /* 오래 안 나간 사람부터(한 번도 안 나간 사람이 가장 먼저) — 같은 얼굴이 되풀이되지 않게 */
+  const oldest=Math.min(...cands.map(x=>x.c.lastTrip||-1e9)); const pool=cands.filter(x=>(x.c.lastTrip||-1e9)<=oldest+1);
+  const {c,R}=pickOne(pool); c.lastTrip=SIM_T;
+  const tos=TEAM_ORDER.filter(t=>t!==R.team&&!(CUR&&CUR.team===t)&&D[t]&&doorFree(t)&&!nearDoor(t));
+  const far=tos.filter(t=>Math.abs(D[t].x-D[R.team].x)>=3); const to=pickOne(far.length?far:tos); if(!to) return false;
+  try{ c.standUp(); }catch(e){} c.clearSeatOffset&&c.clearSeatOffset(); c.model.visible=false;
+  c.ai=c.ai||{next:0,busy:false,talking:false,why:''}; c.ai.busy=true; c.ai.why=`${TEAM_NAMES[to]||to} 다녀오기`;
+  const tr={c,home:R.team,to,phase:'out'}; trafficRoute(tr,R.team,to); TRAF.trips.push(tr); c.trip=tr;
+  TRAF.recent.push(c); while(TRAF.recent.length>TRAF_CFG.recentN) TRAF.recent.shift();
+  TRAF.hist.push({t:+SIM_T.toFixed(1),who:c.label||c.CH,ch:c.CH,from:R.team,to}); if(TRAF.hist.length>80) TRAF.hist.shift();
+  log(`왕래 시작: ${R.name} ${c.label||c.CH} → ${TEAM_NAMES[to]||to}`); return true; }
+function trafficFinish(tr){ const c=tr.c, s=c.homeSeat; const i=TRAF.trips.indexOf(tr); if(i>=0) TRAF.trips.splice(i,1);
+  c.trip=null; c.setOpacity(1); c.model.visible=false; c.mode='idle'; c.play('idle');
+  if(s){ evictSeat(s,c); c.model.rotation.y=s.ry; c.sitAt(s,false); }   /* sitAt → showIfHere: 그 방에 있을 때만 보인다 */
+  if(c.ai){ c.ai.busy=false; c.ai.why=''; c.ai.next=SIM_T+rnd(20,50); } }
+function trafficShowVisit(tr){ const c=tr.c, m=c.model, R=CUR;
+  if(!tr.spot){ const used=new Set(TRAF.trips.filter(t=>t!==tr&&t.spot).map(t=>t.spot));
+    tr.spot=['lead_front','lead_side','board'].find(k=>R.STATIONS[k]&&!used.has(k))||'board'; const st=R.STATIONS[tr.spot];
+    m.position.set(st.x,m.userData.base||0,st.z); const L=R.SEATS.lead; if(L){ const lp=L.wp(0,0,0); m.rotation.y=Math.atan2(lp.x-st.x,lp.z-st.z); }
+    c.setOpacity(1); c.mode='idle'; c.play('idle'); }
+  m.visible=true; }
+function trafficArrive(tr){ const c=tr.c, door=tr.dest;
+  waitSim(0.45).then(()=>{ if(CORRIDOR.doors[door]&&doorFree(door)) CORRIDOR.doors[door].want=0; });
+  if(tr.phase==='out'){
+    if(CUR&&CUR.team===tr.to){ tr.i=tr.pts.length-1; tr.hold=1.0; c.model.visible=false; return; }   /* 플레이어가 그 방에 있다 — 눈앞에 튀어나오지 않게 문 뒤에서 기다린다 */
+    tr.phase='visit'; tr.visitT=rnd(TRAF_CFG.visit[0],TRAF_CFG.visit[1]); tr.spot=null; c.setOpacity(1); c.model.visible=false; c.mode='idle'; c.play('idle'); return; }
+  trafficFinish(tr); }
+function trafficStep(tr,dt,inCorr){ const c=tr.c, m=c.model;
+  if(tr.phase==='visit'){ const here=!!(CUR&&CUR.team===tr.to&&ROOMS[tr.to]===CUR);
+    if(here&&!tr.eject) trafficShowVisit(tr); else if(m.visible) m.visible=false;
+    if(here&&!tr.eject) return;                              /* 보고 있는 동안은 떠나지 않는다 */
+    tr.visitT-=dt; if(tr.visitT>0) return;
+    if(trafCorr().length>=TRAF_CFG.maxCorr||!doorFree(tr.to)||!doorFree(tr.home)){ tr.visitT=1.5; return; }
+    tr.phase='back'; tr.spot=null; tr.eject=false; trafficRoute(tr,tr.to,tr.home); return; }
+  if(tr.hold>0){ tr.hold-=dt;
+    if(inCorr){ m.position.set(tr.x,m.userData.base||0,tr.z); m.rotation.y=Math.atan2(0,-tr.a.sgn); c.setOpacity(0); if(c.mode!=='idle'){ c.mode='idle'; c.play('idle'); } m.visible=true; }
+    else m.visible=false;
+    return; }
+  const tgt=tr.pts[tr.i]; const onLane=(tr.i===2); const tz=tgt.z+(onLane?tr.off:0);
+  const dx=tgt.x-tr.x, dz=tz-tr.z, d=Math.hypot(dx,dz), step=TRAF_CFG.speed*dt;
+  if(inCorr&&d>1e-4){ let blocked=false, dodge=false;
+    /* 앞 1.4m 구간에 사람이 0.85m 안으로 들어오면 — 통로에서는 미리 옆으로 비키고, 문 앞 구간에서는 0.9m 앞에서 선다 */
+    const ah=Math.min(1.4,d), ex=dx/d, ez=dz/d;
+    const others=trafCorr().filter(t=>t!==tr&&t.c.model.visible).map(t=>t.c.model.position); if(PLAYER&&PLAYER.model.visible) others.push(PLAYER.model.position);
+    for(const o of others){ const ox=o.x-tr.x, oz=o.z-tr.z, along=ox*ex+oz*ez; if(along<-0.2||along>ah+0.4) continue;
+      const lat=Math.abs(ox*ez-oz*ex); if(lat>0.85) continue;
+      if(onLane){ dodge=true; const side=(o.z>tr.z)?-1:1; tr.off+=(side*0.95-tr.off)*Math.min(1,dt*4); }
+      else if(Math.hypot(ox,oz)<0.9) blocked=true;
+      break; }
+    if(!dodge&&onLane) tr.off*=Math.max(0,1-dt*0.8);
+    if(blocked&&tr.wait<3){ tr.wait+=dt; if(c.mode!=='idle'){ c.mode='idle'; c.play('idle'); } return; }
+    if(!blocked) tr.wait=0; }
+  let mvx=0, mvz=0;
+  if(onLane){   /* 통로: 앞으로는 x 로만 걷고, 비키는 폭(off)은 z 로 곧장 옮긴다 — 목표점 쪽 대각선으로 섞으면 8m 앞 목표라 비키는 데 한참 걸렸다 */
+    const ddx=tgt.x-tr.x, sx=Math.sign(ddx)||1, fw=Math.min(Math.abs(ddx),step); const dzz=Math.max(-0.9*dt,Math.min(0.9*dt,tz-tr.z));
+    tr.x+=sx*fw; tr.z+=dzz; mvx=sx*fw; mvz=dzz;
+    if(Math.abs(ddx)<=step){ tr.i++; } }
+  else if(d<=step){ mvx=tgt.x-tr.x; mvz=tz-tr.z; tr.x=tgt.x; tr.z=tz; tr.i++; if(tr.i>=tr.pts.length){ trafficArrive(tr); return; } }
+  else { mvx=dx/d*step; mvz=dz/d*step; tr.x+=mvx; tr.z+=mvz; }
+  if(!tr.closeFrom&&tr.i>=2){ tr.closeFrom=true; const fr=tr.from; if(CORRIDOR.doors[fr]&&!trafCorr().some(t=>t!==tr&&(t.from===fr||t.dest===fr))) CORRIDOR.doors[fr].want=0; }
+  if(!tr.openTo&&tr.i>=3&&Math.hypot(tr.x-tr.pts[3].x,tr.z-tr.pts[3].z)<1.3){ tr.openTo=true; if(CORRIDOR.doors[tr.dest]) CORRIDOR.doors[tr.dest].want=1.35; }
+  if(!inCorr){ if(m.visible) m.visible=false; tr.shown=false; return; }
+  m.position.x=tr.x; m.position.z=tr.z;
+  if(Math.hypot(mvx,mvz)>1e-5){ const want=Math.atan2(mvx,mvz); if(!tr.shown) m.rotation.y=want; else { const df=Math.atan2(Math.sin(want-m.rotation.y),Math.cos(want-m.rotation.y)); m.rotation.y+=df*Math.min(1,dt*8); } }
+  if(c.mode!=='walk'||c.clipKey!=='walk'){ c.mode='walk'; c.play('walk'); c.walkSpeed&&c.walkSpeed(TRAF_CFG.speed); }   /* 44차: 클립까지 확인 — 걷기 클립이 안 걸리면 기마자세로 굳는다 */
+  const dFrom=(tr.i<=1)?Math.abs(tr.z-tr.a.zw):9, dTo=(tr.i>=3)?Math.abs(tr.z-tr.b.zw):9;
+  c.setOpacity(Math.min(1,Math.min(dFrom,dTo)/TRAF_CFG.fadeD));   /* 문턱에서 스며 나오고 스며든다 */
+  m.visible=true; tr.shown=true; }
+function guestPick(){ const loaded=new Set(CHARS.map(c=>c.CH).concat([PLAYER_USE],(CAST[HOME]||[]).map(x=>x[0]),EXTRA_NPC.map(x=>x[1]),Object.keys(LOANED)));
+  const teams=TEAM_ORDER.filter(t=>t!==HOME&&!ROOMS[t]&&!TRAF.guests.some(g=>g.guestTeam===t)&&CAST[t]);
+  const opts=[]; for(const t of teams){ for(const i of [1,2]){ const e=CAST[t][i]; if(e&&!loaded.has(e[0])) opts.push({t,i,e}); } }
+  return opts.length?pickOne(opts):null; }
+async function guestLoad(o){ const [ch,name,look]=o.e; const t0=performance.now();
+  const c=await loadCharacter(ch,{anims:ANIMS_NPC,look:look||twinLook(ch),slice:GUESTS_MODE!=='warm'});
+  c.label=name; c.guestTeam=o.t; c.guestSeatId=CAST_SEATS[o.i]; c.model.visible=false; c.ai={next:0,busy:false,talking:false,why:''};
+  if(!c.model.parent) scene.add(c.model); CHARS.push(c); TRAF.guests.push(c);
+  /* 텍스처를 지금 GPU 에 올려 둔다 — 복도에서 처음 보일 때 멈추지 않게 */
+  let k=0; for(const tx of sceneTextures(c.model)){ try{ renderer.initTexture(tx); }catch(e){} if(GUESTS_MODE!=='warm'&&(++k)%2===0) await frameSlice(); }
+  TRAF.guestLog.push({who:name,ch,team:o.t,ms:Math.round(performance.now()-t0)}); log(`손님 직원 ${TEAM_NAMES[o.t]} ${name}(${ch}) ${Math.round(performance.now()-t0)}ms`); return c; }
+function guestTick(){
+  if(GUESTS_MODE==='0'||GUESTS_MODE==='warm'||NOCHAR||!WARM.ready||TRAF.guestLoading||TRAF.guests.length>=TRAF_CFG.guestMax) return;
+  if(CUR!==HOME_ROOM||BUSY||FADE.want>0||SIM_T<TRAF.guestNext) return;
+  const o=guestPick(); if(!o){ TRAF.guestNext=SIM_T+30; return; }
+  TRAF.guestLoading=true;
+  guestLoad(o).catch(e=>log('손님 직원 로드 실패',(e&&e.message)||e)).finally(()=>{ TRAF.guestLoading=false; TRAF.guestNext=SIM_T+2; }); }
+function trafficTick(dt){
+  if(!CORRIDOR) return;
+  guestTick();
+  if(!NPCAI.on||NOCHAR){ if(TRAF.trips.length) trafficRecallAll(); return; }
+  if(TRAF.next<0) TRAF.next=SIM_T+rnd(TRAF_CFG.first[0],TRAF_CFG.first[1]);
+  if(SIM_T>=TRAF.next){ TRAF.next=trafficStart()?SIM_T+rnd(TRAF_CFG.gap[0],TRAF_CFG.gap[1]):SIM_T+3; }
+  const inCorr=(CUR===CORRIDOR);
+  for(const tr of TRAF.trips.slice()) trafficStep(tr,dt,inCorr); }
+/* 방이 바뀔 때(setRoom 끝에서) — 그 방 사람은 이미 돌아와 앉아 있고, 그 방을 방문 중인 사람은 팀장 책상 앞에 서 있다 */
+function trafficOnRoom(R){
+  for(const tr of TRAF.trips.slice()){ const c=tr.c;
+    if(R.team===tr.home){ trafficFinish(tr); continue; }
+    if(tr.phase==='visit'&&R.team===tr.to){ tr.spot=null; continue; }   /* 다음 틱에 trafficShowVisit */
+    c.model.visible=false; tr.shown=false; }
+  if(R===CORRIDOR&&!trafCorr().length) TRAF.next=Math.max(TRAF.next,SIM_T+rnd(TRAF_CFG.first[0],TRAF_CFG.first[1]));
+  if(R!==CORRIDOR&&CORRIDOR&&CORRIDOR.doors) for(const t in CORRIDOR.doors){ if(doorFree(t)){ const d=CORRIDOR.doors[t]; d.want=0; if(d.hinge) d.hinge.rotation.y=0; } } }
+/* 연출(interact·goToTeam mode)이 그 방에서 시작될 때 — 방문객 직원을 내보낸다(보고하는 자리를 막지 않게) */
+function trafficEject(team){ for(const tr of TRAF.trips) if(tr.phase==='visit'&&tr.to===team){ tr.eject=true; tr.visitT=0; tr.c.model.visible=false; } }
+function trafficRecallAll(){ for(const tr of TRAF.trips.slice()) trafficFinish(tr); }
 /* 44차: 각본대로 한 사람을 보냈다 돌려보낸다. 어떤 경우에도 마지막은 「자기 자리」다 */
 async function npcScripted(c,stKey,stay){
   const seat=c.homeSeat||c.seat; if(!seat) return;
@@ -1160,16 +1352,42 @@ async function npcScripted(c,stKey,stay){
     if(!CUR||CUR.chars.indexOf(c)<0) throw new Error('방이 바뀌었다');   /* 44차: 다른 방으로 옮겨 갔으면 걷지 말고 바로 자리로 */
     await npcWalk(c,seatStationOf(seat.id));
   }catch(err){ log('각본 이동 오류',(err&&err.message)||err); }
-  /* 복귀 보장 — 막혔든 밀렸든 자기 자리에 앉혀 끝낸다 */
-  try{ if(seat.occupant&&seat.occupant!==c) seat.occupant=null; c.model.rotation.y=seat.ry; c.sitAt(seat,false); }catch(e){}
+  /* 복귀 보장 — 막혔든 밀렸든 자기 자리에 앉혀 끝낸다.
+     45차: 예전에는 `seat.occupant=null` 로 **남을 밀어내고** 그 위에 앉았다.
+     밀려난 사람은 c.seat 를 그대로 쥔 채 같은 좌표에 남아 두 사람이 한 의자에 포개졌다
+     (대표 「홍주임이 다른 누군가랑 같이 한자리에 앉아 있었음」). 이제 제대로 일으켜 세운다. */
+  try{ evictSeat(seat,c); c.model.rotation.y=seat.ry; c.sitAt(seat,false); }catch(e){}
   NPCAI.movers=Math.max(0,NPCAI.movers-1); c.ai.busy=false; c.ai.why='';
+}
+/* 45차: 좌석에서 남을 「제대로」 비운다 — occupant 만 지우면 그 사람은 그대로 앉은 자세로 남는다 */
+function evictSeat(seat,forWhom){ const o=seat&&seat.occupant; if(!o||o===forWhom) return;
+  try{ o.standUp(); }catch(e){ o.seat=null; }
+  seat.occupant=null; log(`${(o.label||o.CH)} 를 ${seat.id||''} 에서 비움`); }
+/* ══ 45차: 좌석 점유 불변식 ═══════════════════════════════════════════
+   대표 「각자 자기 자리가 꼭 있어야 해. 다른 자리에 앉지 못하게 해」.
+   sitAt 의 문지기만으로는 부족했다 — 문을 안 거치고 좌석 상태가 어긋나는 경로가 남아 있었다.
+   ① seat.occupant 와 c.seat 는 반드시 서로를 가리킨다. 어긋나면 양쪽을 다 푼다.
+   ② occupant 가 아닌데 그 좌석을 쥐고 있는 사람은 앉은 자세를 풀어 떼어 낸다(겹쳐 앉기의 실체).
+   ③ homeSeat 이 아닌 자리에 앉아 있으면 일으켜 세운다.
+   **모든 방**에 3초마다 건다 — 지금 보고 있지 않은 방도 나중에 들어가면 그대로 보인다. */
+function seatSanity(R){ const S=R&&R.SEATS; if(!S) return;
+  for(const id in S){ const s=S[id]; if(s.occupant&&s.occupant.seat!==s) s.occupant=null; }
+  const list=PLAYER?(R.chars||[]).concat([PLAYER]):(R.chars||[]);   /* 플레이어도 같은 규칙을 받는다(아래에서 이 방 좌석만 걸러진다) */
+  for(const c of list){ const s=c.seat; if(!s) continue;
+    if(S[s.id]!==s) continue;                       /* 다른 방 좌석이면 그 방 차례에 본다 */
+    if(!s.occupant&&c.homeSeat===s){ s.occupant=c; continue; }   /* 45차: 자기 자리인데 좌석 쪽 기록만 빠진 것 — 일으키지 말고 다시 잇는다 */
+    if(s.occupant!==c){                             /* ② 자리를 잃었는데 앉은 자세로 남아 있다 */
+      c.seat=null; if(c.clearSeatOffset) c.clearSeatOffset();
+      if(c.mode==='sit'||c.mode==='type'||c.mode==='chat'){ c.mode='idle'; c.play('idle'); }
+      log(`${c.label||c.CH}: 남의 자리(${s.id||''})에서 떼어 냄`); continue; }
+    if(c!==PLAYER&&c.homeSeat&&s!==c.homeSeat){ try{ c.standUp(); }catch(e){} } }
 }
 /* 자가 복구: 각본 구간이 아닌데 자기 자리에 없는 사람은 자리로 되돌린다(플레이어가 막아 섰다 풀린 경우 등) */
 let FIXT=0;
 function seatRepair(dt){
-  if(!CUR||CUR===CORRIDOR||!CUR.chars) return; FIXT-=dt; if(FIXT>0) return; FIXT=3;
-  /* ① seat.occupant 와 캐릭터가 어긋나면 먼저 정리한다 */
-  for(const id in SEATS){ const s=SEATS[id]; if(s.occupant&&s.occupant.seat!==s) s.occupant=null; }
+  FIXT-=dt; if(FIXT>0) return; FIXT=3;
+  for(const k in ROOMS) seatSanity(ROOMS[k]);
+  if(!CUR||CUR===CORRIDOR||!CUR.chars) return;
   for(const c of CUR.chars){
     if(!c.homeSeat||c===PLAYER) continue;
     if(c.ai&&(c.ai.busy||c.ai.talking)) continue;
@@ -1181,7 +1399,7 @@ function seatRepair(dt){
 }
 function npcTick(dt){
   if(!NPCAI.on||!CUR) return;
-  if(CUR===CORRIDOR){ passersTick(dt); return; }
+  if(CUR===CORRIDOR) return;   /* 45차: 복도 왕래는 trafficTick(simTick) 이 맡는다 */
   if(BUSY) return;   /* 연출·카드 진행 중에는 새 심부름을 시작하지 않는다(이미 움직이던 사람은 그대로 마친다) */
   /* ── 각본이 있는 방은 각본대로만 움직인다(난수 심부름 없음) ── */
   const plan=PLAN[CUR.team];
@@ -1203,7 +1421,7 @@ function npcTick(dt){
 }
 
 /* 내 방(HOME)과 복도를 먼저 만든다. 타 팀 방은 처음 갈 때(ensureRoom) */
-const HOME_ROOM=buildRoom(HOME); ROOMS[HOME]=HOME_ROOM; mergeStatic(HOME_ROOM); loadProps(HOME_ROOM);
+const HOME_ROOM=buildRoom(HOME); ROOMS[HOME]=HOME_ROOM; mergeStatic(HOME_ROOM); HOME_ROOM.propsP=loadProps(HOME_ROOM);   /* 45차: 워밍업이 소품 교체를 기다린다 */
 const CORRIDOR=buildCorridor();
 setRoom(HOME_ROOM);
 /* ---- 클릭: 내 자리 모니터 → 바닥 마커 → 의자 → 복도 문 → 바닥(그 지점으로 걸어감) 순으로 본다 (35차) ---- */
@@ -1217,18 +1435,19 @@ function pickDoorTeam(){ const hs=ray.intersectObject(CUR.group,true); if(!hs.le
   const dz=CUR.doorZone; if(dz&&p.x<dz.x1&&p.z>dz.z0-0.3&&p.z<dz.z1+0.3&&p.y<DOOR.h+0.3) return 'out'; return null; }
 renderer.domElement.addEventListener('pointerdown',e=>{ downAt=[e.clientX,e.clientY]; });
 renderer.domElement.addEventListener('pointerup',e=>{ if(!downAt||Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])>6) return; downAt=null; setMouse(e);
-  if(SCREEN.cb&&SCREEN.node&&CTRL.on&&!BUSY&&ray.intersectObject(SCREEN.node,true).length){ SCREEN.cb(); return; }   /* 내 자리 모니터 */
+  if(SCREEN.cb&&SCREEN.node&&CTRL.on&&!BUSY&&CUR===HOME_ROOM&&ray.intersectObject(SCREEN.node,true).length){ SCREEN.cb(); return; }   /* 내 자리 모니터(45차: 내 방에서만 — 다른 팀 방의 같은 자리 모니터로 내 PC 가 켜졌다) */
   if(markers.visible){ const hit=ray.intersectObjects(markers.children,false)[0]; if(hit){ goTo(hit.object.userData.station); return; } }
   if(!CTRL.on||BUSY||!PLAYER||walkOf(PLAYER)) return;
   const seat=pickSeat(); if(seat){ ctrlSitRequest(seat); return; }
-  const nb=nearestNpc(PLAYER.model.position.x,PLAYER.model.position.z,1.35); if(nb){ const hs=ray.intersectObject(nb.npc.model,true); if(hs.length){ talkTo(nb.npc,nb.seat); return; } }   /* 39차: NPC 클릭 = 말 걸기 */
+  /* 45차: 「NPC 클릭 = 말 걸기」(39차)를 뺐다. 대표 「말은 t로만, 질문도 t로만, 서류 제출도 t로만」 —
+     사람에게 하는 일은 T 한 길뿐이다. NPC 를 누르면 바닥 클릭처럼 그 앞까지 걸어간다 */
   const team=pickDoorTeam(); if(team){ if(team==='out') exitToCorridor(); else goToTeam(team); return; }
   const f=CUR.floor&&ray.intersectObject(CUR.floor,false)[0]; if(f) ctrlGoal(f.point.x,f.point.z); });
 let hoverM=null, hoverScreen=false;
 renderer.domElement.addEventListener('pointermove',e=>{
   setMouse(e); const hit=markers.visible?ray.intersectObjects(markers.children,false)[0]:null;
   if(hoverM&&hoverM!==(hit&&hit.object)){ hoverM.scale.setScalar(1); hoverM=null; } if(hit){ hoverM=hit.object; hoverM.scale.setScalar(1.25); }
-  const onScr=!!(SCREEN.cb&&SCREEN.node&&CTRL.on&&!BUSY&&ray.intersectObject(SCREEN.node,true).length);
+  const onScr=!!(SCREEN.cb&&SCREEN.node&&CTRL.on&&!BUSY&&CUR===HOME_ROOM&&ray.intersectObject(SCREEN.node,true).length);
   if(onScr!==hoverScreen){ hoverScreen=onScr; if(SCREEN.glow) SCREEN.glow.visible=onScr; }
   renderer.domElement.style.cursor=(hit||onScr)?'pointer':''; });
 
@@ -1236,8 +1455,11 @@ renderer.domElement.addEventListener('pointermove',e=>{
    10. 캐릭터 로더 — test.html 의 렌더 파이프라인(데칼·재질·자세)을 함수로 감싼 것. 로직은 그대로 두고 UI 만 뺐다
    ====================================================================== */
 const FACES=['neutral','happy','sad','surprised','angry','blink','talk','wink']; const COLS=4, ROWS=2;
-const FEMALE=/^(acnh_01|acnh_03|acnh_05|acnh_07|acnh_09|acnh_11|acnh_13|acnh_15|acnh_17|acnh_19|acnh_20|acnh_22|acnh_30|acnh_31|acnh_32|acnh_33|acnh_34|acnh_35|acnh_38|acnh_40|acnh_42|acnh_44|acnh_46|acnh_47)$/;   /* 44차: 신규 인물 — acnh_47 여성·acnh_48 남성(기본값) */
-const CHAR_TUNE={ acnh_01:{faceScaleMul:0.85, faceY:0.05}, acnh_20:{faceY:0.02, eyeFrac:0.30, faceScaleMul:1.0}, /* 41차 후속: 앞머리가 오른쪽 눈·눈썹을 덮고 있었다. 눈선을 3cm 내려 앞머리 아래로 뺀다(실측 비교 shots/fix/fy_20_*.jpg) */ acnh_18:{faceY:0.05, eyeFrac:0.45, faceScaleMul:1.0} };
+const FEMALE=/^(acnh_01|acnh_03|acnh_05|acnh_07|acnh_09|acnh_11|acnh_13|acnh_15|acnh_17|acnh_19|acnh_20|acnh_21|acnh_22|acnh_30|acnh_31|acnh_32|acnh_33|acnh_34|acnh_35|acnh_38|acnh_40|acnh_42|acnh_44|acnh_46|acnh_47|acnh_49|acnh_51)$/;   /* 44차: 신규 인물 — acnh_47 여성·acnh_48 남성(기본값) · 45차: acnh_49 여성 플레이어·acnh_51 여성 방문객(50 남성) */
+const CHAR_TUNE={ acnh_01:{faceScaleMul:0.85, faceY:0.05}, acnh_20:{faceY:0.02, eyeFrac:0.30, faceScaleMul:1.0}, /* 41차 후속: 앞머리가 오른쪽 눈·눈썹을 덮고 있었다. 눈선을 3cm 내려 앞머리 아래로 뺀다(실측 비교 shots/fix/fy_20_*.jpg) */ acnh_18:{faceY:0.05, eyeFrac:0.33, faceScaleMul:1.0} /* 45차(캐릭터 검토): 앞머리가 데칼 눈·눈썹을 덮어 3/4·책상 시점에서 눈이 하나만 보였다. 0.45→0.33 — 후보 4개 비교 shots/fix/_eye45_18_cmp.jpg */ };
+/* 45차: 비교 스냅용 덮어쓰기 — ?chartune=acnh_18:eyeFrac=0.36,faceY=0.03;acnh_20:sinkFix=1 (배포 동작에는 영향 없음) */
+for(const part of (Q.get('chartune')||'').split(';').filter(Boolean)){ const [ch,kv]=part.split(':'); if(!ch||!kv) continue; const t=CHAR_TUNE[ch]=Object.assign({},CHAR_TUNE[ch]||{faceY:0.05,eyeFrac:0.30,faceScaleMul:1.0});
+  for(const x of kv.split(',')){ const [k,v]=x.split('='); if(k) t[k]=isNaN(+v)?v:+v; } }
 const ANIMS_ALL={ idle:'idle', walk:'walk', walk2:'walking', sit:'sit', sitdown:'sitdown', standup:'standup', chat:'chat', type2:'type2' };
 /* 41차(대표 「공중에 떠다녀 다리도 안움직이고 귀신같아」): NPC 에 walk 이 없어서 startWalk 의 play('walk') 가 통째로 무시됐다.
    선 자세 그대로 stepWalk 이 좌표만 밀어 미끄러진 것이다. 39차에 NPC 자율 행동을 넣으며 걷기 클립을 같이 넣었어야 했다.
@@ -1257,13 +1479,23 @@ async function assetExists(name){ if(ASSET_SET===null){ await (ASSET_P||(ASSET_P
     if(ASSET_SET===null){ try{ const r=await fetch('assets/_list.json'); if(r.ok) ASSET_SET=new Set(await r.json()); }catch(e){} }
     if(ASSET_SET===null){ ASSET_SET=new Set(); ASSET_SET.fallback=true; } })())); }
   if(ASSET_SET.fallback){ try{ const r=await fetch('assets/'+name,{method:'HEAD'}); return r.ok; }catch(e){ return false; } } return ASSET_SET.has(name); }
+/* 45차: 몸 텍스처. 보통은 얼굴을 지운 판(`_noface.jpg` → 없으면 `.png`)을 쓴다.
+   둘 다 없으면 마지막 수단으로 **원본 GLB 안에 구워진 텍스처**를 꺼낸다(작업용 — 원본 GLB 는 배포하지 않으므로
+   라이브에서는 이 길로 오면 안 된다. 새 인물은 facewipe·uv_repack 을 거쳐 `_noface.jpg` 를 만들 것) */
+async function bodyTex(CH){
+  if(await assetExists(`${CH}_noface.jpg`)) return texLoader.loadAsync(`assets/${CH}_noface.jpg`);
+  if(await assetExists(`${CH}_noface.png`)) return texLoader.loadAsync(`assets/${CH}_noface.png`);
+  const g=await gltfLoad(`assets/${CH}.glb`); let map=null;
+  g.scene.traverse(o=>{ if(!map&&o.isMesh&&o.material&&o.material.map) map=o.material.map; });
+  if(!map) throw new Error(`${CH}: 몸 텍스처를 찾지 못했다`);
+  return map; }
 async function loadCharacter(CH,opt={}){
   const clog=(...a)=>log(`[${CH}]`,...a);
   /* 44차 성능: 미리 받기(slice)면 무거운 구간마다 프레임을 양보한다 —
      메시 파싱·법선 계산·애니 클립·셰이더 컴파일이 이어 붙으면 한 프레임이 수백 ms 가 된다 */
   const SL=opt.slice?(()=>sliceTick()):(()=>Promise.resolve());
   /* 로딩 구간 계측(?prof=1). 대표 「입장만 1~2분」 → 어디서 시간이 가는지 숫자로 본다 */
-  let _t0=performance.now(); const _PA=(window.__PROF=window.__PROF||{}); const _ph=(n)=>{ const t=performance.now(); _PA[n]=(_PA[n]||0)+(t-_t0); _t0=t; };
+  let _t0=performance.now(); const _PA=(window.__PROF=window.__PROF||{}); const _ph=(n)=>{ const t=performance.now(); _PA[n]=(_PA[n]||0)+(t-_t0); if(window.__TRACE) window.__TRACE.push([CH,n,+_t0.toFixed(0),+(t-_t0).toFixed(0)]); _t0=t; };   /* 45차: __TRACE 가 있으면 구간별 [인물,구간,시작,길이] — 끊김이 어느 구간에서 나는지 본다 */
   const ANIMS=opt.anims||ANIMS_ALL;
   function smoothNormalsWelded(g){ const pos=g.attributes.position, n=pos.count; g.computeVertexNormals(); const nor=g.attributes.normal; const map=new Map();
     for(let i=0;i<n;i++){ const k=Math.round(pos.getX(i)*1e5)+','+Math.round(pos.getY(i)*1e5)+','+Math.round(pos.getZ(i)*1e5); let a=map.get(k); if(!a){ a=[]; map.set(k,a); } a.push(i); }
@@ -1290,7 +1522,7 @@ async function loadCharacter(CH,opt={}){
     if(face) face.visible=!on; }
   /* 구워진 얼굴을 지운 텍스처(noface)로 교체 — test.html 실제 동작과 같게 roughness 0.9 */
   /* 35차: 가벼운 .jpg 판(0.34MB)이 있으면 그것을, 없으면 .png(1.4MB). 존재 확인은 assets/ 목록 한 번으로(파일마다 HEAD 를 쏘면 404 가 콘솔 오류로 남는다 — 27차) */
-  { const nt=await texLoader.loadAsync(`assets/${CH}_noface.${(await assetExists(`${CH}_noface.jpg`))?'jpg':'png'}`); nt.flipY=false; nt.colorSpace=THREE.SRGBColorSpace;
+  { const nt=await bodyTex(CH); nt.flipY=false; nt.colorSpace=THREE.SRGBColorSpace;
     noMip(nt); await islandMip(nt,CH);   /* 39차 후속 4: 몸 텍스처는 밉맵 ON(축소 에일리어싱 = 지지직 제거). 09-05 배포본 jpg 에 UV 거터 12텍셀 패딩이 이미 구워져 있다 */
     model.traverse(o=>{ if(o.isMesh&&o.material&&o.material.map){ o.material=new THREE.MeshStandardMaterial({map:nt,metalness:0,roughness:0.9,side:THREE.DoubleSide}); smoothNormalsWelded(o.geometry); } }); _ph('몸 텍스처+법선'); await SL(); }
   function smoothNormalsAcrossSeams(geo){ geo.computeVertexNormals(); const pos=geo.attributes.position, nrm=geo.attributes.normal, map=new Map();
@@ -1335,8 +1567,8 @@ async function loadCharacter(CH,opt={}){
     const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.BufferAttribute(out,3)); if(g.index) bg.setIndex(g.index); bg.computeVertexNormals(); return new THREE.Mesh(bg); }
   function headWeights(names){ const g=skinned.geometry, jn=g.attributes.skinIndex, wt=g.attributes.skinWeight; const HI=new Set(skinned.skeleton.bones.map((b,i)=>[b.name.toLowerCase(),i]).filter(([n])=>names.includes(n)).map(([,i])=>i)); const out=new Float32Array(g.attributes.position.count);
     for(let i=0;i<out.length;i++){ let w=0; for(let k=0;k<4;k++){ if(HI.has(jn.getComponent(i,k))) w+=wt.getComponent(i,k);} out[i]=w; } return out; }
-  const HEAD_W=headWeights(['head','head_end','headfront']); const HEAD_W_MAIN=headWeights(['head']);
-  const restMesh=bakeRestMesh();
+  _ph('·턱·이음새 법선'); const HEAD_W=headWeights(['head','head_end','headfront']); const HEAD_W_MAIN=headWeights(['head']);
+  const restMesh=bakeRestMesh(); _ph('·머리 가중치·쉬는 메시');
   { restMesh.geometry.computeBoundingBox(); const bb=restMesh.geometry.boundingBox; const dy=-bb.min.y; model.position.y+=dy; model.updateMatrixWorld(true); H=bb.max.y-bb.min.y; SIT_LIFT_BASE=dy; }
   const rc=new THREE.Raycaster();
   const anchor=new THREE.Object3D(); head.add(anchor); { const ws=head.getWorldScale(new THREE.Vector3()); anchor.scale.set(1/ws.x,1/ws.y,1/ws.z); }
@@ -1351,16 +1583,21 @@ async function loadCharacter(CH,opt={}){
     const hg=new THREE.BufferGeometry(); hg.setAttribute('position',g.attributes.position); const uvA=g.attributes.uv||skinned.geometry.attributes.uv; if(uvA&&uvA.count===g.attributes.position.count) hg.setAttribute('uv',uvA); hg.setIndex(keep); hg.computeVertexNormals(); return new THREE.Mesh(hg); }
   let _texSamp=null; function texSampler(){ if(_texSamp) return _texSamp; try{ const img=(skinned.material&&skinned.material.map&&skinned.material.map.image); if(!img||!img.width) return null; const cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height; const cx=cv.getContext('2d'); cx.drawImage(img,0,0); const dat=cx.getImageData(0,0,cv.width,cv.height).data; const flip=skinned.material.map.flipY; _texSamp=(u,v)=>{ const x=Math.max(0,Math.min(cv.width-1,Math.floor(u*cv.width))); const y=Math.max(0,Math.min(cv.height-1,Math.floor((flip?(1-v):v)*cv.height))); const i=(y*cv.width+x)*4; return [dat[i],dat[i+1],dat[i+2]]; }; return _texSamp; }catch(e){ return null; } }
   let restMeshCur=null;
-  function buildFace(){
+  /* 45차 성능: 얼굴 데칼 만들기를 제너레이터로 — 불러오는 중에는 구간마다 프레임을 양보한다(buildFaceSliced).
+     tune 조정값 콜백 등 다른 곳에서는 예전처럼 한 번에 끝까지(buildFace). 결과는 같다. */
+  let FACE_HOLD=false, FACE_WANT=false;
+  function buildFace(){ if(FACE_HOLD){ FACE_WANT=true; return; } const it=buildFaceGen(); while(!it.next().done); }
+  async function buildFaceSliced(){ FACE_WANT=false; const it=buildFaceGen(); while(!it.next().done) await SL(); }
+  function* buildFaceGen(){ const _bf0=performance.now(); const _bft=(n)=>{ if(window.__TRACE) window.__TRACE.push([CH,'  buildFace:'+n,0,+(performance.now()-_bf0).toFixed(0)]); };
     if(!faceDepthU.body.value && skinned.material && skinned.material.map) faceDepthU.body.value=skinned.material.map;
     if(TUNE.skinRGB) faceDepthU.skin.value.set(TUNE.skinRGB[0]/255,TUNE.skinRGB[1]/255,TUNE.skinRGB[2]/255);
-    const rm=bakeHeadMesh(); const hb=headBox(rm);
+    const rm=bakeHeadMesh(); const hb=headBox(rm); _bft('머리 메시 굽기'); yield;
     { const skin=TUNE.skinRGB||null; const samp=texSampler(); const y0=hb.maxy-0.55*hb.w; let chin=null, zPrev=null, bad=0;
       for(let yy=y0; yy>hb.miny-0.05; yy-=0.004){ rc.set(new THREE.Vector3(hb.cx,yy,hb.maxz+2),new THREE.Vector3(0,0,-1)); const h=rc.intersectObject(rm,false)[0];
         if(!h) break; const z=h.point.z; if(zPrev!==null && z<zPrev-0.08*hb.w) break; zPrev=z;
         if(skin&&samp&&h.uv){ const c=samp(h.uv.x,h.uv.y); const d=Math.hypot(c[0]-skin[0],c[1]-skin[1],c[2]-skin[2]); if(d>=70){ if(++bad>=3) break; } else { bad=0; chin=yy; } } else chin=yy; }
       if(chin!==null && chin>=hb.miny-0.01 && chin<=hb.maxy-0.6*hb.w){ hb.chin=chin; hb.hf=Math.min(hb.maxy-chin, 1.1*hb.w); } }
-    const y=hb.chin+hb.hf*(TUNE.eyeFrac??0.30)+P.faceY;
+    yield; const y=hb.chin+hb.hf*(TUNE.eyeFrac??0.30)+P.faceY;
     const S=hb.w*(TUNE.faceRatio??0.62)*(P.faceScaleMul||1);
     { const skin=TUNE.skinRGB||null, samp=texSampler(); let done=false;
       { const ests=[];
@@ -1381,10 +1618,10 @@ async function loadCharacter(CH,opt={}){
         if(cnt>80){ hb.cx=(mn+mx)/2; done=true; } }
       if(!done&&skin&&samp){ const xs=[]; for(let t=-0.55;t<=0.55;t+=0.02){ const x=hb.cx+t*hb.w; rc.set(new THREE.Vector3(x,y,hb.maxz+2),new THREE.Vector3(0,0,-1)); const h=rc.intersectObject(rm,false)[0]; if(!h||!h.uv) continue; const c=samp(h.uv.x,h.uv.y); if(Math.hypot(c[0]-skin[0],c[1]-skin[1],c[2]-skin[2])<70) xs.push(x); }
         if(xs.length>6){ hb.cx=(xs[0]+xs[xs.length-1])/2; } } }
-    let hit=null; for(const [ox,oy] of [[0,0],[0.03,0],[-0.03,0],[0,-0.03],[0.06,0],[-0.06,0],[0.03,-0.03],[-0.03,-0.03]]){ rc.set(new THREE.Vector3(hb.cx+(P.faceX||0)+ox*hb.w,y+oy*hb.hf,hb.maxz+2),new THREE.Vector3(0,0,-1)); hit=rc.intersectObject(rm,false)[0]; if(hit) break; }
+    _bft('턱·중심 추정'); let hit=null; for(const [ox,oy] of [[0,0],[0.03,0],[-0.03,0],[0,-0.03],[0.06,0],[-0.06,0],[0.03,-0.03],[-0.03,-0.03]]){ rc.set(new THREE.Vector3(hb.cx+(P.faceX||0)+ox*hb.w,y+oy*hb.hf,hb.maxz+2),new THREE.Vector3(0,0,-1)); hit=rc.intersectObject(rm,false)[0]; if(hit) break; }
     if(!hit){ clog('얼굴 레이캐스트 실패'); return; }
     const pos=hit.point.clone(); const vy=Math.min(1,Math.max(0.8,(hb.hf/hb.w)/0.86)); const size=new THREE.Vector3(S,S*vy,S*1.4);
-    let geo=new DecalGeometry(rm,pos,new THREE.Euler(0,0,0),size);
+    _bft('레이'); yield; let geo=new DecalGeometry(rm,pos,new THREE.Euler(0,0,0),size); _bft('DecalGeometry'); yield;
     { const samp2=texSampler(), skin2=TUNE.skinRGB||null; const rows=[], zs=[];
       for(let gy=0.12; gy<=0.92; gy+=0.08){ const yy=hb.chin+hb.hf*gy; for(let t=-0.45;t<=0.451;t+=0.06){ const x=hb.cx+t*hb.w; rc.set(new THREE.Vector3(x,yy,hb.maxz+2),new THREE.Vector3(0,0,-1)); const hs=rc.intersectObject(rm,false); if(!hs.length) continue;
           let h=hs[0]; if(skin2&&samp2){ h=hs.find(q=>{ if(!q.uv) return false; const c=samp2(q.uv.x,q.uv.y); return c&&Math.hypot(c[0]-skin2[0],c[1]-skin2[1],c[2]-skin2[2])<70; })||null; if(!h) continue; }
@@ -1403,7 +1640,7 @@ async function loadCharacter(CH,opt={}){
         if(drop>0){ const n=keep.length*3; const pa=new Float32Array(n*3), na=new Float32Array(n*3), ua=new Float32Array(n*2); let i=0;
           for(const t of keep){ for(let k=0;k<3;k++){ pa.set([P0.getX(t+k),P0.getY(t+k),P0.getZ(t+k)],i*3); na.set([N0.getX(t+k),N0.getY(t+k),N0.getZ(t+k)],i*3); ua.set([U0.getX(t+k),U0.getY(t+k)],i*2); i++; } }
           const g2=new THREE.BufferGeometry(); g2.setAttribute('position',new THREE.BufferAttribute(pa,3)); g2.setAttribute('normal',new THREE.BufferAttribute(na,3)); g2.setAttribute('uv',new THREE.BufferAttribute(ua,2)); geo=g2; } } }
-    { const P1=geo.attributes.position, N1=geo.attributes.normal, U1=geo.attributes.uv; const T=P1.count/3; const cs=0.02*hb.w, tol=0.012*hb.w, zmin=0.002*hb.w, zmax=0.06*hb.w;
+    _bft('평면 맞춤'); yield; { const P1=geo.attributes.position, N1=geo.attributes.normal, U1=geo.attributes.uv; const T=P1.count/3; const cs=0.02*hb.w, tol=0.012*hb.w, zmin=0.002*hb.w, zmax=0.06*hb.w;
       const cen=new Float32Array(T*3); const cells=new Map(); const key=(i,j)=>i*100003+j;
       for(let t=0;t<T;t++){ let cx=0,cy=0,cz=0; for(let k=0;k<3;k++){ cx+=P1.getX(t*3+k); cy+=P1.getY(t*3+k); cz+=P1.getZ(t*3+k); } cen[t*3]=cx/3; cen[t*3+1]=cy/3; cen[t*3+2]=cz/3; const k2=key(Math.floor(cx/3/cs),Math.floor(cy/3/cs)); if(!cells.has(k2)) cells.set(k2,[]); cells.get(k2).push(t); }
       const keep2=[]; let dropDup=0;
@@ -1413,10 +1650,15 @@ async function loadCharacter(CH,opt={}){
       if(dropDup>0 && dropDup<0.4*T){ const n=keep2.length*3; const pa=new Float32Array(n*3), na=new Float32Array(n*3), ua=new Float32Array(n*2); let i=0;
         for(const t of keep2){ for(let k=0;k<3;k++){ pa.set([P1.getX(t*3+k),P1.getY(t*3+k),P1.getZ(t*3+k)],i*3); na.set([N1.getX(t*3+k),N1.getY(t*3+k),N1.getZ(t*3+k)],i*3); ua.set([U1.getX(t*3+k),U1.getY(t*3+k)],i*2); i++; } }
         const g3=new THREE.BufferGeometry(); g3.setAttribute('position',new THREE.BufferAttribute(pa,3)); g3.setAttribute('normal',new THREE.BufferAttribute(na,3)); g3.setAttribute('uv',new THREE.BufferAttribute(ua,2)); geo=g3; } }
-    { const dp=geo.attributes.position, dn=geo.attributes.normal, N=dp.count, mu=new Float32Array(N*2); const o=new THREE.Vector3(), dir=new THREE.Vector3();
-      for(let i=0;i<N;i++){ dir.set(dn.getX(i),dn.getY(i),dn.getZ(i)).normalize(); o.set(dp.getX(i),dp.getY(i),dp.getZ(i)).addScaledVector(dir,0.02); rc.set(o,dir.clone().multiplyScalar(-1)); const h=rc.intersectObject(rm,false)[0]; if(h&&h.uv){ mu[i*2]=h.uv.x; mu[i*2+1]=h.uv.y; } else { mu[i*2]=-1; mu[i*2+1]=-1; } }
+    _bft('겹침 제거'); { const dp=geo.attributes.position, dn=geo.attributes.normal, N=dp.count, mu=new Float32Array(N*2); const o=new THREE.Vector3(), dir=new THREE.Vector3();
+      /* 45차 성능: 이 정점별 레이(얼굴 데칼 정점 2~3천 × 머리 삼각형 전부)가 buildFace 시간의 85% 였다(실측 860ms 중 730ms).
+         aMUv 는 셰이더에서 **머리카락 자르기(uHairCut>0.5)** 때만 쓴다 — 지금 그 설정을 쓰는 인물이 없다.
+         그래서 hairCut 이 켜진 인물만 레이를 쏘고, 나머지는 「못 찾음(-1)」으로 채운다(화면 결과 동일). */
+      let hc=false; try{ hc=EDIT.hairCut>0.5; }catch(e){ hc=false; }   /* 첫 호출 때는 EDIT 가 아직 선언 전이다 */
+      if(!hc) mu.fill(-1);
+      else for(let i=0;i<N;i++){ dir.set(dn.getX(i),dn.getY(i),dn.getZ(i)).normalize(); o.set(dp.getX(i),dp.getY(i),dp.getZ(i)).addScaledVector(dir,0.02); rc.set(o,dir.clone().multiplyScalar(-1)); const h=rc.intersectObject(rm,false)[0]; if(h&&h.uv){ mu[i*2]=h.uv.x; mu[i*2+1]=h.uv.y; } else { mu[i*2]=-1; mu[i*2+1]=-1; } }
       geo.setAttribute('aMUv',new THREE.BufferAttribute(mu,2)); }
-    geo.translate(-pos.x,-pos.y,-pos.z);
+    _bft('aMUv 레이('+geo.attributes.position.count+'정점)'); geo.translate(-pos.x,-pos.y,-pos.z);
     if(face){ anchor.remove(face); face.geometry.dispose(); }
     face=new THREE.Mesh(geo,faceMat); face.renderOrder=2; anchor.add(face);
     model.updateMatrixWorld(true);
@@ -1436,12 +1678,23 @@ async function loadCharacter(CH,opt={}){
   /* 조정 파라미터(test.html 의 tune 슬라이더 기본값 그대로) — TUNE_CTL 은 tune json 의 P 를 적용할 때 콜백을 돌리기 위한 것 */
   const TUNE_CTL={}; function tune(name,val,cb){ P[name]=val; TUNE_CTL[name]={set:(x)=>{ P[name]=+x; cb&&cb(+x); }}; }
   tune('faceScaleMul', TUNE.faceScaleMul??1.0, buildFace); tune('noseR', TUNE.noseR??0.021, buildNose); tune('noseY', TUNE.noseY??0.12, buildNose); tune('faceX', TUNE.faceX??0, buildFace); tune('faceY', TUNE.faceY??-0.02, buildFace); tune('facePull', 0.05); tune('frontDot', 0.65);
-  buildFace(); setFace('neutral');
+  /* 45차 성능: 여기서 얼굴을 한 번 만들고 tune.json(EDIT 가 빈 {} 여도 applyShape)·겉모습 적용이 **또** 만들었다 — 인물마다 2~4번.
+     마지막 한 번만 결과에 남으므로 그때까지 미뤘다가 끝에서 한 번만 만든다. 첫 호출이 잡아 두던 원본 텍스처 표본은 지금 미리 잡는다. */
+  /* 정확히 같은 결과를 지키는 규칙: 뒤에서 **다시 만들 일이 있을 때만** 미룬다(tune.json 의 hideTris·EDIT·얼굴 P · 겉모습).
+     다시 만들 일이 없는 인물(예: acnh_19 — tune.json 없음)은 예전처럼 **지금**(머리 비율 조정 전) 만든다 — 미루면 머리 비율이 먹은 뒤에
+     만들어져 얼굴 위치·비율이 달라진다(tools/_gpu_facecmp45.mjs 로 잡았다). */
+  _ph('·(얼굴 준비)');
+  let TUNE_J=null; try{ if(await assetExists(`${CH}_tune.json`)){ const r=await fetch(`assets/${CH}_tune.json`); TUNE_J=await r.json(); } }catch(e){ TUNE_J=null; }
+  const FACE_LATER=!!(opt.look||(TUNE_J&&((TUNE_J.hideTris&&TUNE_J.hideTris.length)||TUNE_J.EDIT||(TUNE_J.P&&['faceScaleMul','faceX','faceY'].some(k=>k in TUNE_J.P)))));
+  /* 45차: 얼굴을 만든 순간의 자세(원점·정면·뼈 로컬값)를 남겨 둔다 — 나중에 겉모습을 갈아입힐 때(setLook) 그 자세로 돌려놓고 다시 만든다 */
+  let REST_POSE=null; const snapRest=()=>{ REST_POSE={pos:model.position.clone(),rot:model.rotation.clone(),bones:Object.values(bones).map(b=>[b,b.position.clone(),b.quaternion.clone(),b.scale.clone()])}; };
+  if(FACE_LATER){ texSampler(); FACE_HOLD=true; FACE_WANT=true; } else { model.updateMatrixWorld(true); snapRest(); await buildFaceSliced(); }
+  setFace('neutral'); _ph('·얼굴 데칼'+(FACE_LATER?'(미룸)':''));
   /* ---- 가구 치수(캐릭터 실측) ---- */
   const hipsWorld=new THREE.Vector3(); hips.getWorldPosition(hipsWorld); const LEG=hipsWorld.y-box0.min.y;
   tune('seatH', +(LEG*0.98).toFixed(3)); tune('deskH', +(LEG*0.98+H*0.22).toFixed(3)); tune('chairZ', 0); tune('deskZ', +(H*0.19).toFixed(3));
   /* ---- 애니메이션 ---- */
-  const mixer=new THREE.AnimationMixer(model); const actions={};
+  _ph('·가구 치수'); const mixer=new THREE.AnimationMixer(model); const actions={};
   const ANIM_SLIM=await (gltfLoader.__slim||(gltfLoader.__slim=fetch('assets/anim/manifest.json').then(r=>r.ok?r.json():null).then(j=>new Set((j&&j.files)||[])).catch(()=>new Set())));   /* 슬림 애니(메시·텍스처 없는 클립 전용 GLB)가 있으면 그걸 쓴다 */
   /* 43차: 클립 6개를 한 개씩 기다려 받던 것을 동시에 받는다. 계측상 캐릭터 로딩에서 가장 큰 구간(32%)이었다.
      mixer.clipAction 등록은 순서를 타지 않으므로 받은 뒤 한꺼번에 건다. */
@@ -1460,7 +1713,13 @@ async function loadCharacter(CH,opt={}){
      물류팀 사람이 보이는 채로 고객지원팀에 있으면 같은 좌석에 두 명이 앉은 것처럼 보인다.
      (대표 「거의 모든 캐릭터들이 막 둘이 앉아 있고 난리도 아니야」의 실제 정체)
      심부름이 방을 옮긴 뒤에 끝나면 sitAt 이 model.visible=true 로 되살렸던 것이 원인이다. */
-  const showIfHere=()=>{ model.visible=(C===PLAYER)||!CUR||!CUR.chars||CUR.chars.length===0||CUR.chars.indexOf(C)>=0; };
+  /* 45차: 방문객은 어느 방 명단(R.chars)에도 없어서 standAt·sitFree 가 부를 때마다 **숨겨졌다** —
+     방문 연출 내내 방문객이 투명했다(검사 tools/_gpu_seat_audit45.mjs 에서 vis:false 로 잡힘). 방문객은 지금 방에 속한다 */
+  /* 45차 핵심: 예전 조건에 `CUR.chars.length===0` 이 있었다. **복도는 chars 가 비어 있으므로** 플레이어가 복도에 있는 동안
+     자리로 돌아와 앉은 NPC 가 전부 보이게 켜졌고, 그 뒤로는 어느 방도 그 사람을 숨기지 않았다.
+     검사에서 총무팀 권주임이 ① 복도 한가운데 앉은 자세로(대표 「복도에 앉아 있는 사람 있음」)
+     ② 인사팀 방에서 홍주임과 0.01m 로 포개져(대표 「홍주임이 다른 누군가랑 같이 한자리에」) 보였다 — 방이 전부 원점에 겹쳐 있어서다. */
+  const showIfHere=()=>{ model.visible=(C===PLAYER)||(C.isVisitor&&CUR!==CORRIDOR&&(!C.visitRoom||C.visitRoom===CUR))||!CUR||!!(CUR.chars&&CUR.chars.indexOf(C)>=0); };   /* 45차: visitorIn 방문객은 자기가 온 방에서만 */
   let cur=null, curKey=null; function play(k,{loop=true,fade=0.25}={}){ const a=actions[k]; if(!a){ return; } curKey=k; a.reset(); a.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,Infinity); a.clampWhenFinished=!loop; a.enabled=true; if(cur&&cur!==a){ a.crossFadeFrom(cur,fade,false); } a.play(); cur=a; }
   let mode='idle', typing=false, typeT=0; let SIT={lift:0};
   let freeSit=false;   /* 44차: 소파처럼 「좌석 객체 없이 일부러 앉힌」 상태. 아래 기마자세 방지 규칙에서 빼 준다 */
@@ -1471,7 +1730,7 @@ async function loadCharacter(CH,opt={}){
   const EDIT={hairSide:0,hairBack:0,hairTop:0,faceFlat:0,chinFlat:0,headSlim:0,browBack:0,hairCut:0,browFront:0,hairCap:0,hairCol:'',skinCol:''};
   const GEO=skinned.geometry, POSA=GEO.attributes.position, NV=POSA.count; const BASE=new Float32Array(POSA.array); const UVA=GEO.attributes.uv;
   function texCanvas(){ const img=skinned.material&&skinned.material.map&&skinned.material.map.image; if(!img||!img.width) return null; const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; c.getContext('2d').drawImage(img,0,0); return c; }
-  let TEXC=texCanvas(), TEXD=null; if(TEXC){ try{ TEXD=TEXC.getContext('2d').getImageData(0,0,TEXC.width,TEXC.height).data; }catch(e){ TEXD=null; } }
+  _ph('·(tune 준비)'); let TEXC=texCanvas(), TEXD=null; if(TEXC){ try{ TEXD=TEXC.getContext('2d').getImageData(0,0,TEXC.width,TEXC.height).data; }catch(e){ TEXD=null; } }
   const flipY=skinned.material.map?skinned.material.map.flipY:false;
   function texAt(u,v){ if(!TEXD) return null; const x=Math.max(0,Math.min(TEXC.width-1,Math.floor(u*TEXC.width))); const y=Math.max(0,Math.min(TEXC.height-1,Math.floor((flipY?1-v:v)*TEXC.height))); const i=(y*TEXC.width+x)*4; return [TEXD[i],TEXD[i+1],TEXD[i+2]]; }
   const SKIN=(TUNE.skinRGB)||[245,205,170]; const WGID=new Int32Array(NV); const WGRP=[];
@@ -1493,7 +1752,7 @@ async function loadCharacter(CH,opt={}){
       for(let g=0;g<WGRP.length;g++){ const i0=WGRP[g][0]; let x=nor.getX(i0),y=nor.getY(i0),z=nor.getZ(i0); const s=HAIR_NB.get(g); if(s){ for(const h of s){ const j=WGRP[h][0]; x+=nor.getX(j); y+=nor.getY(j); z+=nor.getZ(j); } } const L=Math.hypot(x,y,z)||1; out[g*3]=x/L; out[g*3+1]=y/L; out[g*3+2]=z/L; }
       for(let g=0;g<WGRP.length;g++){ for(const i of WGRP[g]){ const w=HW[i]; let k; if(w>=0.35) k=Math.min(1,(w-0.35)/0.3); else if(HEAD_W[i]>0.3 && it===0) k=0.6; else continue; const x=nor.getX(i)*(1-k)+out[g*3]*k, y=nor.getY(i)*(1-k)+out[g*3+1]*k, z=nor.getZ(i)*(1-k)+out[g*3+2]*k; const L=Math.hypot(x,y,z)||1; nor.setXYZ(i,x/L,y/L,z/L); } } }
     nor.needsUpdate=true; }
-  smoothHairNormals();
+  _ph('·텍스처 읽기·정점 분류'); smoothHairNormals(); _ph('·머리카락 법선');
   let HC={x:0,y:0,z:0,R:1,eye:0};
   { let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9,mnz=1e9,mxz=-1e9; for(let i=0;i<NV;i++){ if(!CLS[i]) continue; const x=BASE[i*3],y=BASE[i*3+1],z=BASE[i*3+2]; mnx=Math.min(mnx,x);mxx=Math.max(mxx,x);mny=Math.min(mny,y);mxy=Math.max(mxy,y);mnz=Math.min(mnz,z);mxz=Math.max(mxz,z); }
     HC={x:(mnx+mxx)/2,y:(mny+mxy)/2,z:(mnz+mxz)/2,R:(mxy-mny)/2,eye:(mny+mxy)/2}; }
@@ -1540,7 +1799,7 @@ async function loadCharacter(CH,opt={}){
   try{ if(await assetExists(`${CH}_shape.json`)){ const r=await fetch(`assets/${CH}_shape.json`); const j=await r.json(); if(j.pos&&j.pos.length===POSA.array.length){ POSA.array.set(j.pos); POSA.needsUpdate=true; BASE.set(POSA.array); smoothNormalsWelded(GEO); clog('브러시 모양 불러옴'); } } }catch(e){}
   try{ if(await assetExists(`${CH}_tex_edit.png`)){ const img=new Image(); img.src=`assets/${CH}_tex_edit.png`; await img.decode(); if(TEXC){ TEXC.getContext('2d').drawImage(img,0,0,TEXC.width,TEXC.height); TEXD=TEXC.getContext('2d').getImageData(0,0,TEXC.width,TEXC.height).data; TEXBASE=null; uploadTex(); clog('브러시 텍스처 불러옴'); } } }catch(e){}
   /* 저장된 조정값(tune json) */
-  try{ if(await assetExists(`${CH}_tune.json`)){ const r=await fetch(`assets/${CH}_tune.json`); const j=await r.json();
+  try{ if(TUNE_J){ const j=TUNE_J;   /* 45차: 위에서 이미 받아 둔 것 */
       if(j.hideTris&&j.hideTris.length){ hideTris(j.hideTris); applyShape(); }
       if(j.plugs&&j.plugs.length){ setPlugs(j.plugs); }
       if(j.P) for(const k in j.P){ if(TUNE_CTL[k]) TUNE_CTL[k].set(j.P[k]); else P[k]=j.P[k]; }
@@ -1548,11 +1807,16 @@ async function loadCharacter(CH,opt={}){
   /* 43차: **인스턴스별 겉모습**(대표 「다른 사무실에 있어도 동일하게 생기면 안 돼」).
      Meshy 잔액이 31 크레딧이라 새 인물을 만들 수 없다(한 명에 47~61). 대신 같은 모델을
      머리색·피부톤·머리 모양으로 다르게 보이게 한다. tune.json 을 덮어쓰므로 뒤에서 건다. */
+  _ph('·tune.json 적용(applyShape)'); const EDIT_TUNE=Object.assign({},EDIT);   /* 45차: tune.json 까지 먹인 기본 겉모습 — setLook 이 여기서 다시 시작한다 */
   if(opt.look){ for(const k in opt.look) EDIT[k]=opt.look[k];
     applyShape(); if(EDIT.hairCol||EDIT.skinCol) recolor();
     faceDepthU.push.value=EDIT.browBack||0; faceDepthU.haircut.value=EDIT.hairCut||0;
     if(EDIT.hairCap) setHairCap(EDIT.hairCap); }
   for(const b of [bones.LeftHand,bones.RightHand]) if(b) b.scale.setScalar(PROP.hand);
+  /* 45차: 미뤄 둔 얼굴을 여기서 한 번만. **먼저 뼈 행렬을 갱신한다** — 예전 두 번째 빌드는 tune.json 을 받는 네트워크 대기 중에
+     한 프레임이 그려지며(scene.updateMatrixWorld) 머리 비율(headX 1.08·headY 0.92)이 뼈 행렬에 먹은 뒤에 돌았다.
+     그 대기가 없어지면 옛 행렬로 만들어져 얼굴이 달라진다(tools/_gpu_facecmp45.mjs 로 잡음). 그 일을 명시적으로 한다. */
+  FACE_HOLD=false; if(FACE_WANT){ model.updateMatrixWorld(true); snapRest(); await buildFaceSliced(); } _ph('·얼굴 데칼 buildFace(한 번)');
   /* ---- 클립 안정구간 · 앉기·책상 실측 (test.html 그대로; 원점에서 잰 뒤 배치한다) ---- */
   function trimCalm(key,maxDeg=15,minLen=1.8){ const a=actions[key]; if(!a) return; const clip=a.getClip(); const fps=30, step=1/fps; const prev=cur; const headQ=new THREE.Quaternion(), f=new THREE.Vector3(), f0=new THREE.Vector3();
     mixer.stopAllAction(); model.updateMatrixWorld(true); head.getWorldQuaternion(headQ); f0.set(0,0,1).applyQuaternion(headQ); a.reset().play(); const devs=[];
@@ -1682,7 +1946,10 @@ async function loadCharacter(CH,opt={}){
     if(L.some(b=>!b)||R.some(b=>!b)) return;
     model.updateMatrixWorld(true);
     let gap=footY()-P.restFootY;
-    if(!(gap>0.004)) return;
+    /* 45차(캐릭터 검토 「20·22 는 앉으면 발이 약 3cm 박힌다」): 예전에는 뜬 발(+)만 내렸다. 1.2cm 넘게 **박힌** 발(−)도 올린다
+       — 무릎을 조금 더 굽혀 발바닥을 바닥에 맞춘다. 대부분은 −1cm 안쪽이라 건드리지 않는다. ?sinkfix=0 이면 옛 동작 */
+    if(gap<-0.012&&SINKFIX){ if(gap<-0.06) gap=-0.06; }
+    else if(!(gap>0.004)) return;
     if(gap>0.14) gap=0.14;                       /* 이상값 방어 — 의자에 앉기 전 순간 등 */
     _fwdW.set(0,0,1).applyQuaternion(model.getWorldQuaternion(_qw));
     for(const S of [L,R]){ S[2].getWorldPosition(_ftT); _ftT.y-=gap; ikArm(S[0],S[1],S[2],_ftT,_fwdW); }
@@ -1750,6 +2017,11 @@ async function loadCharacter(CH,opt={}){
       if(faceTexFront){ if(!frontOn && facing>(P.frontDot??0.65)) frontOn=true; else if(frontOn && facing<(P.frontDot??0.65)-0.15) frontOn=false; const want=frontOn?faceTexFront:faceTex; if(faceMat.map!==want){ faceMat.map=want; faceMat.needsUpdate=true; } faceTexFront.offset.copy(faceTex.offset); }
       const pk=Math.min(1,Math.max(0,(facing-0.35)/0.45)); faceDepthU.pull.value=onTop?(P.facePull??0.05)*pk:0.0; faceDepthU.proj.value.copy(cam.projectionMatrix); face.position.set(0,0,0); face.renderOrder=onTop?10:2; }
     if(autoBlink){ blinkAt-=dt; if(blinkAt<0 && CUR_FACE!=='blink' && CUR_FACE!=='happy' && CUR_FACE!=='wink'){ setFace('blink',true); setTimeout(()=>setFace(CUR_FACE,true),120); blinkAt=2+Math.random()*3; } } }
+  function withRestPose(fn){ if(!REST_POSE){ fn(); return; }
+    const cur={pos:model.position.clone(),rot:model.rotation.clone(),bones:REST_POSE.bones.map(([b])=>[b,b.position.clone(),b.quaternion.clone(),b.scale.clone()])};
+    for(const [b,p,q,sc] of REST_POSE.bones){ b.position.copy(p); b.quaternion.copy(q); b.scale.copy(sc); }
+    model.position.copy(REST_POSE.pos); model.rotation.copy(REST_POSE.rot); model.updateMatrixWorld(true);
+    try{ fn(); } finally { for(const [b,p,q,sc] of cur.bones){ b.position.copy(p); b.quaternion.copy(q); b.scale.copy(sc); } model.position.copy(cur.pos); model.rotation.copy(cur.rot); model.updateMatrixWorld(true); } }
   _ph('tune·모양'); await SL();
   /* 실측(원점) */
   model.position.set(0,SIT_LIFT_BASE,0); trimCalm('sit'); trimCalm('idle',10,1.5); trimCalm('chat',12,1.5); fitSeat(); fitDesk(); fitWalk(); restFoot(); armRest();   /* 41차: 접지 기준은 idle 자세 기준으로 마지막에 확정 */
@@ -1774,10 +2046,12 @@ async function loadCharacter(CH,opt={}){
          하나의 팀이 아니라 아주 자기들 맘이야」. CAST 로 배정받은 homeSeat 밖에는 아예 앉지 못한다.
          호출부를 하나씩 막는 방식은 이미 실패했으므로 여기 한 곳에서 구조적으로 막는다.
          (플레이어·방문객은 homeSeat 이 없어 영향받지 않는다) */
-      if(C.homeSeat&&seat!==C.homeSeat){
-        log(`${C.label||CH}: ${seat.id||''} 는 자기 자리가 아니라 앉지 않음(자기 자리 ${C.homeSeat.id})`);
+      /* 45차: homeSeat 이 **없는** 사람(방문객·통행인·배정 전 인물)도 좌석에는 못 앉는다.
+         예전에는 homeSeat 이 없으면 검사를 건너뛰어 아무 자리에나 앉을 수 있었다. 소파는 sitFree 로 따로 앉는다. */
+      if(!C.homeSeat||seat!==C.homeSeat){
+        log(`${C.label||CH}: ${seat.id||''} 는 자기 자리가 아니라 앉지 않음(자기 자리 ${C.homeSeat?C.homeSeat.id:'없음'})`);
         mode='idle'; play('idle'); return false; }
-      freeSit=false; P.seatRaise=+(DESK.h-P.deskH).toFixed(3); const dz=ZF-P.deskZ; const lp=new THREE.Vector3(0,SIT_LIFT_BASE+SIT.lift+P.seatRaise+SIT_UP,dz+P.sitFwd+SIT_FWD); seat.group.updateMatrixWorld(true); const wpv=seat.group.localToWorld(lp.clone());
+      freeSit=false; P.seatRaise=+(DESK.h-P.deskH).toFixed(3); const dz=ZF-P.deskZ; const lp=new THREE.Vector3(0,SIT_LIFT_BASE+SIT.lift+P.seatRaise+SIT_UP+(seat.lift||0),dz+P.sitFwd+SIT_FWD);   /* 45차: seat.lift — 스툴 자리(staff3·4)는 좌면이 의자보다 높다 */ seat.group.updateMatrixWorld(true); const wpv=seat.group.localToWorld(lp.clone());
       const from=model.position.clone(), fromRy=model.rotation.y;   /* 35차(H): 서 있던 자리 — 여기서 좌석 자리로 미끄러져 들어간다 */
       model.position.copy(wpv); model.rotation.set(0,seat.ry,0); showIfHere(); C.seat=seat; seat.occupant=C;
       /* 39차(대표 「등·엉덩이가 의자를 뚫는다」): 엉덩이는 좌석 로컬 z = dz+0.02 에 놓인다. 의자를 그 자리에 두면 등받이(좌면 뒤 0.105)가 몸통 뒤(0.09)를 파고들어
@@ -1796,7 +2070,7 @@ async function loadCharacter(CH,opt={}){
       trans=null; model.position.copy(to); model.rotation.set(0,toRy,0); mode='idle'; play('idle'); return Promise.resolve(); },
     seatFit(seat,dz){ const chair=seat.chair; if(!chair) return; const sh=P.seatH+P.seatRaise; chair.position.y=+(sh-SEAT_H).toFixed(4);
       const cw=seat.group.localToWorld(new THREE.Vector3(0,0,dz-SIT_BACK)); chair.position.x=cw.x; chair.position.z=cw.z; chair.rotation.y=seat.ry; },
-    standAt(x,z,ry){ trans=null; freeSit=false; model.position.set(x,SIT_LIFT_BASE,z); model.rotation.set(0,ry,0); showIfHere(); if(C.seat){ C.seat.occupant=null; C.seat=null; } mode='idle'; play('idle'); },
+    standAt(x,z,ry){ cancelWalks(C); trans=null; freeSit=false;   /* 45차: 순간 이동이면 걷던 길을 버린다(버리지 않으면 옛 목적지로 계속 걸어간다) */ model.position.set(x,SIT_LIFT_BASE,z); model.rotation.set(0,ry,0); showIfHere(); if(C.seat){ C.seat.occupant=null; C.seat=null; } mode='idle'; play('idle'); },
     /* 책상 없는 자리(소파)에 앉히기(29차): 좌면 높이 seatY 에 맞춰 seatRaise, 엉덩이가 (x,z) 위에 오게 sitFwd 만큼 앞으로. 앉는 동안·앉은 뒤 모두 mode 'sit'(타자 IK 없음) */
     sitFree(x,z,ry,seatY,anim=false){ freeSit=true; P.seatRaise=+(seatY-P.seatH).toFixed(3); const f=new THREE.Vector3(0,0,P.sitFwd).applyAxisAngle(new THREE.Vector3(0,1,0),ry); model.position.set(x+f.x,SIT_LIFT_BASE+SIT.lift+P.seatRaise,z+f.z); model.rotation.set(0,ry,0); showIfHere(); if(C.seat){ C.seat.occupant=null; C.seat=null; }
       mode='sit'; if(anim&&actions.sitdown&&ANIM_SIT){ play('sitdown',{loop:false}); mixer.addEventListener('finished',once(()=>{ if(mode==='sit') play('sit'); },actions.sitdown)); } else play('sit'); },
@@ -1806,6 +2080,9 @@ async function loadCharacter(CH,opt={}){
     /* 39차: 걷기 재생 속도를 실제 이동 속도에 맞춘다(발 미끄러짐 제거). y 는 접지 보정만큼 올린다 */
     /* 41차: 좌석 오프셋 해제 — 걷기·서기 자세에서는 seatRaise 를 0 으로 두어야 y 가 의자 높이만큼 뜨지 않는다 */
     clearSeatOffset(){ P.seatRaise=0; model.position.y=SIT_LIFT_BASE; },
+    /* 45차: 앉은 상태를 통째로 푼다(복도 가드용) — 좌석·소파·전환 보간·좌석 오프셋·앉기 계열 클립 전부 */
+    unsit(){ trans=null; freeSit=false; if(C.seat){ if(C.seat.occupant===C) C.seat.occupant=null; C.seat=null; }
+      const k=(mode==='walk'&&actions.walk)?'walk':'idle'; mode=k; play(k); P.seatRaise=0; model.position.y=SIT_LIFT_BASE; },
     get clip(){ return (cur&&cur.getClip)?cur.getClip().name:null; }, get clipKey(){ return cur?curKey:null; },
     get clipTS(){ return cur?+cur.timeScale.toFixed(2):null; },
     get clipRun(){ return !!(cur&&cur.isRunning()); },
@@ -1813,6 +2090,22 @@ async function loadCharacter(CH,opt={}){
       a.timeScale=(m>0&&isFinite(v)&&v>0)?Math.max(0.5,Math.min(3.6,v/m)):1;   /* 41차: walkMPS 가 없으면 NaN 이 들어가 클립이 첫 프레임에 얼어붙었다 */ },   /* 클립이 느린 산책이라 상한을 3.6 까지 연다 — 재생을 빠르게 해야 발이 땅에 붙는다 */
     get walkLift(){ return P.walkLift||0; },
     look(t){ lookTarget=t||null; },
+    /* 45차: 겉모습 갈아입기(복도 통행인). 새로 불러오지 않고 머리 모양·머리색·피부톤만 바꾼다 — 12명을 통째로 올리지 않기 위한 길 */
+    /* 45차 버그(데이터 정렬 보고 「얼굴을 빌린 배역 밖 인물이 민얼굴」): buildFace 는 **원점에 정면(+z)으로 선 쉬는 자세**를 전제로
+       머리를 향해 −z 로 레이를 쏜다. 자리에 앉아 돌아간 뒤에 갈아입히면 레이가 뒤통수·머리카락을 맞혀 데칼이 거의 다 걸러지고 민얼굴이 됐다.
+       얼굴을 처음 만든 자세(REST_POSE)로 잠깐 돌려놓고 다시 만든 뒤 지금 자세로 되돌린다(한 프레임 안, 화면에는 안 보인다) */
+    setLook(lk){ Object.assign(EDIT,EDIT_TUNE); if(lk) Object.assign(EDIT,lk);
+      withRestPose(()=>{ applyShape(); if(EDIT.hairCap||hairCap) setHairCap(EDIT.hairCap||0); });
+      if(EDIT.hairCol||EDIT.skinCol||TEXBASE) recolor();
+      faceDepthU.push.value=EDIT.browBack||0; faceDepthU.haircut.value=EDIT.hairCut||0;
+      },
+    /* 45차: 몸 전체 투명도(0~1). 문턱을 넘을 때 「벽에서 툭 사라지지」 않고 스며들듯 사라지게 한다.
+       불투명(1)으로 돌아오면 원래 재질 설정을 그대로 되돌린다 */
+    setOpacity(a){ a=Math.max(0,Math.min(1,+a)); const on=a<0.999;
+      model.traverse(o=>{ if(!o.isMesh||!o.material) return; for(const m of [].concat(o.material)){
+        if(!m.userData.op0) m.userData.op0={t:m.transparent,o:m.opacity,d:m.depthWrite};
+        const b=m.userData.op0, wantT=on||b.t; if(m.transparent!==wantT){ m.transparent=wantT; m.needsUpdate=true; }
+        m.opacity=b.o*(on?a:1); } }); },
     hideHead,
     setBlink(b){ autoBlink=!!b; } };
   return C;
@@ -1823,12 +2116,16 @@ async function loadCharacter(CH,opt={}){
    ====================================================================== */
 const CHARS=[]; let PLAYER=null; const WALKS=[];   /* WALKS: {c, path:[{x,z}], i, speed, onArrive} — 플레이어·방문객 등 여러 명이 동시에 걸을 수 있다 */
 const walkOf=(c)=>WALKS.find(w=>w.c===c);
+function cancelWalks(c){ for(let i=WALKS.length-1;i>=0;i--) if(WALKS[i].c===c){ const w=WALKS.splice(i,1)[0]; w.cancelled=true; try{ w.onArrive&&w.onArrive(); }catch(e){} } }
 /* 41차(대표 「공중에 앉아있어」): 걷기를 시작할 때 좌석 상태를 반드시 푼다.
    앉아 있던 NPC 가 sit/type 클립과 좌석 오프셋을 그대로 문 채 stepWalk 에 밀려 「앉은 자세로 공중에 떠 미끄러지는」 모양이 됐다 */
 function startWalk(c,keys,speed=1.2){ if(c.seat&&c.standUp) c.standUp();
   return new Promise(res=>{ const path=keys.map(k=>({x:NODES[k].x,z:NODES[k].z})); path.unshift({x:c.model.position.x,z:c.model.position.z}); WALKS.push({c,path,i:1,speed,onArrive:res});
     c.mode='walk'; c.play('walk',{fade:0.2}); c.walkSpeed&&c.walkSpeed(speed); c.model.position.y=(c.model.userData.base||0)+(c.walkLift||0); }); }
 function stepWalk(dt){ for(const w of WALKS.slice()){ const m=w.c.model; const tgt=w.path[w.i]; if(!tgt){ WALKS.splice(WALKS.indexOf(w),1); continue; }
+  /* 45차 3차: 걷던 동료에게 T 로 말을 걸면 대화가 끝날 때까지 그 자리에 선다 */
+  if(w.c.ai&&w.c.ai.talking&&w.c!==PLAYER){ if(!w.paused){ w.paused=true; w.c.mode='idle'; w.c.play('idle'); } continue; }
+  if(w.paused){ w.paused=false; w.c.mode='walk'; w.c.play('walk',{fade:0.2}); w.c.walkSpeed&&w.c.walkSpeed(w.speed); }
   const dx=tgt.x-m.position.x, dz=tgt.z-m.position.z; const d=Math.hypot(dx,dz); if(d>1e-4){ const want=Math.atan2(dx,dz); let diff=((want-m.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI; m.rotation.y+=diff*Math.min(1,dt*10); }
   const stepd=w.speed*dt;
   if(d<=stepd){ m.position.x=tgt.x; m.position.z=tgt.z; w.i++; if(w.i>=w.path.length){ WALKS.splice(WALKS.indexOf(w),1); w.onArrive&&w.onArrive(); } }
@@ -1925,15 +2222,17 @@ function ctrlGoal(x,z){ if(!CTRL.on) return; CTRL.goal={x,z}; CTRL.sitReq=null; 
    가까이에 사람이 없으면 알려만 준다. */
 function ctrlTalk(){ if(!PLAYER||!CTRL.on) return;
   const p=new THREE.Vector3(); PLAYER.model.getWorldPosition(p);
-  const nb=nearestNpc(p.x,p.z,1.8);
+  const nb=talkTarget(p.x,p.z,1.8);
   if(!nb){ status(HOME_ROOM.loaded?'가까이에 말 걸 사람이 없어요':'동료가 아직 자리에 앉는 중이에요'); return; }
   talkTo(nb.npc,nb.seat); }
 /* 44차: E 는 좌석·문만, T 는 사람만 — ctrlAct 는 PROMPT.act(사람이 절대 안 들어간다)만 실행한다 */
 function ctrlStand(){ if(CTRL.rising||!PLAYER||!PLAYER.seat) return; CTRL.rising=true; status('일어서는 중…'); PLAYER.standUp().then(()=>{ CTRL.rising=false; seatWatch(); status('이동할 수 있어요 — WASD·방향키 · 바닥 클릭 · E 로 앉기'); }); seatWatch(); }
 function ctrlSit(seat){ if(!seat||seat.occupant||!PLAYER||PLAYER.seat) return;
-  if(SEATS&&SEATS.me&&seat!==SEATS.me){ status('여기는 다른 사람 자리예요. 내 자리에만 앉을 수 있어요'); return; } PLAYER.model.rotation.y=seat.ry; PLAYER.sitAt(seat,true);
+  /* 45차: 비교 대상을 「지금 방의 me 좌석」이 아니라 **내 방의 내 자리(homeSeat)** 로. 다른 팀 방에도 me 좌석이 있어 거기에 앉으려 했다 */
+  if(seat!==PLAYER.homeSeat){ status('여기는 다른 사람 자리예요. 내 자리에만 앉을 수 있어요'); return; } PLAYER.model.rotation.y=seat.ry; PLAYER.sitAt(seat,true);
   seatWatch(); status(`${seat.label}에 앉았어요 (E 로 일어서기 · 모니터를 누르면 PC)`); }   /* 40차: onSit 통보는 seatWatch() 가 한다 — 카드 연출·goSeat 등 어느 경로로 앉아도 빠짐없이 불린다 */
-function ctrlSitRequest(seat){ if(seat.occupant&&seat.occupant!==PLAYER){ status(`${seat.label} 자리에는 이미 사람이 있어요`); return; }
+function ctrlSitRequest(seat){ if(PLAYER&&seat!==PLAYER.homeSeat){ status('여기는 다른 사람 자리예요. 내 자리에만 앉을 수 있어요'); return; }   /* 45차: 걸어가기 전에 막는다 */
+  if(seat.occupant&&seat.occupant!==PLAYER){ status(`${seat.label} 자리에는 이미 사람이 있어요`); return; }
   if(PLAYER&&PLAYER.seat===seat){ ctrlStand(); return; } const b=seat.wp(0,0,-0.45); ctrlGoal(b.x,b.z); CTRL.sitReq=seat; }
 /* 39차: E 는 화면에 떠 있는 안내와 정확히 같은 동작을 한다(문 열기·앉기·일어서기·말 걸기·컴퓨터) */
 function ctrlAct(){ if(!CTRL.on||!PLAYER||BUSY||CTRL.rising||walkOf(PLAYER)) return;
@@ -1955,29 +2254,50 @@ function setControl(on){ CTRL.on=!!on; if(!on){ CTRL.keys.f=CTRL.keys.b=CTRL.key
   pad.addEventListener('pointerup',end); pad.addEventListener('pointercancel',end); }
 /* ---- 말풍선: 머리 본 위 0.26 을 카메라로 투영해 HTML div 를 붙인다. 같은 사람의 새 말풍선이 오면 이전 것은 지운다 ---- */
 const bubblesEl=document.getElementById('bubbles'); const BUBBLES=[]; const _bv=new THREE.Vector3();
-function say(c,text,{name,ttl=3,idle=false}={}){ hush(c); if(idle&&text&&text.length>BUBBLE_MAX) text=text.slice(0,BUBBLE_MAX-1)+'…'; const el=document.createElement('div'); el.className='bubble'; const nm=document.createElement('div'); nm.className='nm'; nm.textContent=name||c.label||''; const tx=document.createElement('div'); tx.className='tx'; tx.textContent=text; el.appendChild(nm); el.appendChild(tx); el.style.display='none'; bubblesEl.appendChild(el); BUBBLES.push({c,el,ttl}); return el; }
-function hush(c){ for(const b of BUBBLES.slice()){ if(!c||b.c===c){ b.el.remove(); BUBBLES.splice(BUBBLES.indexOf(b),1); b.c.setFace&&b.c.setFace('neutral'); } } }
+/* 45차: **말풍선을 전부 없앴다**(대표 「말풍선 없애고 직접 가서 대화로 모든 것들을 듣게 해」).
+   · 잡담·혼잣말(idle) — 아무것도 띄우지 않는다.
+   · 연출 대사(interact 의 npcSay·playerSay) — 머리 위에 띄우지 않고 onSay 콜백으로 play 쪽 대화창에 넘긴다.
+     말하는 동안 입 모양 움직임만 남긴다(BUBBLES 에 el 없이 올린다 — 안내 알약도 그동안 숨는다).
+   API 이름(say·hush)은 그대로 둔다 — play 쪽 js/play/core.js bubble() 이 부른다. */
+const SAYCB={fn:null};
+function say(c,text,{name,ttl=3,idle=false}={}){ hush(c); if(idle||!c) return null;
+  const b={c,el:null,ttl}; BUBBLES.push(b); let ret=null;
+  if(SAYCB.fn){ try{ ret=SAYCB.fn({name:name||c.label||'',text:String(text||''),ttl,who:c===PLAYER?'player':'npc',seat:(c.seat&&c.seat.id)||null,team:roomOf()}); }catch(e){ log('onSay 오류',e.message); } }
+  if(ret&&typeof ret.then==='function') b.ttl=1e9;   /* 대화창에서 넘길 때까지 입 모양을 움직인다(sayWait 가 hush) */
+  return ret; }
+function hush(c){ for(const b of BUBBLES.slice()){ if(!c||b.c===c){ if(b.el) b.el.remove(); BUBBLES.splice(BUBBLES.indexOf(b),1); b.c.setFace&&b.c.setFace('neutral'); } } }
 function bubbleTTL(dt){ for(const b of BUBBLES.slice()){ b.ttl-=dt; if(b.ttl<=0){ hush(b.c); continue; } if(b.c.setFace) b.c.setFace((Math.floor(SIM_T*5)%2)?'talk':'neutral'); } }   /* 말하는 동안 입 모양을 번갈아 */
-function bubblePos(){ for(const b of BUBBLES){ const hb=b.c.bones.Head||b.c.head; if(!hb||!b.c.model.visible){ b.el.style.display='none'; continue; } hb.getWorldPosition(_bv); _bv.y+=0.26; _bv.project(camera);
+function bubblePos(){ for(const b of BUBBLES){ if(!b.el) continue; const hb=b.c.bones.Head||b.c.head; if(!hb||!b.c.model.visible){ b.el.style.display='none'; continue; } hb.getWorldPosition(_bv); _bv.y+=0.26; _bv.project(camera);
   if(_bv.z>1||Math.abs(_bv.x)>1.05||Math.abs(_bv.y)>1.05){ b.el.style.display='none'; continue; } b.el.style.display='block'; b.el.style.left=((_bv.x+1)/2*innerWidth).toFixed(0)+'px'; b.el.style.top=((1-_bv.y)/2*innerHeight-12).toFixed(0)+'px'; } }
 /* ---- 할 말이 있는 사람 머리 위 화살표 (43차) ----
    대표 「들어야 할 이야기면 화살표 같은 걸로 가도록 유도해」.
    긴 대사를 말풍선으로 쏟지 않는 대신, 오늘 그 사람에게 볼일이 있으면 머리 위에 화살표를 띄운다.
    무엇을 띄울지는 play 쪽이 setTalkHint(좌석, 문구) 로 정한다(문구가 있으면 볼일이 있는 것).
    가까이 가면(1.8m) 사라진다 — 이미 도착했으니 할 일은 하단 「T」 안내가 이어받는다. */
-const MARKS={}; const _mv=new THREE.Vector3(); let MARK_GEO=null, MARK_MAT=null;
+const MARKS={}; const _mv=new THREE.Vector3(); let MARK_GEO=null, MARK_MAT=null, MARK_OLM=null;
+/* 45차(대표 「조금 더 작고 색감도 수정」): 0.105×0.23 주황(#ff8a1f)·진갈색 테두리 → 작게, 덜 튀는 톤으로.
+   후보 4개(옛 주황 · 살구 · 버터 노랑 · 민트)를 같은 장면에서 찍어 비교했다(shots/fix/_mark45_cmp.jpg).
+   **민트(둥근 원추)** 로 정했다 — 사무실이 베이지·나무·주황 의자·빨간 전화로 따뜻한 톤이라 살구·노랑은 그 속에 묻히거나
+   (노랑은 금발 머리와 겹친다) 여전히 경고색으로 읽힌다. 민트는 채도가 낮아 덜 튀면서도 배경과 색상이 달라 찾기 쉽다.
+   markStyle(cfg) 로 바꿔 끼울 수 있다(비교 스냅용 — 살구 {color:'#f2b35e',outline:'#a8743c',seg:4}) */
+const MARK_CFG={r:0.07,h:0.16,seg:20,color:'#86d3ae',outline:'#3f8a66',ol:1.14,bob:0.04,lift:0.44};
 function markMesh(){
-  if(!MARK_GEO){ MARK_GEO=new THREE.ConeGeometry(0.105,0.23,4); MARK_GEO.rotateX(Math.PI); MARK_GEO.rotateY(Math.PI/4); }
-  if(!MARK_MAT) MARK_MAT=new THREE.MeshBasicMaterial({color:0xff8a1f,toneMapped:false,depthTest:false});
+  if(!MARK_GEO){ MARK_GEO=new THREE.ConeGeometry(MARK_CFG.r,MARK_CFG.h,MARK_CFG.seg); MARK_GEO.rotateX(Math.PI); if(MARK_CFG.seg===4) MARK_GEO.rotateY(Math.PI/4); }
+  if(!MARK_MAT) MARK_MAT=new THREE.MeshBasicMaterial({color:MARK_CFG.color,toneMapped:false,depthTest:false});
+  if(!MARK_OLM) MARK_OLM=new THREE.MeshBasicMaterial({color:MARK_CFG.outline,side:THREE.BackSide,toneMapped:false,depthTest:false});
   const m=new THREE.Mesh(MARK_GEO,MARK_MAT); m.renderOrder=998; m.frustumCulled=false;
   /* 밝은 사무실 벽에 묻히지 않도록 얇은 테두리를 덧댄다(뒤집힌 면을 조금 키워 그린다) */
-  const ol=new THREE.Mesh(MARK_GEO,new THREE.MeshBasicMaterial({color:0x8a4200,side:THREE.BackSide,toneMapped:false,depthTest:false}));
-  ol.scale.setScalar(1.18); ol.renderOrder=997; ol.frustumCulled=false; m.add(ol);
+  const ol=new THREE.Mesh(MARK_GEO,MARK_OLM);
+  ol.scale.setScalar(MARK_CFG.ol); ol.renderOrder=997; ol.frustumCulled=false; m.add(ol);
   scene.add(m); return m; }
+function markStyle(cfg){ Object.assign(MARK_CFG,cfg||{}); for(const id in MARKS){ scene.remove(MARKS[id]); delete MARKS[id]; }
+  if(MARK_GEO){ MARK_GEO.dispose(); MARK_GEO=null; } if(MARK_MAT){ MARK_MAT.dispose(); MARK_MAT=null; } if(MARK_OLM){ MARK_OLM.dispose(); MARK_OLM=null; }
+  return Object.assign({},MARK_CFG); }
 function markTick(){
   const px=PLAYER?PLAYER.model.position.x:1e9, pz=PLAYER?PLAYER.model.position.z:1e9;
-  for(const id in SEATS){
-    const s=SEATS[id], o=s&&s.occupant;
+  const ids=Object.keys(SEATS||{}); ids.push('visitor');   /* 45차: 방문객 머리 위 표시도 같은 규칙 */
+  for(const id of ids){
+    const o=(id==='visitor')?((VISIT.c&&VISIT.state==='seated'&&CUR===VISIT.c.visitRoom)?VISIT.c:null):((SEATS[id]&&SEATS[id].occupant)||standingAt(id));
     const near=o?Math.hypot(o.model.position.x-px,o.model.position.z-pz)<1.8:false;
     const want = !!TALK_HINT[id] && o && o!==PLAYER && o.model.visible && !near && !BUSY && !CHOICE && FADE.want<=0;
     let m=MARKS[id];
@@ -1986,14 +2306,23 @@ function markTick(){
     const hb=o.bones.Head||o.head; if(!hb){ m.visible=false; continue; }
     hb.getWorldPosition(_mv);
     m.visible=true;
-    m.position.set(_mv.x, _mv.y+0.44+Math.sin(SIM_T*2.6)*0.055, _mv.z);
+    m.position.set(_mv.x, _mv.y+(MARK_CFG.lift||0.44)+Math.sin(SIM_T*2.6)*MARK_CFG.bob, _mv.z);
     m.rotation.y=SIM_T*1.6; }
 }
 /* ---- 선택지 패널: choose(질문, [보기...], auto) → Promise<index>. auto 가 있으면 1.5초(시뮬) 뒤 자동 선택(데모·헤드리스) ---- */
 const choiceEl=document.getElementById('choice'); let CHOICE=null;
-function choose(q,options,auto){ return new Promise(res=>{ const pick=(i)=>{ if(!CHOICE) return; CHOICE=null; choiceEl.style.display='none'; res(i); }; choiceEl.innerHTML=''; const qd=document.createElement('div'); qd.className='q'; qd.textContent=q; choiceEl.appendChild(qd);
-  options.forEach((o,i)=>{ const b=document.createElement('button'); b.textContent=`${i+1}. ${o}`; b.onclick=()=>pick(i); choiceEl.appendChild(b); }); choiceEl.style.display='block'; CHOICE={pick,n:options.length};
-  if(auto!==undefined&&auto!==null) waitSim(1.5).then(()=>pick(Math.min(options.length-1,Math.max(0,+auto)))); }); }
+/* 45차 계약 onChoose(fn): 등록돼 있으면 iframe 안 #choice 패널을 띄우지 않고 play 쪽 대화창이 고른다.
+   fn({q, options, mode, name, seat, team, timeLimit}) → Promise<번호>(-1 = 무응답). 자동 선택(auto)이면 부르지 않는다.
+   __office.choose(i) 는 어느 경로든 그대로 먹힌다(먼저 온 쪽이 이긴다). */
+const CHOOSECB={fn:null};
+function choose(q,options,auto,ctx){ return new Promise(res=>{ const pick=(i)=>{ if(!CHOICE) return; CHOICE=null; choiceEl.style.display='none'; res(i); };
+  CHOICE={pick,n:options.length};
+  if(auto!==undefined&&auto!==null){ waitSim(1.5).then(()=>pick(Math.min(options.length-1,Math.max(0,+auto)))); return; }
+  if(CHOOSECB.fn){ let pr=null; try{ pr=CHOOSECB.fn(Object.assign({q,options:options.slice(),team:roomOf(),timeLimit:null},ctx||{})); }catch(e){ log('onChoose 오류',e.message); }
+    if(pr&&typeof pr.then==='function'){ pr.then(i=>pick((i==null||isNaN(+i))?-1:+i),()=>pick(-1)); return; }
+    if(typeof pr==='number'){ pick(pr); return; } }
+  choiceEl.innerHTML=''; const qd=document.createElement('div'); qd.className='q'; qd.textContent=q; choiceEl.appendChild(qd);
+  options.forEach((o,i)=>{ const b=document.createElement('button'); b.textContent=`${i+1}. ${o}`; b.onclick=()=>pick(i); choiceEl.appendChild(b); }); choiceEl.style.display='block'; }); }
 /* ---- 카메라: 연출 중 controls.target 이 플레이어를 따라가고(카메라도 같은 만큼 평행이동), 끝나면 원래 뷰로 1.2초 복귀 ---- */
 const CAM={enabled:true,follow:false,saved:null,restore:null}; const _cv=new THREE.Vector3();
 function camFollow(on){ if(!CAM.enabled) return; if(RIG.on){ if(on) RIG.follow=true; return; }   /* 35차: 리그는 늘 플레이어를 본다 — 연출이 끝나도 되돌릴 「원래 뷰」가 없다 */
@@ -2024,22 +2353,21 @@ function camTick(dt){
     const kp=RIG.snap?1:(1-Math.exp(-dt*(RIG.fast>0?14:2.2)));
     const kr=RIG.snap?1:(1-Math.exp(-dt*(RIG.fast>0?14:3.0)));
     if(camera.near!==0.05||camera.fov!==RIG.fov){ camera.near=0.05; camera.fov=RIG.fov; camera.updateProjectionMatrix(); }
-    /* 39차: talkView — 대화 중에는 플레이어와 상대 두 사람이 크게 잡히게 옆에서 비스듬히 다가간다(엔진이 채팅 화면을 열 때 부른다) */
+    /* 45차: 대화 카메라(대표 「T를 누르면 상대 캐릭터 얼굴이 보이는 게 아니라 그냥 대화창만 보여」).
+       예전 구도는 두 사람 가운데 **머리보다 높은 곳**(1.12/1.30)을 화면 한가운데에 두고 옆에서 찍어,
+       화면 아래를 덮는 대화창에 얼굴이 가렸고 앉은 사람은 모니터·파티션에 가렸다.
+       이제 **내 어깨 너머에서 상대 얼굴을 본다**(동물의 숲 대화 화면). 대화창이 아래 35% 를 덮는다고 보고
+       얼굴이 화면 위쪽 65% 안(위에서 약 35%)에 오게 조준점을 내린다. 가구에 가리지 않는 자리를 대화 시작 때 한 번 고른다(talkShot). */
     if(RIG.talk&&RIG.talk.model&&RIG.talk.model.visible&&PLAYER&&PLAYER.model.visible){
-      const a=PLAYER.model.position, b=RIG.talk.model.position;
-      const tx=(a.x+b.x)/2, tz=(a.z+b.z)/2;
-      /* 44차: 얼굴 위주로. 목표를 가슴(0.66)에서 얼굴 높이로 올리고 거리를 줄였다 —
-         두 얼굴이 3/4 옆모습으로 함께 크게 잡힌다(동물의 숲 대화 화면) */
-      const ty=(RIG.talk.seat?1.12:1.30);
-      if(RIG.snap) RIG.tgt.set(tx,ty,tz); else { RIG.tgt.x+=(tx-RIG.tgt.x)*kp; RIG.tgt.y+=(ty-RIG.tgt.y)*kp; RIG.tgt.z+=(tz-RIG.tgt.z)*kp; }
-      const axis=Math.atan2(b.x-a.x,b.z-a.z), yaw=axis+Math.PI/2+0.35, pit=0.16, cp=Math.cos(pit);
-      RIG.yaw=yaw; const d=Math.max(1.35,Math.hypot(b.x-a.x,b.z-a.z)*0.9+0.75);
-      _rigPos.set(Math.sin(yaw)*cp,Math.sin(pit),Math.cos(yaw)*cp).multiplyScalar(d).add(RIG.tgt);
-      _rigAim.copy(RIG.tgt);
-      if(RIG.snap) camera.position.copy(_rigPos); else camera.position.lerp(_rigPos,kp);
-      _look.position.copy(camera.position); _look.lookAt(_rigAim);
+      talkShot(RIG.talk,_rigPos,_rigAim);
+      /* 45차 2차(play 스냅 「브리핑 직후 첫 T 에서 얼굴이 화면 위 62.8%」): 멀리 있던 카메라(브리핑·부감)에서 미끄러져 오는 동안
+         프레임이 느리면(로딩 직후) 한참 덜 온 구도가 대화창에 걸렸다. 2m 넘게 떨어져 있으면 영화처럼 **끊어서** 붙인다 */
+      if(RIG.talkFresh){ RIG.talkFresh=false; if(camera.position.distanceTo(_rigPos)>2.0) RIG.snap=true; }
+      if(RIG.snap){ camera.position.copy(_rigPos); RIG.tgt.copy(_rigAim); }
+      else { camera.position.lerp(_rigPos,kp); RIG.tgt.lerp(_rigAim,kp); }
+      _look.position.copy(camera.position); _look.lookAt(RIG.tgt);
       if(RIG.snap){ camera.quaternion.copy(_look.quaternion); RIG.snap=false; } else camera.quaternion.slerp(_look.quaternion,kr);
-      controls.target.copy(_rigAim); return; }
+      controls.target.copy(RIG.tgt); return; }
     if(seated){
       /* 앉은 동안: 같은 방위각·고도에서 거리만 당긴 부감(대표 「ESC 로 나오면 앉아 있는, 위에서 찍은 그런 모습」). 회전이 전혀 없다 */
       const m=PLAYER.model; _rigFwd.set(0,0,1).applyAxisAngle(_upY,m.rotation.y);
@@ -2091,6 +2419,10 @@ const SLIDES=[]; function slideTick(dt){ for(const s of SLIDES.slice()){ s.t+=dt
    ====================================================================== */
 const PROMPT={el:document.getElementById('prompt'),pos:new THREE.Vector3(),text:'',act:null,on:false};
 const TALKCB={fn:null}; const TALK_HINT={};
+/* 45차: play 쪽 안내 문구(js/play/talk.js tasksFor 의 hint)는 아직 「E — 서류 전달하기」로 온다.
+   예전에는 '<b>E</b>' 만 T 로 바꿔서 굵은 글씨가 아닌 「E —」 는 그대로 남아 알약에
+   「E · 앉기 · E — 서류 전달하기」가 떴다(대표 「e 단축키로 말 걸고 앉기도 하는 거」). 앞머리의 키 표기가 무엇이든 T 로 통일한다 */
+function talkHintText(t){ const body=String(t||'').replace(/^\s*(<b>)?\s*[ETet]\s*(<\/b>)?\s*[—–\-·:]\s*/,'').trim(); return `<b>T</b> · ${body}`; }
 const inZone=(z,x,zz)=>x>z.x0&&x<z.x1&&zz>z.z0&&zz<z.z1;
 function doorZoneAt(x,z){ if(CUR===CORRIDOR){ for(const zn of (CUR.zones||[])) if(inZone(zn,x,z)) return zn; return null; }
   const dz=CUR&&CUR.doorZone; return (dz&&inZone(dz,x,z))?dz:null; }
@@ -2109,23 +2441,154 @@ const lineFor=(c,list)=>list[(hashOf(c&&c.CH)+Math.floor(SIM_T/6))%list.length];
    T 로 말을 걸면 얼굴 높이로 카메라가 부드럽게 다가간다. 이미 있던 talkView 리그를 T 경로에서도 켠다.
    끝나면 반드시 원래 시점으로 돌아온다 — play.html 이 talkView(seat,false) 를 안 불러도
    안전 시간(25초)이 지나면 스스로 풀린다(카메라가 갇히지 않게). */
-let TALK_OFF=null;
+let TALK_OFF=null, TALK_CTRL=false;
+/* 45차: 25초 안전 해제는 유지한다(play 쪽이 endTalk 를 못 불러도 카메라가 갇히지 않게). talkView(seat,true) 를 다시 부르면 25초가 새로 시작된다 */
 function talkCam(npc,on){
-  RIG.talk=on?npc:null; RIG.fast=0.5; RIG.snap=false;
+  if(!on||RIG.talk!==npc) RIG.talkPick=null;   /* 같은 상대면 고른 구도를 유지(대화 중 옆자리로 튀지 않게) */
+  if(on&&RIG.talk!==npc) RIG.talkFresh=true;
+  if(!on||RIG.talk!==npc) RIG.talkGoal=null;
+  RIG.talk=on?npc:null; RIG.fast=on?0.5:0; RIG.snap=false;
   if(TALK_OFF){ clearTimeout(TALK_OFF); TALK_OFF=null; }
-  if(on){ TALK_OFF=setTimeout(()=>{ RIG.talk=null; RIG.fast=0.5; if(PLAYER) PLAYER.look(null); TALK_OFF=null; },25000); } }
+  if(on){ TALK_OFF=setTimeout(()=>{ TALK_OFF=null; log('대화 카메라 25초 안전 해제'); endTalk(); },25000); } }
+const _th=new THREE.Vector3(), _tp=new THREE.Vector3(), _tq=new THREE.Vector3();
+function talkBlocked(from,to){ const S=(CUR&&CUR.SOLIDS)||[];
+  for(let i=1;i<=11;i++){ const t=i/12, x=from.x+(to.x-from.x)*t, y=from.y+(to.y-from.y)*t, z=from.z+(to.z-from.z)*t;
+    for(const q of S){ if(y>(q.y1||1)+0.01) continue; if(x>q.x0-0.02&&x<q.x1+0.02&&z>q.z0-0.02&&z<q.z1+0.02) return true; } }
+  return false; }
+/* 대화 구도 — out = 카메라 자리, aim = 조준점.
+   45차 2차(play 스냅 「앉은 상대에게 뒤쪽에서 말을 걸면 뒤통수가 잡힌다」): 「내 어깨 너머」만 후보로 두면 내가 상대 등 뒤에 있을 때 뒤통수가 잡힌다.
+   후보를 둘로 늘렸다 — ① 내 어깨 너머(sh) ② 상대 얼굴 앞 호(face). **얼굴이 보이는지(faceDot)** 를 가장 크게 치고,
+   가구(SOLIDS)·다른 사람 머리에 가리면 뺀다. 둘 다 되면 나까지 함께 잡히는 ①을 조금 더 좋아한다.
+   고른 구도는 대화 중 유지한다(상대가 바뀌거나 내가 옆자리로 걸어간 뒤에만 다시 고른다). */
+const _tv=new THREE.Vector3(), _tcam=new THREE.PerspectiveCamera(48,1,0.05,60);
+const TALK_EYE=0.08;   /* 머리 뼈(목 위 뿌리) → 눈높이 */
+function talkOccluded(from,to,skip){ const dx=to.x-from.x, dy=to.y-from.y, dz=to.z-from.z, L2=dx*dx+dy*dy+dz*dz||1;
+  for(const c of CHARS){ if(skip.includes(c)||!c.model.visible) continue; headOf(c).getWorldPosition(_tv);
+    for(const [oy,rad] of [[0,0.24],[-0.24,0.2]]){   /* 머리(머리카락 포함) · 가슴 — 옆자리 사람의 긴 머리·어깨가 화면 앞을 덮지 않게 */
+      const px=_tv.x, py=_tv.y+oy, pz=_tv.z; const t=((px-from.x)*dx+(py-from.y)*dy+(pz-from.z)*dz)/L2; if(t<0.02||t>0.95) continue;
+      if(Math.hypot(from.x+dx*t-px,from.y+dy*t-py,from.z+dz*t-pz)<rad) return true; }
+    if(Math.hypot(from.x-_tv.x,from.z-_tv.z)<0.45&&from.y<_tv.y+0.35) return true; }   /* 카메라가 그 사람 몸 안·바로 뒤에 있다(머리 위로 넘겨 보는 구도는 otherCover 가 판단) */
+  return false; }
+/* 45차 2차: 말 거는 자리로 걸어가는 중이면(talkApproach) **도착할 자리**를 플레이어 위치로 본다 — 구도를 처음부터 최종 모습으로 잡고
+   플레이어가 그 안으로 걸어 들어온다(도착 뒤 카메라가 한 번 더 움직이지 않게) */
+function talkPlayerHead(out){ headOf(PLAYER).getWorldPosition(out); if(RIG.talkGoal){ out.x=RIG.talkGoal.x; out.z=RIG.talkGoal.z; out.y=RIG.talkGoal.y||out.y; } return out; }
+function faceDir(npc,out){ const fr=npc.model.rotation.y; let fx=Math.sin(fr), fz=Math.cos(fr);
+  talkPlayerHead(_tv); headOf(npc).getWorldPosition(_th); let px=_tv.x-_th.x, pz=_tv.z-_th.z; const pl=Math.hypot(px,pz)||1;
+  if((px*fx+pz*fz)/pl<-0.15){ out.x=fx; out.z=fz; return out; }   /* 내가 등 뒤(옮길 수도 없을 때): 상대는 카메라를 본다(talkLookAt) → 몸 앞 그대로 */
+  fx=fx*0.6+px/pl*0.4; fz=fz*0.6+pz/pl*0.4; const L=Math.hypot(fx,fz)||1; out.x=fx/L; out.z=fz/L; return out; }
+/* 45차 2차: 상대가 누구를 볼지 — 내가 등 뒤에 있고 옆으로 옮기지도 못하면(길이 막힘) 고개를 끝까지 꺾어 옆모습이 되므로 **카메라**를 본다 */
+function talkLookAt(npc){ talkPlayerHead(_tv); headOf(npc).getWorldPosition(_tt); const fr=npc.model.rotation.y; const px=_tv.x-_tt.x, pz=_tv.z-_tt.z, pl=Math.hypot(px,pz)||1;
+  return ((px*Math.sin(fr)+pz*Math.cos(fr))/pl<-0.15)?camera:headOf(PLAYER); }   /* 고개를 내 쪽으로 돌리므로 몸 앞 60% + 내 쪽 40% */
+function talkShot(npc,out,aim){
+  headOf(npc).getWorldPosition(_th); talkPlayerHead(_tp);
+  let ux=_th.x-_tp.x, uz=_th.z-_tp.z; const L=Math.hypot(ux,uz)||1; ux/=L; uz/=L; const nx=-uz, nz=ux;
+  if(!RIG.talkPick){ const B=(CUR&&CUR.BOUND)||{x0:-99,x1:99,z0:-99,z1:99}; const fd=faceDir(npc,{x:0,z:0}); let best=null;
+    const eye=_th.clone(); eye.y+=0.1; const chin=_th.clone(); chin.y-=0.03;   /* 눈과 입·턱 두 점 — 모니터가 입을 가리는 구도를 뺀다 */
+    /* 45차 3차(play 스냅 R0 「플레이어 뒷머리·어깨가 화면 오른쪽 1/3 을 덮는다」): 후보마다 플레이어가 화면을 덮는 비율을 어림해 15% 를 넘으면 뺀다.
+       머리(반지름 0.24)·어깨·엉덩이 점을 그 후보 카메라로 투영한 상자 넓이 — 실제보다 조금 크게 잡힌다(보수적) */
+    const aimOf=(c,out2)=>{ out2.set(_th.x,_th.y+TALK_EYE,_th.z); aimLift(_tq,out2); return out2; };
+    /* 플레이어 몸 표본 — 스킨 정점 약 300개를 몸 로컬로 잡아, 도착할 자리(talkGoal)에서 상대를 바라본 자세로 옮겨 둔다 */
+    const pv=[]; { let sk=null; PLAYER.model.traverse(o=>{ if(o.isSkinnedMesh&&!sk) sk=o; });
+      if(sk){ const pos=sk.geometry.attributes.position, step=Math.max(1,Math.floor(pos.count/1200)), v=new THREE.Vector3(), m=PLAYER.model, ry0=m.rotation.y;
+        const gx=RIG.talkGoal?RIG.talkGoal.x:m.position.x, gz=RIG.talkGoal?RIG.talkGoal.z:m.position.z, ry1=Math.atan2(_th.x-gx,_th.z-gz), dr=ry1-ry0, cs=Math.cos(dr), sn=Math.sin(dr);
+        for(let i=0;i<pos.count;i+=step){ v.fromBufferAttribute(pos,i); sk.applyBoneTransform(i,v); v.applyMatrix4(sk.matrixWorld); const lx=v.x-m.position.x, lz=v.z-m.position.z;
+          pv.push(new THREE.Vector3(gx+lx*cs+lz*sn, v.y, gz-lx*sn+lz*cs)); } } }
+    const cover=(c)=>{ _tcam.fov=camera.fov; _tcam.aspect=camera.aspect; _tcam.near=0.05; _tcam.updateProjectionMatrix(); _tcam.position.copy(_tq); _tcam.lookAt(aimOf(c,_tv)); _tcam.updateMatrixWorld(true);
+      const cells=new Set(); const q=new THREE.Vector3();
+      for(const p0 of pv){ if(p0.distanceTo(_tq)<0.3) return 1; q.copy(p0).project(_tcam); if(q.z>1||q.z<-1||Math.abs(q.x)>1||Math.abs(q.y)>1) continue; cells.add(Math.floor((q.x+1)*12)+','+Math.floor((q.y+1)*7.5)); }
+      return cells.size/360; };
+    /* 다른 사람(상대·나 빼고)이 카메라 가까이서 화면을 덮는 비율 — 머리·어깨·엉덩이 점의 상자(가까운 사람만) */
+    const nearOthers=CHARS.filter(o=>o!==npc&&o!==PLAYER&&o.model.visible);
+    const otherCover=()=>{ let sum=0; const q=new THREE.Vector3(), hd=new THREE.Vector3();
+      for(const o of nearOthers){ headOf(o).getWorldPosition(hd); if(hd.distanceTo(_tq)>1.3) continue; let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,n=0;
+        for(const [ox,oy,oz] of [[0,0.28,0],[0.26,0,0],[-0.26,0,0],[0,0,0.26],[0,0,-0.26],[0.22,-0.35,0],[-0.22,-0.35,0],[0,-0.6,0]]){ q.set(hd.x+ox,hd.y+oy,hd.z+oz);
+          if(q.distanceTo(_tq)<0.3) return 1; q.project(_tcam); if(q.z>1||q.z<-1) continue; n++; x0=Math.min(x0,q.x); x1=Math.max(x1,q.x); y0=Math.min(y0,q.y); y1=Math.max(y1,q.y); }
+        if(n) sum+=Math.max(0,Math.min(1,x1)-Math.max(-1,x0))*Math.max(0,Math.min(1,y1)-Math.max(-1,y0))/4; }
+      return sum; };
+    const judge=(c,extra)=>{ const inB=_tq.x>B.x0-0.1&&_tq.x<B.x1+0.1&&_tq.z>B.z0-0.1&&_tq.z<B.z1+0.1;
+      const blk=talkBlocked(_tq,eye)||talkBlocked(_tq,chin), occ=talkOccluded(_tq,eye,[npc,PLAYER])||talkOccluded(_tq,chin,[npc,PLAYER]); const vx=_tq.x-_th.x, vz=_tq.z-_th.z, vl=Math.hypot(vx,vz)||1; const fdot=(vx*fd.x+vz*fd.z)/vl;
+      const cov=cover(c), ocov=otherCover(); const nfr=npc.model.rotation.y, bdot=(vx*Math.sin(nfr)+vz*Math.cos(nfr))/vl;   /* 몸 앞쪽인가(고개만 돌린 옆얼굴 방지) */
+      const score=(inB?0:-20)+(blk?-10:0)+(occ?-6:0)+fdot*2.2+(fdot<0.15?-4:0)+(bdot<0.1?-4:0)+extra-Math.max(0,cov-0.05)*30-(cov>0.11?4:0)-Math.max(0,ocov-0.06)*20;   /* 45차 3차: 플레이어 11% 넘으면 크게 깎는다(실측과 어림 차이 여유 4%p) */
+      if(!best||score>best.score) best=Object.assign(c,{score,blk,occ,inB,fdot:+fdot.toFixed(2),cov:+cov.toFixed(3),ocov:+ocov.toFixed(3)}); };
+    for(const back of [0.55,0.8,0.35,1.05]) for(const side of [0.42,-0.42,0.6,-0.6,0.8,-0.8,1.0,-1.0]) for(const up of [0.12,0.3,0.5]){   /* 45차 3차: 옆으로 더 빼고(0.8) 높이(+0.3)도 본다 */
+      _tq.set(_tp.x-ux*back+nx*side,_tp.y+up,_tp.z-uz*back+nz*side); judge({mode:'sh',back,side,up},0.6-Math.abs(back-0.55)*0.6-(up>0.2?0.1:0)-(up>0.4?0.2:0)); }
+    for(const ang of [0,0.35,-0.35,0.7,-0.7,1.0,-1.0,1.3,-1.3]) for(const dist of [1.0,1.25,0.85,1.5]) for(const up of [0.14,0.32,0.5]){ const ca=Math.cos(ang), sa=Math.sin(ang); const dx=fd.x*ca-fd.z*sa, dz=fd.x*sa+fd.z*ca;
+      _tq.set(_th.x+dx*dist,_th.y+up,_th.z+dz*dist); judge({mode:'face',dx,dz,dist,up},-Math.abs(ang)*0.25-Math.abs(dist-1.0)*0.4-(up>0.2?0.25:0)-(up>0.4?0.25:0)); }
+    RIG.talkPick=best; log(`대화 구도 ${best.mode} 얼굴 ${best.fdot}${best.blk?' 가구 가림':''}${best.occ?' 사람 가림':''}`); }
+  const pk=RIG.talkPick;
+  if(pk.mode==='face') out.set(_th.x+pk.dx*pk.dist,_th.y+(pk.up||0.14),_th.z+pk.dz*pk.dist);
+  else out.set(_tp.x-ux*pk.back+nx*pk.side,_tp.y+(pk.up||0.12),_tp.z-uz*pk.back+nz*pk.side);
+  /* 45차 3차: 조준은 상대 **눈높이 한 점**(머리 뼈 +0.08). 예전엔 플레이어 머리와 섞어 조준해 내려다보는 구도에서 얼굴이 22~40% 로 흔들렸다 */
+  aim.set(_th.x,_th.y+TALK_EYE,_th.z);
+  aimLift(out,aim); }
+/* 얼굴이 화면 가운데보다 15% 위(위에서 35%)에 오게 조준점을 옮긴다. 45차 3차: 월드 y 로 내리면 내려다보는 구도에서 얼굴이 40% 아래로 처졌다 →
+   **시선에 수직인 카메라 위 방향**으로 옮긴다(화면 비율이 기울기와 상관없이 맞다) */
+const _al=new THREE.Vector3(), _au=new THREE.Vector3();
+function aimLift(cam,aim){ _al.copy(aim).sub(cam); const d=_al.length()||1; _al.divideScalar(d);
+  _au.set(0,1,0).addScaledVector(_al,-_al.y); const ul=_au.length()||1; _au.divideScalar(ul);
+  aim.addScaledVector(_au,-d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*0.30); }
+/* 검사용: 플레이어가 지금 화면을 덮는 비율(스킨 정점 약 600개를 투영해 32×20 격자 칸을 센다) */
+function playerScreenCover(){ if(!PLAYER) return 0; let sk=null; PLAYER.model.traverse(o=>{ if(o.isSkinnedMesh&&!sk) sk=o; }); if(!sk) return 0;
+  const pos=sk.geometry.attributes.position, step=Math.max(1,Math.floor(pos.count/2500)), v=new THREE.Vector3(), cells=new Set(); camera.updateMatrixWorld(true);
+  for(let i=0;i<pos.count;i+=step){ v.fromBufferAttribute(pos,i); sk.applyBoneTransform(i,v); v.applyMatrix4(sk.matrixWorld); v.project(camera); if(v.z>1||Math.abs(v.x)>1||Math.abs(v.y)>1) continue; cells.add(Math.floor((v.x+1)/2*24)+','+Math.floor((v.y+1)/2*15)); }
+  return +(cells.size/360).toFixed(3); }
+/* 계약(play.html 대화창이 닫힐 때 부른다 — 이름 바꾸지 말 것): 카메라를 원래 시점으로 부드럽게 되돌리고 상대의 talking 을 푼다 */
+function endTalk(){ const npc=RIG.talk; talkCam(null,false);
+  for(const c of CHARS){ if(c.ai&&c.ai.talking){ c.ai.talking=false; c.ai.next=SIM_T+8; } }
+  if(npc){ npc.look(null); npc.setFace&&npc.setFace('neutral'); }
+  if(PLAYER) PLAYER.look(null);
+  if(TALK_CTRL){ TALK_CTRL=false; setControl(true); }
+  RIG.follow=true; return true; }
 function talkTo(npc,seatId){ if(!npc||BUSY) return; npc.look(headOf(PLAYER)); npc.setFace&&npc.setFace('happy');
   /* 몸도 돌린다 — 고개만 돌리면 등을 보이고 말하는 꼴이 된다. 앉은 사람은 책상 방향이 있으므로 고개만 */
   if(PLAYER){ faceTo(PLAYER,headOf(npc)); PLAYER.look(headOf(npc)); }
-  if(!npc.seat) faceTo(npc,headOf(PLAYER));
-  talkCam(npc,true);
-  /* 39차 후속 3: 하던 일을 멈추고 이쪽을 본다. 대화가 끝나면 원래 하던 일로 돌아간다 */
-  if(npc.ai){ npc.ai.talking=true; waitSim(3.6).then(()=>{ npc.ai.talking=false; npc.ai.next=SIM_T+8; npc.look(null); npc.setFace&&npc.setFace('neutral');
-      if(!TALKCB.fn){ talkCam(null,false); if(PLAYER) PLAYER.look(null); } }); }
+  if(!npc.seat&&npc.mode!=='sit'&&npc.mode!=='type') faceTo(npc,headOf(PLAYER));   /* 45차: 소파에 앉은 방문객은 몸을 돌리지 않는다 */
+  /* 45차: 콜백(play.html) 경로에서도 **먼저** 얼굴 카메라를 켠다. 상대는 대화가 끝날 때(endTalk)까지 이쪽을 본다 —
+     예전에는 3.6초 뒤 고개를 모니터로 돌려 대화창이 열린 채 뒤통수만 보였다 */
+  talkCam(npc,true); if(npc.ai) npc.ai.talking=true;
+  talkApproach(npc,seatId);   /* 등 뒤면 말 거는 자리로 — 카메라는 도착할 자리 기준으로 한 번에 잡는다 */
+  npc.look(talkLookAt(npc));
   if(TALKCB.fn){ try{ TALKCB.fn({seat:seatId,name:npc.label||'',team:roomOf()}); }catch(e){ log('onTalk 오류',e.message); } return; }
-  say(npc,lineFor(npc,TALK_LINES),{ttl:2.4,idle:true}); }   /* 41차: 듣는 쪽이 플레이어라 이름을 붙이지 않는다 */
-function nearestNpc(x,z,r){ let best=null,bd=r,bid=null; for(const id in SEATS){ const s=SEATS[id]; const o=s.occupant; if(!o||o===PLAYER||!o.model.visible) continue;
-  const d=Math.hypot(o.model.position.x-x,o.model.position.z-z); if(d<bd){ bd=d; best=o; bid=id; } } return best?{npc:best,seat:bid}:null; }
+  waitSim(3.6).then(()=>{ if(RIG.talk===npc) endTalk(); }); }   /* 사무실 단독 실행(콜백 없음): 3.6초 보고 풀린다. 말풍선은 없다(45차) */
+/* 45차 2차(play 스냅 「팀장 책상 앞 lead_front 에서 T 를 눌러도 팀장이 안 잡힌다」): 가장 가까운 **몸 중심**만 보면
+   넓은 팀장 책상 건너편·옆자리 사람이 더 가깝게 잡힌다. T 대상은 이렇게 고른다.
+   ① 말 거는 정거장(<자리>_side · lead_front · 방문객 소파 앞)에 0.6m 안으로 서 있으면 **그 정거장의 상대**
+   ② 아니면 반경 안 사람 중 (머리까지 거리 − 내가 바라보는 쪽 가점)이 가장 작은 사람
+   방문객(visitorIn)은 좌석 id 'visitor' 로 같은 규칙을 받는다. 안내 알약(promptTick)도 같은 함수를 써서 알약과 T 가 늘 같은 사람이다 */
+const _tt=new THREE.Vector3();
+const STATION_TALK={lead_front:'lead',sofa_front:'visitor',sofa_in:'visitor',table_front:'visitor'};
+/* 45차 3차: **서 있는 동료**(각본대로 게시판·정수기에 가 있는 사람)도 T 대상 — 좌석 id 는 그 사람의 자기 자리(homeSeat) */
+function standingAt(id){ return (CUR&&CUR.chars||[]).find(c=>c.homeSeat&&c.homeSeat.id===id&&!c.seat&&!c.trip&&c.model.visible&&c.mode!=='sit'&&c.mode!=='type')||null; }
+function talkNpcAt(id){ return npcAt(id)||(id!=='visitor'?standingAt(id):null); }
+function talkables(){ const out=[]; for(const id in (SEATS||{})){ const o=SEATS[id].occupant||standingAt(id); if(o&&o!==PLAYER&&o.model.visible) out.push({npc:o,seat:id}); }
+  const v=VISIT.c; if(v&&VISIT.state==='seated'&&v.model.visible&&CUR===v.visitRoom) out.push({npc:v,seat:'visitor'}); return out; }
+function talkTarget(x,z,r){ const list=talkables(); if(!list.length) return null;
+  let st=null, sd=0.6; for(const k in (STATIONS||{})){ const who=STATIONS[k].npc||STATION_TALK[k]; if(!who) continue; const d=Math.hypot(STATIONS[k].x-x,STATIONS[k].z-z); if(d>=sd) continue; const t=list.find(q=>q.seat===who); if(t){ sd=d; st=t; } }
+  if(st) return st;
+  const fr=PLAYER?PLAYER.model.rotation.y:0, fx=Math.sin(fr), fz=Math.cos(fr); let best=null, bs=1e9;
+  for(const t of list){ headOf(t.npc).getWorldPosition(_tt); const dx=_tt.x-x, dz=_tt.z-z, d=Math.hypot(dx,dz); if(d>r) continue;
+    const sc=d-0.35*((dx*fx+dz*fz)/(d||1)); if(sc<bs){ bs=sc; best=t; } }
+  return best; }
+function nearestNpc(x,z,r){ return talkTarget(x,z,r); }   /* 옛 이름 */
+/* 45차 2차: 앉은 상대의 **등 뒤**에서 말을 걸면 그 자리의 말 거는 정거장(<자리>_side · 팀장은 lead_front)으로 한 걸음 옮긴다 —
+   얼굴을 마주 보고 이야기하게. 카메라는 도착한 뒤 구도를 다시 고른다 */
+function talkApproach(npc,seatId){ if(!PLAYER||PLAYER.seat||walkOf(PLAYER)||!STATIONS) return false;
+  if(!(npc.seat||npc.mode==='sit'||npc.mode==='type')) return false;
+  headOf(npc).getWorldPosition(_tt); const fr=npc.model.rotation.y, fx=Math.sin(fr), fz=Math.cos(fr);
+  const px=PLAYER.model.position.x-_tt.x, pz=PLAYER.model.position.z-_tt.z, d=Math.hypot(px,pz)||1;
+  if((px*fx+pz*fz)/d>-0.15) return false;                     /* 이미 옆·앞이다 */
+  const keys=(seatId==='visitor')?['table_front','sofa_front']:[seatId+'_side',seatId==='lead'?'lead_front':null];
+  let key=null, kd=1e9; for(const k of keys){ const st=k&&STATIONS[k]; if(!st) continue; const dd=Math.hypot(st.x-PLAYER.model.position.x,st.z-PLAYER.model.position.z); if(dd<kd){ kd=dd; key=k; } }
+  if(!key||kd<0.25||kd>3.5) return false;
+  /* 곧은 길이 가구에 막히면 걷기 그래프로 돈다. 너무 멀면(4m) 옮기지 않고 카메라가 얼굴 쪽을 잡는다 */
+  const S0=(CUR&&CUR.SOLIDS)||[], st=STATIONS[key], P0=PLAYER.model.position; let path=[key];
+  const hitAt=(x,z)=>S0.some(q=>x>q.x0-0.12&&x<q.x1+0.12&&z>q.z0-0.12&&z<q.z1+0.12);
+  { const n=Math.max(2,Math.ceil(kd/0.05)); let blocked=false; for(let t=1;t<n&&!blocked;t++){ const u=t/n; blocked=hitAt(P0.x+(st.x-P0.x)*u,P0.z+(st.z-P0.z)*u); }
+    if(blocked){ path=route(nearestNode(P0.x,P0.z),key); let len=Math.hypot(NODES[path[0]].x-P0.x,NODES[path[0]].z-P0.z); for(let i=1;i<path.length;i++) len+=Math.hypot(NODES[path[i]].x-NODES[path[i-1]].x,NODES[path[i]].z-NODES[path[i-1]].z); if(len>4) return false; } }
+  log(`대화: ${npc.label||npc.CH} 등 뒤라 ${key} 로 옮김(${path.join('→')})`);
+  headOf(PLAYER).getWorldPosition(_tt); RIG.talkGoal={x:st.x,z:st.z,y:_tt.y}; RIG.talkPick=null;
+  startWalk(PLAYER,path,1.6).then(()=>{ if(RIG.talk!==npc){ return; } RIG.talkGoal=null; faceTo(PLAYER,headOf(npc)); PLAYER.look(headOf(npc)); PLAYER.mode='idle'; PLAYER.play('idle'); });
+  return true; }
 /* 44차(대표 「말은 T로만 걸 수 있고 자리에는 E로만 앉을 수 있게 해」):
    E 와 T 는 **완전히 독립**이다. E 후보는 「좌석 → 문 → 컴퓨터」뿐이고 사람은 절대 후보가 아니다.
    예전에는 가까운 NPC 를 만나면 그 자리에서 return 해 버려 E 안내를 통째로 덮었고,
@@ -2136,9 +2599,9 @@ function promptTick(){ const P=PROMPT; P.text=''; P.act=null; P.talk=null;
   const p=PLAYER.model.position;
   /* ── T: 가장 가까운 사람. 앉아 있든 서 있든 상관없다 ── */
   let tTxt='';
-  { const nb=nearestNpc(p.x,p.z,1.35);
-    if(nb){ const nm=nb.npc.label||SEATS[nb.seat].label;
-      tTxt=(TALK_HINT[nb.seat]||`<b>T</b> · ${nm}에게 말 걸기`).replace('<b>E</b>','<b>T</b>');
+  { const nb=talkTarget(p.x,p.z,1.8);   /* 45차 2차: T 와 같은 반경·같은 규칙(예전엔 알약 1.35 · T 1.8 로 달랐다) */
+    if(nb){ const nm=nb.npc.label||(SEATS[nb.seat]&&SEATS[nb.seat].label)||'';
+      tTxt=TALK_HINT[nb.seat]?talkHintText(TALK_HINT[nb.seat]):`<b>T</b> · ${nm}에게 말 걸기`;
       P.talk=()=>talkTo(nb.npc,nb.seat); } }
   /* ── E: 좌석 → 문 → 컴퓨터 (사람 없음) ── */
   let eTxt='';
@@ -2149,11 +2612,11 @@ function promptTick(){ const P=PROMPT; P.text=''; P.act=null; P.talk=null;
       else { eTxt='<b>E</b> · 복도로 나가기'; P.act=exitToCorridor; P.pos.set(zn.x0+0.1,1.62,(zn.z0+zn.z1)/2); } }
     else {
       /* 43차: **내 자리만** 권한다(대표 「사람 앉아 있는데 내가 앉을 수 있잖아」) */
-      const s=SEATS&&SEATS.me;
+      const s=(CUR===HOME_ROOM)&&PLAYER.homeSeat;   /* 45차: 다른 팀 방의 「me」 좌석은 내 자리가 아니다 */
       if(s&&!s.occupant&&Math.hypot(s.wp(0,0,0).x-p.x,s.wp(0,0,0).z-p.z)<1.1){
         eTxt=`<b>E</b> · ${s.label}에 앉기`; P.act=()=>ctrlSit(s); P.pos.copy(s.wp(0,1.0,0)); }
-      else if(SCREEN.node&&SCREEN.cb){ const sl=CUR&&CUR.screenSlot;
-        if(sl&&Math.hypot(sl.pos[0]-p.x,sl.pos[2]-p.z)<1.3){ eTxt='<b>클릭</b> · 컴퓨터 켜기'; P.act=SCREEN.cb; P.pos.set(sl.pos[0],sl.pos[1]+sl.size[2]+0.18,sl.pos[2]); } } } }
+      else if(SCREEN.node&&SCREEN.cb&&CUR===HOME_ROOM){ const sl=CUR.screenSlot;   /* 45차: 내 방 내 자리 컴퓨터만. E 로도 켜지므로 안내도 E 로 */
+        if(sl&&Math.hypot(sl.pos[0]-p.x,sl.pos[2]-p.z)<1.3){ eTxt='<b>E</b> · 컴퓨터 켜기'; P.act=SCREEN.cb; P.pos.set(sl.pos[0],sl.pos[1]+sl.size[2]+0.18,sl.pos[2]); } } } }
   P.text=[eTxt,tTxt].filter(Boolean).join(' · ');
   P.on=!!P.text; }
 function promptPos(){ const P=PROMPT; if(!P.on||!P.text){ P.el.style.display='none'; return; }
@@ -2165,14 +2628,76 @@ function promptPos(){ const P=PROMPT; if(!P.on||!P.text){ P.el.style.display='no
       report  {text, ask, choices[], lines[], auto}    visit {visitor, name, lines:{open}, choices[], reacts[], auto}
    ====================================================================== */
 let BUSY=null; const VISITORS={};
-const npcAt=(id)=>SEATS[id]?SEATS[id].occupant:null;
+/* ══ 45차: 방문객 T 응대(play 계약 visitorIn/visitorOut) ═══════════════════════════════
+   방문 카드가 도착하면 play 가 visitorIn({name, visitor?, gender?}) → 방문객이 **내 방** 문으로 들어와 소파에 앉는다.
+   앉은 뒤에는 좌석 id 'visitor' 로 T 대상이 된다(onTalk·setTalkHint·talkView·endTalk 가 그대로 통한다).
+   응대가 끝나면 visitorOut() → 일어나 문으로 나간다. 플레이어가 다른 방·복도에 있으면 걷는 연출 없이 곧바로 앉히고/내보낸다.
+   모델은 pickVisitor(성별: gender 필드 → 이름 짐작, 여 51→50→임시 변형 / 남 50→임시 변형)를 따른다. */
+const VISIT={c:null,state:'none',p:null};
+const npcAt=(id)=>(id==='visitor')?((VISIT.c&&VISIT.state==='seated')?VISIT.c:null):(SEATS[id]?SEATS[id].occupant:null);
+async function visitorIn(o){ o=o||{}; if(NOCHAR) return false;
+  if(VISIT.c&&VISIT.state!=='leaving'){ if(o.name) VISIT.c.label=o.name; return VISIT.p||true; }
+  if(VISIT.state==='leaving'&&VISIT.p){ try{ await VISIT.p; }catch(e){} }
+  VISIT.state='arriving';
+  VISIT.p=(async()=>{ try{
+    if(NPC_LOAD) await NPC_LOAD.catch(()=>{});
+    const [ch,look]=await pickVisitor(o); const v=await loadVisitor(ch,look); v.label=o.name||'방문객'; v.visitRoom=HOME_ROOM; v.trip=null;
+    if(!v.model.parent) scene.add(v.model); if(!CHARS.includes(v)) CHARS.push(v); VISIT.c=v;
+    const R=HOME_ROOM, N=R.NODES;
+    const sit=(anim)=>v.sitFree(SOFA.spot.x+SOFA.fwd,SOFA.spot.z,SOFA.ry,SOFA.seatY+SOFA.lift,anim);
+    if(CUR!==R){ sit(false); v.model.visible=false; VISIT.state='seated'; log(`방문객 ${v.label}(${ch}) — 내 방에 없어서 바로 앉힘`); return true; }
+    R.DOOR_CTL.want=1.35; v.standAt(N.door_out.x,N.door_out.z,Math.PI/2); await waitSim(0.4);
+    await startWalk(v,['door','sofa_in','sofa_front'],0.9); R.DOOR_CTL.want=0;
+    if(VISIT.c!==v||VISIT.state!=='arriving') return false;
+    const from=v.model.position.clone(); sit(true); const to=v.model.position.clone(); v.model.position.x=from.x; v.model.position.z=from.z; SLIDES.push({c:v,from,to,t:0,dur:0.8});
+    await finished(v,v.actions.sitdown,6); if(VISIT.c!==v) return false;
+    VISIT.state='seated'; log(`방문객 ${v.label}(${ch}) 소파에 앉음`); return true;
+  }catch(e){ log('visitorIn 오류',(e&&e.message)||e); VISIT.state=VISIT.c?'seated':'none'; return !!VISIT.c; } })();
+  return VISIT.p; }
+async function visitorOut(){ const v=VISIT.c; if(!v) return true; if(VISIT.state==='leaving') return VISIT.p;
+  if(VISIT.state==='arriving'&&VISIT.p){ try{ await VISIT.p; }catch(e){} }
+  VISIT.state='leaving'; if(RIG.talk===v) endTalk(); delete TALK_HINT.visitor; if(MARKS.visitor) MARKS.visitor.visible=false;
+  VISIT.p=(async()=>{ try{ const R=v.visitRoom;
+    if(CUR===R&&v.model.visible){
+      if(v.actions.standup&&ANIM_SIT){ v.mode='standup'; v.play('standup',{loop:false}); await finished(v,v.actions.standup,4); }
+      v.standAt(R.NODES.sofa_front.x,R.NODES.sofa_front.z,SOFA.ry); R.DOOR_CTL.want=1.35;
+      await startWalk(v,['sofa_in','door','door_out'],0.9); R.DOOR_CTL.want=0; }
+  }catch(e){ log('visitorOut 오류',(e&&e.message)||e); }
+    v.model.visible=false; if(v.model.parent) scene.remove(v.model); const i=CHARS.indexOf(v); if(i>=0) CHARS.splice(i,1);
+    VISIT.c=null; VISIT.state='none'; log('방문객 나감'); return true; })();
+  return VISIT.p; }
 const headOf=(c)=>c.bones.Head||c.head||c.model;
 function faceTo(c,target){ const p=new THREE.Vector3(); if(target.isObject3D) target.getWorldPosition(p); else p.copy(target); c.model.rotation.y=Math.atan2(p.x-c.model.position.x,p.z-c.model.position.z); }
 /* 플레이어가 서서 말하기: chat 클립 + 말풍선, 상대(npc)는 플레이어 쪽을 본다 */
-async function playerSay(text,ttl=2.8,npc=null){ if(npc) npc.look(headOf(PLAYER)); PLAYER.mode='chat'; PLAYER.play('chat'); say(PLAYER,text,{ttl}); await waitSim(ttl); PLAYER.mode='idle'; PLAYER.play('idle'); }
+/* 45차: 대사 기다리기 — onSay 콜백이 Promise 를 돌려주면(sayWaits) 그것을 기다린다(대화창에서 넘길 때까지). 아니면 ttl 초 */
+let SEQ_AUTO=false;   /* 45차 3차: 자동 선택(auto)으로 도는 연출 — 대사 창을 누를 사람이 없으므로 onSay 가 돌려준 Promise 를 기다리지 않는다(ttl 만) */
+async function sayWait(c,pr,ttl){ if(pr&&typeof pr.then==='function'&&!SEQ_AUTO){ await Promise.race([pr.catch(()=>{}),waitSim(180)]); hush(c); } else await waitSim(ttl); }
+async function playerSay(text,ttl=2.8,npc=null){ if(npc) npc.look(headOf(PLAYER)); PLAYER.mode='chat'; PLAYER.play('chat'); await sayWait(PLAYER,say(PLAYER,text,{ttl}),ttl); PLAYER.mode='idle'; PLAYER.play('idle'); }
 /* NPC(앉은 채) 말하기: 타이핑 멈추고(type2→sitLow+chatUp) 상체·머리를 플레이어 쪽으로 돌려 말한 뒤 다시 type2 */
-async function npcSay(npc,text,ttl=2.8,face='neutral'){ npc.look(headOf(PLAYER)); npc.talk(true); say(npc,text,{ttl}); await waitSim(ttl); if(face!=='neutral'){ npc.setFace(face); await waitSim(0.5); npc.setFace('neutral'); } npc.talk(false); }
-async function loadVisitor(ch){ if(VISITORS[ch]) return VISITORS[ch]; status(`방문객 불러오는 중… (${ch})`); const c=await loadCharacter(ch,{anims:{idle:'idle',walk:'walk',sit:'sit',sitdown:'sitdown',standup:'standup',chat:'chat'}}); c.label='방문객'; VISITORS[ch]=c; return c; }
+async function npcSay(npc,text,ttl=2.8,face='neutral'){ npc.look(headOf(PLAYER)); npc.talk(true); await sayWait(npc,say(npc,text,{ttl}),ttl); if(face!=='neutral'){ npc.setFace(face); await waitSim(0.5); npc.setFace('neutral'); } npc.talk(false); }
+async function loadVisitor(ch,look){ const key=ch+(look?'|'+JSON.stringify(look):''); if(VISITORS[key]&&VISITORS[key]!==VISIT.c) return VISITORS[key];   /* 45차 3차: visitorIn 이 쓰는 사람은 다른 연출에 빌려주지 않는다 */ status('방문객 불러오는 중…'); const c=await loadCharacter(ch,{anims:{idle:'idle',walk:'walk',sit:'sit',sitdown:'sitdown',standup:'standup',chat:'chat'},look}); c.label='방문객'; c.isVisitor=true; VISITORS[key]=c; return c; }
+/* 45차: 방문객 성별 — 명시(o.gender·o.visitorGender 'f'|'m')가 있으면 그것, 없으면 이름으로 짐작한다.
+   직함·괄호(회사명)를 떼고 이름의 마지막 글자를 본다. 여성에 흔하고 남성에 드문 끝 글자만 여성으로 본다(애매하면 남성 — 50 이 기본).
+   데이터의 방문객: 문태리 실장·채동희 대리·정새봄 → 여 / 허재원·강태민·문석주·노기훈·하선우·권오준·조애널리스트 → 남 */
+const F_END=new Set('희숙자미은연아나리혜지윤서린라예애순옥란봄슬별송'.split(''));
+function visitorGender(o){ const g=String((o&&(o.gender||o.visitorGender))||'').toLowerCase();
+  if(g==='f'||g==='female'||g==='여') return 'f'; if(g==='m'||g==='male'||g==='남') return 'm';
+  let n=String((o&&(o.name||o.visitorName))||'').replace(/\(.*?\)/g,' ');
+  if(/여사|어머님|할머니|아주머니|언니/.test(n)) return 'f';
+  n=n.replace(/(대리|과장|부장|차장|팀장|실장|사원|주임|선임|대표|이사|상무|전무|고객|손님|님|씨|애널리스트|매니저|반장|원장|교수|기자|담당|방문객)/g,' ').trim();
+  const w=(n.split(/\s+/)[0]||'').replace(/[^가-힣]/g,''); if(w.length<2) return 'm';
+  return F_END.has(w[w.length-1])?'f':'m'; }
+/* 45차: 방문객 모델 고르기. 대표 「홍주임이 다른 누군가랑 같이 한자리에 앉아 있었음」 — 예전 기본값 acnh_29 가 인사팀 홍주임 모델이었고,
+   play 쪽(js/play/cards.js)도 visitor 를 안 적으면 'acnh_29' 를 넘긴다.
+   ① 전용 방문객 모델(성별: 여 51→50 / 남 50) 파일이 있으면 그것. ② 바깥이 넘긴 모델이 **사내 인물(CAST·플레이어)이 아니면** 그것.
+   ③ 그 밖에는 VISITOR_POOL 에서 지금 방에 없는 모델을 겉모습을 바꿔 쓴다. */
+async function pickVisitor(o){
+  const order=(visitorGender(o)==='f')?[RESERVED.visitorF,RESERVED.visitorM]:[RESERVED.visitorM];
+  for(const ch of order) if(ch&&await assetExists(`${ch}_rigged.glb`)) return [ch,null];
+  const inCast=new Set([PLAYER_CH,PLAYER_USE,...Object.values(CAST).flat().map(x=>x[0])]);
+  if(o&&o.visitor&&!inCast.has(o.visitor)&&await assetExists(`${o.visitor}_rigged.glb`)) return [o.visitor,null];
+  const here=new Set((CUR&&CUR.chars||[]).map(c=>c.CH).concat(PLAYER?[PLAYER.CH]:[]));
+  return VISITOR_POOL.find(([ch])=>!here.has(ch))||VISITOR_POOL[0]; }
 const SEQ={
   async deliver(o){ const to=o.to||'senior'; const st=STATIONS[to+'_side']?to+'_side':null; if(!st) throw new Error('전달 상대가 없어요: '+to); const npc=npcAt(to);
     await walkTo(PLAYER,st,{sit:false}); if(!npc){ status(`${SEATS[to].label} 자리에 아무도 없어요`); await playerSay(o.text||'전달드릴 게 있는데… 안 계시네요.',2.4); return {ok:false,present:false}; }
@@ -2180,22 +2705,29 @@ const SEQ={
     const line=o.npcLine||(o.ok===false?`그건 ${o.team||'다른'}팀인데요. 조직도를 보세요.`:'네, 처리할게요.'); await npcSay(npc,line,2.8,o.ok===false?'sad':'happy'); npc.look(null); return {ok:o.ok!==false,present:true,line}; },
   async ask(o){ const to=o.to||'chief'; const st=STATIONS[to+'_side']?to+'_side':null; if(!st) throw new Error('질문 상대가 없어요: '+to); const npc=npcAt(to); const qs=o.questions||['이 건은 어느 팀 소관이에요?'];
     await walkTo(PLAYER,st,{sit:false}); if(!npc){ status(`${SEATS[to].label} 자리에 아무도 없어요`); await playerSay('여쭤볼 게 있는데… 안 계시네요.',2.4); return {choice:-1,answer:null,present:false}; }
-    faceTo(PLAYER,headOf(npc)); npc.look(headOf(PLAYER)); status('질문을 고르세요'); const i=await choose('무엇을 물어볼까요?',qs,o.auto); await playerSay(qs[i],2.6,npc);
+    faceTo(PLAYER,headOf(npc)); npc.look(headOf(PLAYER)); status('질문을 고르세요'); const i=await choose('무엇을 물어볼까요?',qs,o.auto,{mode:'ask',name:npc.label||'',seat:to}); await playerSay(qs[i],2.6,npc);
     const ans=(o.answers&&o.answers[i])||o.answer||'그건 저도 잘 모르겠는데요.'; await npcSay(npc,ans,4.0); npc.look(null); return {choice:i,answer:ans,present:true}; },
   async report(o){ const lead=npcAt('lead'); if(!lead) throw new Error('팀장이 자리에 없어요'); const ch=o.choices||['근거 조항을 붙여 보고','일단 처리하고 나중에 보고','보류'];
     await walkTo(PLAYER,'lead_front',{sit:false}); faceTo(PLAYER,headOf(lead)); await playerSay(o.text||'팀장님, 보고드릴 게 있습니다.',2.6,lead);
-    await npcSay(lead,o.ask||'근거가 뭐야?',2.4); status('보고 방식을 고르세요'); const i=await choose(o.prompt||'어떻게 보고할까요?',ch,o.auto); await playerSay(ch[i],2.8,lead);
+    await npcSay(lead,o.ask||'근거가 뭐야?',2.4); status('보고 방식을 고르세요'); const i=await choose(o.prompt||'어떻게 보고할까요?',ch,o.auto,{mode:'report',name:lead.label||'',seat:'lead'}); await playerSay(ch[i],2.8,lead);
     const line=(o.lines&&o.lines[i])||'알겠어. 정리해서 올려 줘.'; await npcSay(lead,line,3.2,i===(o.best??0)?'happy':'angry'); lead.look(null); return {choice:i,line,present:true}; },   /* 34차: docs/office-api-requests.md §2 반환 계약 */
-  async visit(o){ let vch=o.visitor||'acnh_29';
-    if(Object.values(SEATS).some(s=>s.occupant&&s.occupant.CH===vch)) vch=(vch==='acnh_32')?'acnh_29':'acnh_32';   /* 34차: 배정표에서 같은 얼굴이 이 방에 앉아 있으면 다른 방문객으로 바꾼다(같은 방에 쌍둥이 금지) */
-    const vis=await loadVisitor(vch); vis.label=o.name||'방문객'; const L=o.lines||{}; const ch=o.choices||['규정을 안내하고 정중히 거절','요구대로 처리해 드린다','팀장님을 모셔 온다']; const re=o.reacts||[];
-    if(!vis.model.parent) scene.add(vis.model); if(!CHARS.includes(vis)) CHARS.push(vis);
+  async visit(o){
+    /* 45차: visitorIn 으로 이미 앉아 있는 방문객이 있으면 그 사람과 응대만 한다(들어오고 나가는 연출은 visitorIn/visitorOut 이 맡는다) */
+    /* 45차 3차(A 보고 「cs 6일차 자동 플레이 72초 중 71초가 방문 연출」): play 가 카드 도착 때 visitorIn 을 부르고 곧바로 이 연출도 불러
+       방문객이 아직 걸어 들어오는 중(arriving)이었다 → 여기서 **같은 캐시 객체**를 또 불러 문 밖에 세우고 걷게 해 두 흐름이 한 사람을 잡아당겼다.
+       들어오는 중이면 앉을 때까지 기다렸다가 그 사람과 응대만 한다 */
+    if(VISIT.state==='arriving'&&VISIT.p){ try{ await VISIT.p; }catch(e){} }
+    const pre=(VISIT.c&&VISIT.state==='seated'&&CUR===VISIT.c.visitRoom)?VISIT.c:null;
+    const [vch,vlook]=pre?[pre.CH,null]:await pickVisitor(o);   /* 45차: 사내 인물 모델을 그대로 쓰지 않는다(pickVisitor 참고) */
+    const vis=pre||await loadVisitor(vch,vlook); vis.label=o.name||vis.label||'방문객'; const L=o.lines||{}; const ch=o.choices||['규정을 안내하고 정중히 거절','요구대로 처리해 드린다','팀장님을 모셔 온다']; const re=o.reacts||[];
+    if(!pre){ if(!vis.model.parent) scene.add(vis.model); if(!CHARS.includes(vis)) CHARS.push(vis);
     doorSet(true); vis.standAt(NODES.door_out.x,NODES.door_out.z,Math.PI/2); status('방문객이 들어옵니다'); await waitSim(0.5); await startWalk(vis,['door','sofa_in','sofa_front'],0.8); doorSet(false);
-    const from=vis.model.position.clone(); vis.sitFree(SOFA.spot.x,SOFA.spot.z,SOFA.ry,SOFA.seatY,true); const to=vis.model.position.clone(); vis.model.position.x=from.x; vis.model.position.z=from.z; SLIDES.push({c:vis,from,to,t:0,dur:0.8});
-    vis.look(headOf(PLAYER)); status('방문객이 소파에 앉았어요 — 응대하러 갑니다'); await finished(vis,vis.actions.sitdown,6);
+    const from=vis.model.position.clone(); vis.sitFree(SOFA.spot.x+SOFA.fwd,SOFA.spot.z,SOFA.ry,SOFA.seatY+SOFA.lift,true); const to=vis.model.position.clone(); vis.model.position.x=from.x; vis.model.position.z=from.z; SLIDES.push({c:vis,from,to,t:0,dur:0.8});
+    vis.look(headOf(PLAYER)); status('방문객이 소파에 앉았어요 — 응대하러 갑니다'); await finished(vis,vis.actions.sitdown,6); }
     await walkTo(PLAYER,'table_front',{sit:false}); faceTo(PLAYER,headOf(vis));
-    await npcSay(vis,L.open||'담당자 맞으시죠? 오늘 꼭 처리해 주셔야 해요.',3.2); status('응대 방법을 고르세요'); const i=await choose(o.prompt||'어떻게 응대할까요?',ch,o.auto); await playerSay(ch[i],3.0,vis);
+    await npcSay(vis,L.open||'담당자 맞으시죠? 오늘 꼭 처리해 주셔야 해요.',3.2); status('응대 방법을 고르세요'); const i=await choose(o.prompt||'어떻게 응대할까요?',ch,o.auto,{mode:'visit',name:vis.label||'방문객',seat:null,timeLimit:o.timeLimit||null}); await playerSay(ch[i],3.0,vis);
     await npcSay(vis,re[i]||'…알겠어요.',3.0,i===(o.best??0)?'neutral':'angry'); vis.look(null);
+    if(pre) return {choice:i,present:true};   /* 45차: 나가는 것은 visitorOut */
     vis.mode='standup'; vis.play('standup',{loop:false}); await finished(vis,vis.actions.standup,5); vis.standAt(NODES.sofa_front.x,NODES.sofa_front.z,SOFA.ry); status('방문객이 나갑니다');
     doorSet(true); await startWalk(vis,['sofa_in','door','door_out'],0.8); vis.model.visible=false; scene.remove(vis.model); CHARS.splice(CHARS.indexOf(vis),1); doorSet(false); return {choice:i,present:true}; },
 };
@@ -2209,7 +2741,7 @@ async function ensureRoom(team,opt){ team=String(team).toLowerCase(); const slic
   let R=ROOMS[team];
   if(!R){ if(!slice) RUSH++;
     try{ R=await roomQueue(async()=>{ let r=ROOMS[team]; if(r) return r;   /* 줄 서 있는 사이에 남이 지었을 수 있다 */
-      r=slice?await buildRoomSliced(team):buildRoom(team); r._slice=slice; ROOMS[team]=r; mergeStatic(r); applyQuality(); loadProps(r); return r; }); }
+      r=slice?await buildRoomSliced(team):buildRoom(team); r._slice=slice; ROOMS[team]=r; mergeStatic(r); applyQuality(); r.propsP=loadProps(r); return r; }); }
     finally{ if(!slice) RUSH--; } }
   /* 44차: R.loading 을 **비동기 본문이 시작되기 전에** 세운다.
      예전에는 `R.loading=(async()=>{…})()` 였는데, 본문이 첫 await 까지 동기로 달린 뒤에야 대입이 끝나므로
@@ -2223,7 +2755,11 @@ async function ensureRoom(team,opt){ team=String(team).toLowerCase(); const slic
          44차: 미리 받는 방은 반대로 **한 명씩** 받는다 — 다섯 명이 동시에 끝나면
          GLTF 파싱·법선 계산·텍스처 업로드가 한 프레임에 몰려 2.8초짜리 멈춤이 됐다 */
       const load1=async ([ch,name,look],i)=>{ const seat=R.SEATS[CAST_SEATS[i]]; if(!seat) return null;
-        try{ const c=await loadCharacter(ch,{anims:ANIMS_NPC,look,slice}); return {c,name,seat}; }
+        /* 45차: 이번 화에 다른 방으로 지원 나간 사람 — 자리를 비워 둔다(이름표는 남긴다 — 찾아오면 「자리에 아무도 없어요」) */
+        if(LOANED[ch]&&LOANED[ch].to!==team){ seat.label=name; seat.away={name,to:LOANED[ch].to}; log(`[${R.name}] ${name} 은 ${TEAM_NAMES[LOANED[ch].to]||LOANED[ch].to} 지원 나감 — 자리 비움`); return null; }
+        /* 45차: 복도 왕래용으로 이미 불러온 그 팀 직원이면 그 사람을 데려온다(같은 사람 두 벌 금지) */
+        const g=TRAF.guests.find(x=>x.guestTeam===team&&x.CH===ch); if(g){ TRAF.guests.splice(TRAF.guests.indexOf(g),1); g.guestTeam=null; return {c:g,name,seat}; }
+        try{ const c=await loadCharacter(ch,{anims:ANIMS_NPC,look:look||twinLook(ch),slice}); return {c,name,seat}; }
         catch(e){ console.error(e); log(`[${R.name}] NPC ${ch} 실패 ${e.message}`); return null; } };
       const list=cast.slice(0,CAST_SEATS.length);
       let got;
@@ -2233,8 +2769,8 @@ async function ensureRoom(team,opt){ team=String(team).toLowerCase(); const slic
       for(const it of got){ if(!it) continue; const {c,name,seat}=it;
         if(used.has(seat)){ log(`[${R.name}] 좌석 ${seat.id} 두 번 배정 — ${c.CH} 건너뜀`); c.model.visible=false; continue; }
         used.add(seat);
-        c.label=name; seat.label=name; c.homeSeat=seat; c.sitAt(seat); c.model.visible=(CUR===R);
-        c.ai={next:SIM_T+rnd(12,50),busy:false,talking:false,why:''}; R.chars.push(c); CHARS.push(c); }
+        c.label=name; seat.label=name; c.homeSeat=seat; if(!c.trip) c.sitAt(seat); c.model.visible=(CUR===R)&&!c.trip;   /* 왕래 중이면 돌아와서 앉는다 */
+        if(!c.ai||!c.trip) c.ai={next:SIM_T+rnd(12,50),busy:!!c.trip,talking:false,why:c.trip?'다녀오기':''}; R.chars.push(c); if(!CHARS.includes(c)) CHARS.push(c); }
       R.loaded=true; R.loadMs=Math.round(performance.now()-t0); log(`[${R.name}] 방 준비 ${R.loadMs}ms (NPC ${R.chars.length}명)`); })().catch(e=>{ log('방 준비 오류',(e&&e.message)||e); }).then(()=>_res()); }
   if(R.loading) await R.loading; return R; }
 /* 연출 상대 좌석 정하기: to 가 좌석 id 면 그대로, 이름(npc/who)이 있으면 이름표가 맞는 좌석, 없으면 mode 기본(report→팀장, 그 외→사수→주임) */
@@ -2254,7 +2790,8 @@ async function roomToCorridor(){ const from=CUR.team; if(CUR===CORRIDOR) return;
   status(`복도 — ${TEAM_NAMES[from]||from} 문 앞`); await waitSim(0.2); loadingText(''); await fadeTo(0); }
 async function corridorToRoom(team){ loadingText(`${TEAM_NAMES[team]||team}으로 들어가는 중…`); await fadeTo(1);
   const t0=SIM_T; const R=await ensureRoom(team); if(SIM_T-t0<0.45) await waitSim(0.45-(SIM_T-t0));
-  hush(); setRoom(R); const st=R.STATIONS.door; PLAYER.standAt(st.x+1.35,st.z,Math.PI/2); camToRoom(); RIG.snap=true;   /* 문 앞 구역 밖 */
+  hush(); setRoom(R);
+  if(!R.warmed){ loadingText(`${TEAM_NAMES[team]||team} 그래픽 준비 중…`); await warmRoom(R); loadingText(`${TEAM_NAMES[team]||team}으로 들어가는 중…`); }   /* 45차: 페이드가 덮은 채 셰이더·텍스처를 올리고 프레임이 안정된 뒤 보여 준다 */ const st=R.STATIONS.door; PLAYER.standAt(st.x+1.35,st.z,Math.PI/2); camToRoom(); RIG.snap=true;   /* 문 앞 구역 밖 */
   status(`${R.name} 사무실`); loadingText(''); await fadeTo(0); return R; }
 async function travelHome(){ if(CUR===HOME_ROOM) return; if(CUR!==CORRIDOR) await roomToCorridor(); await corridorToRoom(HOME); }
 /* 공개 API: goToTeam(team, {mode, npc|who, …}) → 복도를 지나 그 팀 방으로. mode 가 있으면 그 방 NPC 상대로 연출 후 역순 복귀(내 자리 착석).
@@ -2266,20 +2803,22 @@ async function goToTeam(team,opts={}){ if(!PLAYER){ status('플레이어가 아�
   BUSY='travel:'+team; camFollow(true); const t0=SIM_T; let ret=null;
   try{ if(team!==HOME) ensureRoom(team).catch(()=>{});   /* 복도를 걷는 동안 미리 로드 */
     if(CUR!==CORRIDOR) await roomToCorridor(); await corridorToRoom(team); ret={room:team};   /* 39차: 둘 다 로딩 화면 전환(걷기 없음) */
-    if(mode&&SEQ[mode]){ const to=resolveSeat(opts,mode); const r=await SEQ[mode](Object.assign({},opts,{to})); ret=Object.assign({room:team},r||{}); hush(); if(CHOICE) CHOICE.pick(0); PLAYER.look(null); await travelHome(); }
+    if(mode&&SEQ[mode]){ trafficEject(team); SEQ_AUTO=(opts.auto!==undefined&&opts.auto!==null); const to=resolveSeat(opts,mode); const r=await SEQ[mode](Object.assign({},opts,{to})); ret=Object.assign({room:team},r||{}); hush(); if(CHOICE) CHOICE.pick(0); PLAYER.look(null); await travelHome(); }
     if(CUR===HOME_ROOM) await walkTo(PLAYER,'me'); }
   catch(e){ log('이동 오류',team,e.message); status(`이동 오류(${team}): ${e.message} — 자리로 돌아갑니다`); try{ hush(); FADE.want=0; setRoom(HOME_ROOM); camToRoom(); PLAYER.standAt(NODES.door.x,NODES.door.z,Math.PI/2); await walkTo(PLAYER,'me'); }catch(e2){ log('복귀 오류',e2.message); } }
-  camFollow(false); BUSY=null; status(`${team===HOME?'귀가':TEAM_NAMES[team]||team} 끝 (${(SIM_T-t0).toFixed(1)}초)`); return ret; }
+  camFollow(false); BUSY=null; SEQ_AUTO=false; status(`${team===HOME?'귀가':TEAM_NAMES[team]||team} 끝 (${(SIM_T-t0).toFixed(1)}초)`); return ret; }
 /* 한 번에 한 연출만. 진행 중 호출은 무시(status). 오류는 reject 대신 status 표시 후 자리로 복귀.
    34차: opts.to 가 팀코드면(현재 방이 아닌) 복도 경로(goToTeam)로 자동 전환. 타 팀 방에서 실행됐으면 끝나고 집으로 돌아온다 */
 async function interact(mode,opts={}){ if(!PLAYER){ status('플레이어가 아직 없어요'); return; }
   if(NPC_LOAD&&!HOME_ROOM.loaded){ status('동료가 자리에 앉는 중…'); await NPC_LOAD.catch(()=>{}); }   /* 43차 ②: 동료를 뒤에서 채우므로 연출은 여기서 기다린다 */ if(BUSY||walkOf(PLAYER)){ status(`진행 중(${BUSY||'이동'})이라 새 연출을 시작할 수 없어요`); return; } const seq=SEQ[mode]; if(!seq){ status('모르는 상호작용: '+mode); return; }
   const toTeam=isTeamCode(opts.to)?String(opts.to).toLowerCase():null; if(toTeam&&toTeam!==roomOf()) return goToTeam(toTeam,Object.assign({},opts,{mode}));
   if(toTeam||(opts.to&&!SEATS[opts.to])||(!opts.to&&(opts.npc||opts.who))) opts=Object.assign({},opts,{to:resolveSeat(opts,mode)});
+  trafficEject(roomOf());   /* 45차: 방문 중인 다른 팀 직원이 보고 자리를 막지 않게 */
+  SEQ_AUTO=(opts.auto!==undefined&&opts.auto!==null);
   BUSY=mode; camFollow(true); const t0=SIM_T; let ret=null;   /* 30차: 연출 결과(ask 의 선택 번호 등)를 호출자에게 돌려준다 */
   try{ ret=await seq(opts); }catch(e){ log('연출 오류',mode,e.message); status(`연출 오류(${mode}): ${e.message} — 자리로 돌아갑니다`); }
   try{ hush(); if(CHOICE) CHOICE.pick(0); PLAYER.look(null); if(CUR!==HOME_ROOM) await travelHome(); await walkTo(PLAYER,'me'); }catch(e){ log('복귀 오류',e.message); }
-  camFollow(false); BUSY=null; status(`${mode} 끝 (${(SIM_T-t0).toFixed(1)}초)`); return ret; }
+  camFollow(false); BUSY=null; SEQ_AUTO=false; status(`${mode} 끝 (${(SIM_T-t0).toFixed(1)}초)`); log(`연출 ${mode} ${(SIM_T-t0).toFixed(1)}초`); return ret; }
 /* HUD 데모 데이터 (cs-ep1 의 카드 예: cs46 deliver · cs41 ask) */
 const DEMO={
   deliver:{to:'senior',text:'창고 물량 확인 요청서예요. 내일 10시까지 회신 부탁드려요.',npcLine:'네, 처리할게요.'},
@@ -2293,9 +2832,14 @@ const DEMO={
   mk('가기',()=>goToTeam(sel.value)); mk('전달하고 오기',()=>goToTeam(sel.value,{mode:'deliver',text:'이거 전달드리러 왔어요. 확인 부탁드립니다.',npcLine:'네, 확인할게요.'})); mk('집으로',()=>goToTeam(HOME)); }
 if(Q.get('ui')==='0'||EMBED){ document.getElementById('hud').style.display='none'; document.getElementById('hint').style.display='none'; }
 if(EMBED) markers.visible=false;   /* 무대 모드에서는 바닥 마커 클릭 이동을 막는다(이동은 play.html 의 카드가 시킨다) */
-function setLabel(seatId,name){ LABELS[seatId]=name; if(SEATS[seatId]){ SEATS[seatId].label=name; if(SEATS[seatId].occupant) SEATS[seatId].occupant.label=name; } }
+function setLabel(seatId,name){ LABELS[seatId]=name; if(SEATS[seatId]){ SEATS[seatId].label=name; const o=SEATS[seatId].occupant; if(o){ o.label=name; if(o.loan) loanCheck(o,name); } } }
+/* 45차: 지원 나온 사람의 이름표가 그 모델의 배역 이름과 다르면 — 배역 밖 인물이 남의 얼굴을 빌린 것(cs-ep4 유대리·qc-ep3 조반장).
+   그 사람은 지원이 아니므로 ① 겉모습을 바꾸고 ② 모델 주인의 자기 방 자리를 다시 채우게 LOANED 에서 뺀다 */
+function loanCheck(c,name){ const cn=castNameOf(c.CH); if(!cn||!name||normName(cn)===normName(name)) return;
+  c.loan=false; delete LOANED[c.CH]; try{ c.setLook(EXTRA_LOOK); }catch(e){} log(`${name}: ${c.CH}(${cn}) 얼굴을 빌린 배역 밖 인물 → 겉모습 변형, ${cn} 은 자기 방에 그대로`); }
 
 let NPC_LOAD=null;   /* 동료를 뒤에서 채우는 약속 — 연출은 이걸 기다린다 */
+let GUEST_P=null;    /* 45차: 손님 직원 받기(warm) */
 const PRE={done:0,total:0,files:0,mb:0};   /* 다른 방 미리 받기 진행 */
 /* 44차: 한 팀에 필요한 파일을 브라우저 캐시에만 채운다. 해석도 GPU 업로드도 하지 않는다 */
 async function warmOne(url){ try{ const r=await fetch(url,{cache:'force-cache'}); if(!r.ok) return; const b=await r.arrayBuffer(); PRE.files++; PRE.mb+=b.byteLength/1048576; }catch(e){} }
@@ -2312,14 +2856,32 @@ async function warmTeam(team){
 }
 let PLACED=false;
 async function placeCharacters(){ if(PLACED) { log('placeCharacters 재호출 — 무시'); return; } PLACED=true;
-  if(NOCHAR){ HOME_ROOM.loaded=true; status('캐릭터 없이 방만 표시'); return; }
-  try{ status('로딩 중'); PLAYER=await loadCharacter(PLAYER_CH); PLAYER.label='나'; CHARS.push(PLAYER); PLAYER.sitAt(SEATS.me); status('로딩 중'); }catch(e){ console.error(e); status('플레이어 로드 실패: '+e.message); }
+  if(NOCHAR){ HOME_ROOM.loaded=true; status('캐릭터 없이 방만 표시'); warmupMain(); return; }
+  try{ status('로딩 중');
+    /* 45차: 전용 모델 파일이 아직 없으면 대체한다(여성 → FEMALE_FALLBACK, 그 밖 → acnh_25) */
+    if(!(await assetExists(`${PLAYER_CH}_rigged.glb`))){ PLAYER_USE=(PLAYER_CH===RESERVED.playerF||FEMALE.test(PLAYER_CH))?FEMALE_FALLBACK:'acnh_25'; log(`플레이어 모델 ${PLAYER_CH} 파일 없음 → ${PLAYER_USE}`); }
+    PLAYER=await loadCharacter(PLAYER_USE); PLAYER.label='나'; CHARS.push(PLAYER);
+    PLAYER.homeSeat=SEATS.me;   /* 45차: 플레이어도 자기 자리 하나뿐 — sitAt 이 다른 자리를 구조적으로 막는다(대표 「다른 자리에 앉지 못하게 해」) */
+    PLAYER.sitAt(SEATS.me); status('로딩 중'); }catch(e){ console.error(e); status('플레이어 로드 실패: '+e.message); }
   /* 내 방 NPC: cs 는 30차 좌석 매핑 그대로(30·31·19·33). 다른 팀은 §10 배정표(팀장·사수·주임)로. ?extra=seat:ch 는 빈 자리 추가뿐 아니라 기본 배정도 덮어쓴다(34차) */
   /* 43차: 고객상담팀만 따로 하드코딩하던 목록을 없앴다 — 그 목록의 acnh_19·acnh_33 이
      총무팀·홍보팀 사람과 같아서 다른 사무실에 같은 얼굴이 나왔다. 이제 CAST 한 곳에서만 정한다. */
   let npcs=(CAST[HOME]||[]).map(([ch,name,look],i)=>[CAST_SEATS[i],ch,name,look]);
   npcs=npcs.slice(0,Math.max(0,NPC_LIMIT));
-  for(const [s,ch] of EXTRA_NPC){ if(!SEATS[s]||!ch) continue; const i=npcs.findIndex(n=>n[0]===s); if(i>=0) npcs[i]=[s,ch]; else npcs.push([s,ch]); }
+  /* 45차: play 가 넘기는 ?seats=·?extra= —
+     ① CAST 가 채우는 자리(lead·senior·chief·staff 중 배역표에 있는 것)는 CAST 모델을 지킨다(이름표는 play 의 setLabel).
+     ② 배역 밖 자리(staff2·staff3·staff4, cs 밖 팀의 staff)는 그 모델을 앉힌다.
+        · 다른 팀 배역 모델이면 **그 사람 본인**(타 팀 지원) — 겉모습 그대로, LOANED 로 자기 방 자리를 비운다.
+        · 내 팀 배역·플레이어와 같은 모델이면 같은 방에 같은 얼굴이 둘이 되므로 EXTRA_LOOK. */
+  { const mine=new Set([PLAYER_USE,...(CAST[HOME]||[]).map(x=>x[0])]);
+    for(const [s,ch] of EXTRA_NPC){ if(!SEATS[s]) { log(`?seats/extra ${s}:${ch} — 이 방에 그런 자리가 없음`); continue; } const i=npcs.findIndex(n=>n[0]===s);
+      if(i>=0){ if(npcs[i][1]!==ch) log(`?seats ${s}:${ch} → 배역표 모델 ${npcs[i][1]} 유지(같은 얼굴 두 방 금지)`); continue; }
+      const dup=mine.has(ch)||npcs.some(n=>n[1]===ch); npcs.push([s,ch,null,dup?EXTRA_LOOK:null,true]); if(dup) log(`?extra ${s}:${ch} 는 이 방에서 이미 쓰는 모델 → 겉모습 변형`); } }
+  WARM.done=PLAYER?1:0; WARM.total=1+npcs.length;   /* 45차: 로딩 화면 진행 숫자 — 나 + 동료 */
+  /* 45차: 복도 왕래용 손님 직원을 동료와 **동시에** 받기 시작한다(네트워크 대기가 겹쳐 로딩이 덜 늘어난다) */
+  if(GUESTS_MODE==='warm'&&!NOCHAR){ const picks=[]; for(let i=0;i<TRAF_CFG.guestMax;i++){ const o=guestPick(); if(!o) break; picks.push(o); TRAF.guests.push({guestTeam:o.t,CH:o.e[0],_ph:true}); }
+    TRAF.guests=TRAF.guests.filter(g=>!g._ph); WARM.total+=picks.length;
+    GUEST_P=Promise.all(picks.map(o=>guestLoad(o).then(()=>{ WARM.done++; }).catch(e=>log('손님 직원 로드 실패',(e&&e.message)||e)))); }
   /* 43차: 한 명씩 기다려 불러오느라 입장이 1~2분씩 걸렸다(대표 「입장만 1~2분」).
      한 사람당 메시·텍스처·클립 다섯을 받는데 그 사이 네트워크가 놀고 있었다. 동시에 받는다.
      자리에 앉히는 것은 순서를 지켜야 하므로(좌석 중복 방지) 받은 뒤에 차례로 앉힌다. */
@@ -2330,9 +2892,9 @@ async function placeCharacters(){ if(PLACED) { log('placeCharacters 재호출 �
   window.__officeReady=true;
   status(`${TEAM_NAME} · 마커를 클릭해 이동 · 동료는 곧 자리에 앉습니다`);
   NPC_LOAD=(async()=>{
-    const loaded=await Promise.all(npcs.map(async ([seatId,ch,name,look])=>{
+    const loaded=await Promise.all(npcs.map(async ([seatId,ch,name,look,extra])=>{
       if(!SEATS[seatId]) return null;
-      try{ const c=await loadCharacter(ch,{anims:ANIMS_NPC,look}); return {seatId,ch,name,c}; }
+      try{ const c=await loadCharacter(ch,{anims:ANIMS_NPC,look:look||twinLook(ch)}); WARM.done++; c.extraSeat=!!extra; c.loan=!!(extra&&LOANED[ch]&&!look); return {seatId,ch,name,c}; }
       catch(e){ console.error(e); log(`NPC ${ch} 실패 ${e.message}`); return null; } }));
     const used=new Set();   /* 44차: 한 좌석에 두 번 배정되는 일 자체를 막는다 */
     for(const it of loaded){ if(!it) continue;
@@ -2343,10 +2905,12 @@ async function placeCharacters(){ if(PLACED) { log('placeCharacters 재호출 �
       c.label=LABELS[seatId]||SEATS[seatId].label;
       c.ai={next:SIM_T+rnd(12,50),busy:false,talking:false,why:''};
       c.homeSeat=SEATS[seatId];   /* 44차: 이 사람의 자리는 여기 하나뿐이다(sitAt 이 이것으로 막는다) */
-      CHARS.push(c); HOME_ROOM.chars.push(c); c.sitAt(SEATS[seatId]); }
+      CHARS.push(c); HOME_ROOM.chars.push(c); c.sitAt(SEATS[seatId]);
+      if(c.loan&&LABELS[seatId]) loanCheck(c,LABELS[seatId]); }
   })();
   await NPC_LOAD.catch(e=>log('NPC 로드 오류',e&&e.message));
   HOME_ROOM.loaded=true; status(`${TEAM_NAME} · 인원 ${CHARS.length}명 · 마커를 클릭해 이동 · 위 버튼으로 NPC 상호작용`);
+  warmupMain();   /* 45차: 렉이 다 풀릴 때까지 ready=false */
   /* 43차 ③: **모든 팀 방을 뒤에서 미리 받아 둔다.** 대표 「처음 들어가는 방에서 로딩이 길다 —
      처음 로딩에서 다 불러놔」. 내 자리는 이미 준비돼 게임이 돌아가는 중이고, 이건 그 뒤에
      조용히 채우는 것이라 입장 시간은 늘지 않는다. ?pre=logi,acct 로 일부만, ?pre=0 이면 끔. */
@@ -2380,6 +2944,17 @@ async function goSeat(){ if(!PLAYER){ status('플레이어가 아직 없어요')
   try{ if(CUR!==HOME_ROOM) await travelHome(); await walkTo(PLAYER,'me'); }
   catch(e){ log('goSeat 오류',e.message); status('자리로 가지 못했어요: '+e.message); }
   setControl(keep); BUSY=null; seatWatch(); return isSeatedMine(); }
+/* 45차: 매 프레임 가드(대표 「복도에 앉아 있는 사람 있음」·「홍주임이 다른 누군가랑 같이 한자리에」).
+   ① 지금 방 사람이 아닌데 보이는 사람은 숨긴다 — 방·복도가 원점에 겹쳐 있어 새어 나온 한 명이 남의 자리에 포개져 보인다.
+   ② 복도에서는 **누구도** 앉은 자세를 못 한다 — mode 만이 아니라 재생 중인 클립(sit·type2·sitdown·sitLow·chatUp·standup)까지 본다. */
+const SIT_CLIPS=new Set(['sit','type2','sitdown','sitLow','chatUp','standup']);
+function roomGuard(){
+  if(VISIT.c&&VISIT.c.visitRoom){ const want=(CUR===VISIT.c.visitRoom); if(!want&&VISIT.c.model.visible) VISIT.c.model.visible=false; else if(want&&!VISIT.c.model.visible&&VISIT.c.model.parent) VISIT.c.model.visible=true; }   /* 45차: 방문객은 자기가 온 방에서만 보인다 */
+  for(const k in ROOMS){ const R=ROOMS[k]; if(R===CUR) continue;
+    for(const c of R.chars) if(c.model.visible&&!c.trip){ c.model.visible=false; log(`${c.label||c.CH}: ${R.name} 사람이 다른 곳에서 보여 숨김`); } }
+  if(CUR!==CORRIDOR) return;
+  for(const c of CHARS){ if(!c.model.visible) continue;
+    if(c.mode==='sit'||c.mode==='type'||SIT_CLIPS.has(c.clipKey)){ if(c.unsit) c.unsit(); log(`${c.label||c.CH||'통행인'}: 복도에서 앉은 자세라 세움`); } } }
 /* 시뮬 한 스텝: 캐릭터·걷기·타이머·말풍선 수명·카메라·문·미끄러짐. tick(실시간)과 step(헤드리스)이 같이 쓴다 */
 const _fr=new THREE.Frustum(), _fpm=new THREE.Matrix4(), _fpt=new THREE.Vector3(); let FRAMEN=0;
 function simTick(dt){ SIM_T+=dt; FRAMEN++; stepControl(dt);
@@ -2389,7 +2964,7 @@ function simTick(dt){ SIM_T+=dt; FRAMEN++; stepControl(dt);
   for(const c of CHARS){ if(!c.model.visible) continue;
     _fpt.set(c.model.position.x,c.model.position.y+0.5,c.model.position.z);
     if(_fr.containsPoint(_fpt)) c.update(dt,camera); else if(!slow) c.update(dt*3,camera); }
-  npcTick(dt); seatRepair(dt); seatWatch(); stepWalk(dt); slideTick(dt); for(const tm of TIMERS.slice()){ tm.t-=dt; if(tm.t<=0||(tm.fn&&tm.fn())){ TIMERS.splice(TIMERS.indexOf(tm),1); tm.res(); } } bubbleTTL(dt); promptTick(); doorTick(dt); fadeTick(dt); camTick(dt); }
+  roomGuard(); trafficTick(dt); npcTick(dt); seatRepair(dt); seatWatch(); stepWalk(dt); slideTick(dt); for(const tm of TIMERS.slice()){ tm.t-=dt; if(tm.t<=0||(tm.fn&&tm.fn())){ TIMERS.splice(TIMERS.indexOf(tm),1); tm.res(); } } bubbleTTL(dt); promptTick(); doorTick(dt); fadeTick(dt); camTick(dt); }
 /* ── 44차: 화질 단계 적용 ─────────────────────────────────────────────
    높음은 지금 모습 그대로다. 아래 칸으로 갈수록 내장 그래픽이 특히 못 견디는 것부터 끈다:
    ① 픽셀 비율(내장 그래픽은 채우기 성능이 약해 해상도가 제일 크게 먹힌다)
@@ -2455,7 +3030,54 @@ const clock=new THREE.Clock(); let FROZEN=false;
 let SHADOW_K=0;
 function shadowTick(){ const L=CUR&&CUR.LIGHTS; if(!L||!L.length) return; L[SHADOW_K++%L.length].shadow.needsUpdate=true; }
 let LAST_MS=16;
-function tick(){ const raw=clock.getDelta(); LAST_MS=raw*1000; qualityTick(LAST_MS); qBoxTick(LAST_MS); const dt=Math.min(raw,0.05); if(!FROZEN) simTick(dt); if(!RIG.on) controls.update(); cullWalls(); shadowTick(); renderer.render(scene,camera); mipCapTick(); bubblePos(); markTick(); promptPos(); requestAnimationFrame(tick); }
+/* ══ 45차: 워밍업 — 대표 「렉 걸리지 않도록 렉 다 풀릴 때까지 로딩창 띄워. 게임 캐릭터가 보일 때는 렉이 걸리지 않도록」 ══
+   원인(이전 조사): 입장 직후 **셰이더 컴파일 + 텍스처 GPU 업로드**가 게임 도중에 일어나 처음 수십 초가 끊긴다
+   (대표 「오래 켜두니까 안 끊겨」). 그 일을 로딩 화면 뒤에서 미리 끝낸다.
+     ① 캐릭터 준비 중 — 나 · 동료 · 소품 교체
+     ② 그래픽 준비 중 — 씬의 모든 텍스처 renderer.initTexture → renderer.compileAsync(방 조명 상태)
+                        → 복도 조명 상태로 한 번 더(복도에 처음 나갈 때도 멈추지 않게)
+     ③ 마무리 중     — 실제로 프레임을 그려 **연속 30프레임이 50ms 미만**이 될 때까지
+   계약(play.html 로딩 화면이 쓴다 — 이름 바꾸지 말 것):
+     __office.warmupInfo() → {ready:boolean, done:number, total:number, stage:string}
+   ready 는 ①②③을 다 지났을 때만 true. 느린 기기에서 ③이 끝내 안 되면 40초에서 끊고 ready=true·timedOut=true 로 넘긴다
+   (영원히 로딩 화면에 갇히지 않게). 다른 팀 방에 처음 들어갈 때는 페이드로 가린 채 같은 일을 하고(warmRoom) 끝나면 걷는다. */
+const WARM={ready:false,done:0,total:1,stage:'캐릭터 준비 중',timedOut:false,ms:0,room:null};
+const STABLE={ok:0,push(ms){ this.ok=(ms<50)?this.ok+1:0; }};
+function sceneTextures(root){ const set=new Set();
+  root.traverse(o=>{ for(const m of [].concat(o.material||[])){ if(!m) continue;
+    for(const k in m){ const v=m[k]; if(v&&v.isTexture) set.add(v); }
+    if(m.uniforms) for(const u of Object.values(m.uniforms)) if(u&&u.value&&u.value.isTexture) set.add(u.value); } });
+  if(scene.environment&&scene.environment.isTexture) set.add(scene.environment);
+  return [...set].filter(t=>!t.isRenderTargetTexture); }
+async function compileNow(){ try{ if(renderer.compileAsync) await renderer.compileAsync(scene,camera); else renderer.compile(scene,camera); }catch(e){ log('셰이더 워밍업 오류',(e&&e.message)||e); } }
+/* 연속 n 프레임이 50ms 미만이 될 때까지(최대 maxMs). 진행은 WARM.done 에 */
+function waitStable(n,maxMs){ return new Promise(res=>{ const t0=performance.now(); STABLE.ok=0;
+  const f=()=>{ WARM.done=Math.min(n,STABLE.ok); if(STABLE.ok>=n) return res(true); if(performance.now()-t0>maxMs) return res(false); requestAnimationFrame(f); };
+  requestAnimationFrame(f); }); }
+async function warmTextures(root){ const tex=sceneTextures(root); WARM.total=tex.length+2; WARM.done=0;
+  for(let i=0;i<tex.length;i++){ try{ renderer.initTexture(tex[i]); }catch(e){} WARM.done=i+1; if(i%3===2) await frameSlice(); } }
+let WARM_MAIN=null;
+function warmupMain(){ if(WARM_MAIN) return WARM_MAIN; WARM_MAIN=(async()=>{ const t0=performance.now();
+    WARM.stage='캐릭터 준비 중'; try{ await HOME_ROOM.propsP; }catch(e){} HOME_ROOM.warmed=true;
+    if(GUEST_P){ try{ await GUEST_P; }catch(e){} }   /* 45차: 손님 직원(내 팀 동료와 동시에 받기 시작했다) */
+    WARM.stage='그래픽 준비 중'; await warmTextures(scene); await compileNow(); WARM.done++;
+    /* 복도 조명(점광 없음 · 사각광 14)으로 한 번 더 — 조명 개수가 다르면 셰이더가 새로 만들어진다 */
+    if(CORRIDOR&&CUR!==CORRIDOR){ const g=CUR.group; g.visible=false; CORRIDOR.group.visible=true;
+      await compileNow(); try{ renderer.render(scene,camera); }catch(e){}
+      CORRIDOR.group.visible=false; g.visible=true; for(const l of (CUR.LIGHTS||[])) l.shadow.needsUpdate=true; }
+    WARM.done++;
+    WARM.stage='마무리 중'; WARM.total=30; WARM.done=0;
+    const ok=await waitStable(30,40000); WARM.timedOut=!ok;
+    WARM.ms=Math.round(performance.now()-t0); WARM.done=WARM.total; WARM.stage=ok?'준비 완료':'준비 완료(시간 초과)'; WARM.ready=true;
+    log(`워밍업 끝 ${WARM.ms}ms${ok?'':' — 30프레임 안정 조건을 40초 안에 못 채움'}`); })(); return WARM_MAIN; }
+/* 다른 팀 방에 처음 들어갈 때 — 페이드가 덮고 있는 동안 그 방 텍스처·셰이더를 올리고 프레임이 안정될 때까지 */
+async function warmRoom(R){ if(!R||R.warmed) return; R.warmed=true; const t0=performance.now(); WARM.room=R.team;
+  try{ await R.propsP; }catch(e){}
+  const roots=[R.group,...R.chars.map(c=>c.model)]; const tex=new Set(); for(const r of roots) for(const t of sceneTextures(r)) tex.add(t);
+  let i=0; for(const t of tex){ try{ renderer.initTexture(t); }catch(e){} if((++i)%3===0) await frameSlice(); }
+  await compileNow(); await waitStable(20,8000);
+  WARM.room=null; log(`[${R.name}] 방 워밍업 ${Math.round(performance.now()-t0)}ms`); }
+function tick(){ const raw=clock.getDelta(); LAST_MS=raw*1000; STABLE.push(LAST_MS); qualityTick(LAST_MS); qBoxTick(LAST_MS); const dt=Math.min(raw,0.05); if(!FROZEN) simTick(dt); if(!RIG.on) controls.update(); cullWalls(); shadowTick(); renderer.render(scene,camera); mipCapTick(); bubblePos(); markTick(); promptPos(); requestAnimationFrame(tick); }
 applyQuality(); tick(); placeCharacters();
 
 
@@ -2463,7 +3085,7 @@ applyQuality(); tick(); placeCharacters();
    CUR 를 바꾸지 않고 방 객체만 받아 검사하므로 10팀을 한 번에 볼 수 있다 */
 function roomPaths(R){ if(!R||!R.NODES) return {ok:false,n:1,bad:['방 없음']};
   const N=R.NODES, ADJ2=R.ADJ, S=R.SOLIDS||[], RB=R_BODY*0.9, bad=[];
-  const keys=['me','lead','senior','board','window','door','cooler','shelf','table_side','sofa_front','table_front','lead_front','me_side','chief_side','staff_side','staff2_side','senior_side','lead_side'].filter(k=>N[k]);
+  const keys=['me','lead','senior','board','window','door','cooler','shelf','table_side','sofa_front','table_front','lead_front','me_side','chief_side','staff_side','staff2_side','senior_side','lead_side','staff3_side','staff4_side'].filter(k=>N[k]);
   const hits=(x,z)=>{ for(const q of S) if(x>q.x0-RB&&x<q.x1+RB&&z>q.z0-RB&&z<q.z1+RB) return q; return null; };
   const nd=(a,b)=>Math.hypot(N[a].x-N[b].x,N[a].z-N[b].z);
   const rt=(from,to)=>{ const dist={},prev={},todo=new Set(Object.keys(N)); for(const k of todo) dist[k]=Infinity; dist[from]=0;
@@ -2511,13 +3133,36 @@ window.__office={ scene, camera, controls, renderer, VIEWS, SEATS:HOME_ROOM.SEAT
       y:+c.model.position.y.toFixed(3), gap:+(mn-(c.P.restFootY||0)).toFixed(3),
       seat:c.seat?c.seat.id:null, errand:(c.ai&&c.ai.busy)?(c.ai.why||'심부름'):''}; }),
   npcState:()=>Object.fromEntries(Object.entries(SEATS||{}).map(([k,s])=>[k,s.occupant?{mode:s.occupant.mode,busy:!!(s.occupant.ai&&s.occupant.ai.busy),why:(s.occupant.ai&&s.occupant.ai.why)||''}:null])),
-  passers:()=>PASSERS.list.filter(p=>p.active).length,
+  /* 45차: 복도 왕래(실제 직원) 검증 — 복도에 보이는 인원 · 기록(누가 어느 팀에서 어느 팀으로) · 진행 중인 왕래 · 다음 출발 당기기 */
+  passers:()=>TRAF.trips.filter(t=>t.phase!=='visit'&&t.c.model.visible).length,
+  trafficLog:()=>TRAF.hist.slice(),
+  trafficTrips:()=>TRAF.trips.map(t=>({who:t.c.label||t.c.CH,ch:t.c.CH,home:t.home,to:t.to,phase:t.phase,seg:t.i,x:+t.x.toFixed(2),z:+t.z.toFixed(2),vis:t.c.model.visible,mode:t.c.mode,clip:t.c.clipKey,spot:t.spot||null})),
+  trafficSoon:()=>{ TRAF.next=SIM_T; return true; },
+  trafficGuests:()=>({mode:GUESTS_MODE,loading:TRAF.guestLoading,list:TRAF.guests.map(c=>({who:c.label,ch:c.CH,team:c.guestTeam,trip:!!c.trip})),log:TRAF.guestLog.slice()}),
   /* 39차: talkView(seatId,on) — 대화 화면. 두 사람이 크게 잡히는 자리로 0.3초에 다가가고 이동 입력을 막는다. off 면 고정 시점 복귀 */
-  talkView:(seatId,on)=>{ const npc=(on!==false&&SEATS&&SEATS[seatId])?SEATS[seatId].occupant:null;
-    talkCam(npc,!!npc); setControl(!npc);
-    if(npc&&PLAYER){ npc.look(headOf(PLAYER)); PLAYER.look(headOf(npc)); } else if(PLAYER){ PLAYER.look(null); }
-    return !!npc; },
+  talkView:(seatId,on)=>{ const npc=(on!==false)?talkNpcAt(seatId):null;   /* 45차: 'visitor' · 서 있는 동료도 받는다 */
+    if(!npc){ endTalk(); return false; }
+    talkCam(npc,true);
+    setControl(false); TALK_CTRL=true; if(npc.ai) npc.ai.talking=true;
+    if(PLAYER){ npc.look(talkLookAt(npc)); PLAYER.look(headOf(npc)); npc.setFace&&npc.setFace('happy'); }
+    return true; },
+  /* 45차 계약: endTalk() — 대화창을 닫을 때. onSay(fn) — 연출 대사(interact 의 npcSay·playerSay)를 말풍선 대신 받는다.
+     fn({name,text,ttl,who:'npc'|'player',seat,team}) */
+  endTalk, onSay:(fn)=>{ SAYCB.fn=(typeof fn==='function')?fn:null; return true; },
+  /* 45차: onChoose(fn) — 연출 선택지를 play 대화창으로. sayWaits — onSay 가 돌려준 Promise 를 3D 가 기다린다(true) */
+  onChoose:(fn)=>{ CHOOSECB.fn=(typeof fn==='function')?fn:null; return true; }, sayWaits:true,
+  talkShotInfo:()=>{ if(!RIG.talk) return null; const V=camera.position.constructor, h=new V(), q=new V(); headOf(RIG.talk).getWorldPosition(h); h.y+=TALK_EYE;   /* 45차 3차: 얼굴 위치 = 눈높이 */
+    const fr=RIG.talk.model.rotation.y; const cx=camera.position.x-h.x, cz=camera.position.z-h.z, cl=Math.hypot(cx,cz)||1; const bodyDot=+((cx*Math.sin(fr)+cz*Math.cos(fr))/cl).toFixed(2);   /* 45차: 카메라가 상대 몸 앞쪽인가(1 정면 · 0 옆 · −1 뒤) */
+    const hw=h.clone(); h.project(camera); headOf(PLAYER).getWorldPosition(q); q.project(camera);
+    return {npcFace:{x:+h.x.toFixed(3),y:+h.y.toFixed(3),fromTop:+((1-h.y)/2).toFixed(3)},myFace:{x:+q.x.toFixed(3),y:+q.y.toFixed(3),fromTop:+((1-q.y)/2).toFixed(3)},bodyDot,pick:RIG.talkPick&&{mode:RIG.talkPick.mode,fdot:RIG.talkPick.fdot,blk:RIG.talkPick.blk,occ:RIG.talkPick.occ},walking:!!walkOf(PLAYER), playerCover:playerScreenCover(), estCover:RIG.talkPick&&RIG.talkPick.cov}; },
   setTalkHint:(seatId,text)=>{ if(text) TALK_HINT[seatId]=text; else delete TALK_HINT[seatId]; return true; },
+  /* 45차 계약(play 방문 카드): visitorIn({name, visitor?, gender?}) → Promise<boolean> · visitorOut() → Promise · visitorState() 검사용 */
+  visitorIn, visitorOut, visitorState:()=>({state:VISIT.state, name:VISIT.c&&VISIT.c.label, ch:VISIT.c&&VISIT.c.CH, visible:!!(VISIT.c&&VISIT.c.model.visible), mode:VISIT.c&&VISIT.c.mode}),
+  talkNpc:(id)=>talkNpcAt(id),
+  talkTargetAt:(x,z)=>{ const t=talkTarget(x,z,1.8); return t?{seat:t.seat,name:t.npc.label}:null; },
+  /* 45차 계약: warmupInfo() → {ready,done,total,stage} (+ timedOut·ms·room). 로딩 화면이 ready 가 될 때까지 가린다 */
+  warmupInfo:()=>({ready:WARM.ready,done:WARM.done,total:WARM.total,stage:WARM.stage,timedOut:WARM.timedOut,ms:WARM.ms,room:WARM.room}),
+  markStyle,   /* 45차: 머리 위 화살표 모양·색 바꾸기(비교 스냅용) */
   /* 44차: 「미리 받기」의 뜻을 바꿨다 — 방을 미리 **짓는** 게 아니라 파일만 미리 **받아 둔다**.
      실측(Apple M5, 실제 GPU): 캐릭터 한 명을 만드는 데 CPU 5~6초가 든다(tune·모양 3.0s + 애니 클립 2.6s).
      9개 방 45명을 미리 만들면 273초 동안 프레임이 최대 4.9초씩 멈췄고(4.3fps),

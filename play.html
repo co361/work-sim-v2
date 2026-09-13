@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>WORK SIM — 7일차 직무 게임</title>
+<link rel="icon" href="data:,">
 <style>
   /* 팔레트 — 대표 확정 「화이트·회색·남색」(38차). 크림·금색은 남기지 않는다.
      흰 바탕 위 대비: 잉크 15.7 · 보조 5.8 · 강조 8.3 · 진한강조 11.9 · 초록 6.0 · 빨강 6.5 */
@@ -29,12 +30,16 @@
   #loading .bar i{display:block;height:100%;width:30%;background:var(--acc);animation:ld 1.2s ease-in-out infinite}
   @keyframes ld{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
   @media (prefers-reduced-motion:reduce){ #loading .bar i{animation:none;width:100%} }
+  /* 45차: 3D 워밍업(warmupInfo) 진행을 받으면 막대가 실제 진행으로 바뀐다 — day.js warmWait */
+  #loading.det .bar i{animation:none;transform:none;width:var(--pct,0%);transition:width .3s ease-out}
+  #loading .st{color:var(--mute);font-size:12.5px;min-height:18px;font-variant-numeric:tabular-nums}
+  #loading .st:empty{min-height:0}
   /* ── 첫 진입 조작법 카드 (js/play/intro.js · 44차) ──
      대표 "로딩하는 동안 로딩중이라고 띄우지 말고 게임 플레이 방법 단축키를 하나씩 설명하는 페이지를 띄워".
      처음 들어올 때만이다 — 방을 옮길 때 로딩(office.html 안)과 캐릭터 교체 로딩은 그대로 「로딩 중」이다.
      다 봤는데 아직 덜 받았으면 그때 위의 「로딩 중」 한 줄로 돌아간다. */
   #loading.tut{gap:0}
-  #loading.tut>.t,#loading.tut>.bar{display:none}
+  #loading.tut>.t,#loading.tut>.bar,#loading.tut>.st{display:none}
   #tut{width:min(620px,92vw);display:flex;flex-direction:column;gap:12px}
   #tut[hidden]{display:none}
   .tutHd{display:flex;align-items:center;gap:8px}
@@ -69,6 +74,10 @@
   .tutLoad{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--mute);min-height:18px}
   .tutLoad i{width:12px;height:12px;border-radius:50%;border:2px solid var(--acc-line);border-top-color:var(--acc);animation:tutSpin .8s linear infinite}
   .tutLoad.ok{color:var(--ok)} .tutLoad.ok i{display:none}
+  /* 45차: 워밍업 진행 막대 — 렉이 다 풀려야 「시작하기」가 뜬다 */
+  .tutBar{display:block;width:120px;height:4px;border-radius:2px;background:var(--line);overflow:hidden;flex:none}
+  .tutBar b{display:block;height:100%;width:0;background:var(--acc);border-radius:2px;transition:width .3s ease-out}
+  .tutLoad.ok .tutBar b{background:var(--ok)}
   @keyframes tutSpin{to{transform:rotate(360deg)}}
   @media (prefers-reduced-motion:reduce){ .tutIn{animation:none} .tutDots i.on::after{animation:none;width:100%} .tutLoad i{animation:none} }
   @media (max-width:520px){ .tutCard{padding:20px 18px 22px;min-height:196px} .tutCard h3{font-size:19px} .tutCard p{font-size:14.5px;line-height:1.75} }
@@ -98,6 +107,20 @@
   /* 남은 시간 — 현재 시각만 있으면 얼마나 남았는지 알 수 없다 */
   #clockLeft{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
   #clockLeft.over{color:var(--bad);font-weight:700}
+  /* 45차: 「다음 업무까지 넘기기」 — 지금 할 일이 하나도 없을 때만 뜬다(day.js skipBlock). 남은 시간 옆 작은 알약 */
+  #skipBtn{align-self:center;margin-left:2px;padding:3px 10px;border:1px solid var(--acc-line);border-radius:999px;
+    background:var(--acc-soft);color:var(--acc-d);font-size:12px;font-weight:700;line-height:1.4;white-space:nowrap}
+  #skipBtn:hover,#skipBtn:focus-visible{background:var(--acc);border-color:var(--acc-d);color:#fff}
+  #skipBtn[hidden],#pcSkip[hidden]{display:none}
+  /* 단추가 하나 늘어 1280px 에서 「홈으로」가 화면 밖으로 밀렸다 — 줄어들 수 있는 것(제목·잠금 칩)이 먼저 줄고, 단추는 줄지 않게 */
+  #top .ttl{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  #unlocks{flex:0 1 auto;min-width:0;overflow:hidden}
+  #clockBox,#cnt,#pauseWrap,#homeBtn,#pcBtn,#seatBtn{flex-shrink:0}
+  #saveStat:empty{min-width:0}
+  /* PC 작업표시줄의 같은 단추 — 옆 「사무실로」·「홈으로」와 같은 크기, 색만 강조 */
+  #pc #pcSkip{background:var(--acc-soft);border:1px solid var(--acc-line);color:var(--acc-d);border-radius:12px;
+    padding:6px 12px;font-size:13.5px;font-weight:700;font-family:inherit;white-space:nowrap;cursor:pointer}
+  #pc #pcSkip:hover{background:var(--acc);border-color:var(--acc-d);color:#fff}
   /* 하루를 일찍 끝내는 길은 눈에 안 띄는 자리에 둔다 — 큰 버튼으로 상시 노출하지 않는다 */
   #pauseWrap{position:relative}
   /* [hidden] 은 UA 규칙이라 아래 display:flex 가 이긴다 — 명시로 다시 접는다 */
@@ -109,7 +132,8 @@
   #pmQuit{color:var(--bad)}
   #cnt{display:flex;gap:12px;color:var(--mute);font-size:12px;white-space:nowrap}
   #cnt b{color:var(--ink);font-size:14px}
-  #pause,#homeBtn{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#fff}
+  #pause,#homeBtn,#seatBtn{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;white-space:nowrap}
+  #seatBtn[hidden]{display:none}
   #pause.on{background:var(--acc);border-color:var(--acc-d);color:#fff;font-weight:700}
   #saveStat{font-size:11px;color:var(--mute);min-width:60px;text-align:right}
   /* ── 패널 공통 ── */
@@ -236,40 +260,75 @@
   .orgrow{padding:6px 0;border-top:1px solid var(--line);font-size:12px} .orgrow b{display:block} .orgrow.me{background:var(--acc-soft);margin:0 -6px;padding:6px}
   .progdays .pd{font-size:12px;padding:3px 0;color:var(--mute)} .progdays .pd.done{color:var(--ok)} .progdays .pd.cur{color:var(--ink);font-weight:700}
   /* ── 알림 ── */
-  #toasts{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:30;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(520px,92vw)}
+  /* 45차: 3D 안내 알약(「E · 앉기 · T · 말 걸기」, 사무실 창 바닥에서 54px)과 겹치지 않게 그 위로 올렸다 */
+  #toasts{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:30;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(520px,92vw)}
   .toast{background:var(--ink);color:#f2f5f9;border-radius:12px;padding:9px 14px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:tin .25s ease-out}
   .toast b{color:var(--acc-lite);margin-right:6px} .toast.cust b{color:var(--acc-d)}
   .toast .btn{background:#fff;color:var(--ink)}
   .toast.cust{background:#fff;color:var(--ink);border:1px solid var(--line)}
   @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-  /* ── 대사 패널 ── */
-  #dialog{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:20;width:min(620px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 8px 28px rgba(20,30,45,.16);padding:14px 16px;display:none}
-  #dialog.open{display:block}
-  #dialog .who{font-size:12px;color:var(--mute);font-weight:700}
-  #dialog .tx{font-size:15px;line-height:1.6;margin:4px 0 10px;white-space:pre-wrap}
-  #dialog .ft{display:flex;gap:8px;justify-content:flex-end}
+  /* ── 대사 패널(아침 브리핑) ──
+     45차: 대화창과 같은 모양 — 아래 35% 안, 이름표는 윗변에 걸친 알약. 말풍선은 없다(day.js showBrief). */
+  #dialog{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:20;
+    width:min(980px,calc(100vw - 32px));max-height:calc(35vh - 14px);background:#fff;border:1px solid var(--line);border-radius:22px;
+    box-shadow:0 1px 2px rgba(20,30,45,.06),0 14px 40px rgba(20,30,45,.22);padding:24px 26px 14px;display:none}
+  #dialog.open{display:flex;flex-direction:column}
+  #dialog .who{position:absolute;left:22px;top:0;transform:translateY(-55%);max-width:calc(100% - 44px);
+    background:var(--acc);color:#fff;border-radius:999px;padding:5px 16px;font-size:14px;font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px rgba(20,30,45,.18)}
+  #dialog .who:empty{display:none}
+  #dialog .tx{flex:0 1 auto;min-height:0;overflow-y:auto;font-size:17px;line-height:1.7;margin:0 0 10px;white-space:pre-wrap}
+  #dialog .ft{flex:none;display:flex;gap:8px;justify-content:flex-end}
   /* ── 대화 모드 ──────────────────────────────────────────────────────
      대표 "말을 걸었으면 말을 할 수 있게 해줘, 이야기를." / "화면 커지면서 채팅할 수 있게".
-     말을 걸면 아래에서 넓은 대화창이 올라오고 3D 는 위쪽에 남는다. 카메라를 두 사람
-     쪽으로 당기는 것은 3D 쪽 일이다(`__office.talkView`) — 없으면 화면만 커진다.
+     45차 대표 "T를 누르면 상대 캐릭터 얼굴이 보이는 게 아니라 그냥 대화창만 보여" —
+     동물의 숲처럼 **화면 아래 35% 안**에만 창을 둔다. 위 65% 는 3D 가 상대 얼굴을 잡는 자리라
+     딤을 깔지 않는다(창 바로 뒤의 옅은 띠만). 왼쪽은 이름표 + 대사, 오른쪽은 선택지.
+     대사만 있을 때는 오른쪽 아래 ▼ — 누르거나 Enter·Space 로 넘긴다. 선택지는 숫자키로도 고른다.
      전화·방문 응대의 선택지도 전부 이 창을 쓴다(같은 부품, 같은 모양). */
-  #talk{position:fixed;left:0;right:0;bottom:0;z-index:28;display:none;
-    padding:44px 0 max(18px,env(safe-area-inset-bottom));
-    background:linear-gradient(to top,rgba(14,20,30,.40),rgba(14,20,30,0))}
+  #talk{position:fixed;left:0;right:0;bottom:0;z-index:28;display:none;pointer-events:none;
+    padding:22px 16px max(14px,env(safe-area-inset-bottom));
+    background:linear-gradient(to top,rgba(14,20,30,.22),rgba(14,20,30,0))}
   #talk.open{display:block}
-  .tkBox{width:min(760px,94vw);margin:0 auto;background:#fff;border:1px solid var(--line);
-    border-radius:18px;box-shadow:0 16px 44px rgba(20,30,45,.28);padding:16px 20px 18px}
-  .tkWho{display:flex;align-items:center;gap:11px;margin-bottom:9px}
-  .tkFace{flex:none;width:46px;height:46px;border-radius:50%;overflow:hidden;background:var(--soft);
-    display:grid;place-items:center;font-size:24px;border:1px solid var(--line)}
+  .tkBox{pointer-events:auto;position:relative;width:min(980px,100%);margin:0 auto;outline:none;
+    display:flex;align-items:stretch;gap:22px;min-height:108px;max-height:calc(35vh - 36px);
+    background:#fff;border:1px solid var(--line);border-radius:22px;
+    box-shadow:0 1px 2px rgba(20,30,45,.06),0 14px 40px rgba(20,30,45,.22);padding:24px 26px 18px}
+  #talk:not(.choosing) .tkBox{cursor:pointer}
+  .tkWho{position:absolute;left:22px;top:0;transform:translateY(-55%);display:flex;align-items:center;gap:8px;
+    max-width:calc(100% - 44px);background:var(--acc);color:#fff;border-radius:999px;padding:4px 16px 4px 4px;
+    box-shadow:0 4px 12px rgba(20,30,45,.18)}
+  .tkWho>span:last-child{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .tkFace{flex:none;width:30px;height:30px;border-radius:50%;overflow:hidden;background:#fff;
+    display:grid;place-items:center;font-size:17px}
   .tkFace img{width:100%;height:100%;object-fit:cover;display:block}
-  .tkWho b{display:block;font-size:15.5px;line-height:1.3}
-  .tkWho small{display:block;font-size:12px;color:var(--mute)}
-  .tkTx{font-size:16.5px;line-height:1.66;margin:2px 0 13px;white-space:pre-wrap;min-height:1.66em}
-  .tkOpts{display:flex;flex-direction:column;gap:7px}
-  .tkOpts .btn{text-align:left;border-radius:12px;padding:11px 14px;font-size:14.5px;width:100%}
-  .tkOpts .btn:hover{background:var(--acc-soft);border-color:var(--acc)}
-  .tkBar{height:5px;border-radius:3px;background:var(--soft);margin-top:10px;overflow:hidden}
+  /* 3D 가 얼굴을 크게 잡고 있을 때는 작은 얼굴 그림을 걷는다 — 얼굴은 위에 있다 */
+  #talk.cam .tkFace{display:none} #talk.cam .tkWho{padding-left:16px}
+  .tkWho b{font-size:15px;line-height:1.35;white-space:nowrap}
+  .tkWho small{font-size:12px;color:var(--acc-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tkWho small:empty{display:none}
+  #talk.me .tkWho{background:#fff;color:var(--ink);border:1px solid var(--line2)}
+  #talk.me .tkFace{background:var(--soft)}
+  .tkTx{flex:1 1 auto;min-width:0;max-height:calc(35vh - 78px);overflow-y:auto;margin:0;padding-right:4px;
+    font-size:17px;line-height:1.7;white-space:pre-wrap}
+  #talk.me .tkTx{color:var(--mute)}
+  .tkOpts{flex:0 0 min(400px,42%);max-height:calc(35vh - 78px);overflow-y:auto;display:flex;flex-direction:column;
+    justify-content:center;gap:6px;padding:2px}
+  .tkOpts:empty{display:none}
+  .tkOpts .btn{position:relative;text-align:left;border-radius:12px;padding:9px 13px 9px 40px;font-size:14px;line-height:1.4;width:100%}
+  .tkOpts .btn::before{content:attr(data-n);position:absolute;left:10px;top:50%;transform:translateY(-50%);
+    width:21px;height:21px;border-radius:6px;display:grid;place-items:center;
+    background:var(--soft);color:var(--mute);font-size:11.5px;font-weight:700}
+  .tkOpts .btn.pri::before{background:rgba(255,255,255,.22);color:#fff}
+  .tkOpts .btn:not(.pri):hover,.tkOpts .btn:not(.pri):focus-visible{background:var(--acc-soft);border-color:var(--acc)}
+  .tkOpts .btn:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+  .tkOpts .btn:disabled{opacity:.55;cursor:default}
+  /* 넘김 표시 — 대사만 떠 있을 때 */
+  #talk:not(.choosing) .tkBox::after{content:'▼';position:absolute;right:20px;bottom:9px;font-size:11px;color:var(--acc);
+    animation:tkNext 1s ease-in-out infinite}
+  @keyframes tkNext{0%,100%{transform:translateY(0);opacity:1}50%{transform:translateY(3px);opacity:.45}}
+  @media (prefers-reduced-motion:reduce){ #talk:not(.choosing) .tkBox::after{animation:none} }
+  .tkBar{height:5px;border-radius:3px;background:var(--soft);margin-top:4px;overflow:hidden;flex:none}
   .tkBar i{display:block;height:100%;width:100%;background:var(--bad)}
   /* 대화 중에는 조작 안내·알림을 걷는다 — 읽을 것이 둘이면 둘 다 안 읽힌다 */
   body.talk-on #pcHint,body.talk-on #toasts,body.talk-on #phoneBar{display:none}
@@ -281,7 +340,7 @@
     box-shadow:0 10px 30px rgba(20,30,45,.32);font-size:14px;max-width:92vw}
   #phoneBar.open{display:flex}
   /* 벨과 알림이 같은 자리라 겹쳤다 — 벨이 울리는 동안 알림을 위로 올린다 */
-  body.phone-on #toasts{bottom:88px}
+  body.phone-on #toasts{bottom:92px}
   body.phone-on.pc-on #toasts{bottom:144px}
   #phoneBar b{color:#fff;font-weight:700}
   #phoneBar .ring{font-size:18px;animation:ring 1s ease-in-out infinite}
@@ -436,10 +495,13 @@
     #homeDays{grid-template-columns:repeat(4,1fr)}
     #dialog,#phoneBar{bottom:56px}
     #toasts{bottom:56px}
-    .tkBox{padding:14px 16px 16px;border-radius:16px}
-    .tkTx{font-size:15.5px}
-    .tkOpts .btn{font-size:14px;padding:10px 12px}
-    #talk{padding-top:24px}
+    /* 좁은 화면은 대사 위 · 선택지 아래로 쌓는다(높이는 조금 더 쓴다) */
+    .tkBox{flex-direction:column;gap:10px;padding:22px 16px 14px;border-radius:18px;max-height:56vh}
+    .tkTx{font-size:15.5px;max-height:20vh}
+    .tkOpts{flex:none;max-height:30vh;justify-content:flex-start}
+    .tkOpts .btn{font-size:14px;padding:10px 12px 10px 40px}
+    #talk{padding:20px 10px max(10px,env(safe-area-inset-bottom))}
+    #dialog{max-height:50vh;padding:22px 16px 12px}
   }
   /* ── 사내 메신저 앱 (js/desk/msgapp.js 가 이 판을 그린다) ──────────
      대표 "메신저는 카톡처럼 그냥 화면 채워지는 막대로 있고, 누르면 창 바로 뜨면 될 것 같아.
@@ -541,9 +603,9 @@
     <div class="tutHd"><span class="tag">조작법</span><span class="no"><b id="tutNo">1</b> / <span id="tutAll">6</span></span><button class="btn" id="tutSkip" type="button">건너뛰기</button></div>
     <div class="tutCard" id="tutCard"></div>
     <div class="tutFt"><div class="tutDots" id="tutDots"></div><button class="btn pri" id="tutNext" type="button">다음</button></div>
-    <div class="tutLoad" id="tutLoad"><i></i><span id="tutLoadTx">사무실을 준비하는 중…</span></div>
+    <div class="tutLoad" id="tutLoad"><i></i><span id="tutLoadTx">사무실을 준비하는 중…</span><span class="tutBar" aria-hidden="true"><b id="tutBarFill"></b></span></div>
   </div>
-  <div class="t">로딩 중</div><div class="bar"><i></i></div><div class="s" id="loadMsg"></div><button class="btn" id="loadBack" type="button" style="display:none">홈으로</button>
+  <div class="t">로딩 중</div><div class="bar"><i></i></div><div class="st" id="loadStage" aria-live="polite"></div><div class="s" id="loadMsg"></div><button class="btn" id="loadBack" type="button" style="display:none">홈으로</button>
 </div>
 
 <div id="home"><div class="wrap">
@@ -561,7 +623,7 @@
   <div class="ttl" id="title">WORK SIM</div>
   <div id="unlocks"></div>
   <div id="cnt"><span>처리 <b id="cDone">0</b>/<span id="cAll">0</span></span><span>넘김 <b id="cPass">0</b></span><span>물어봄 <b id="cAsk">0</b></span></div>
-  <div id="clockBox"><div id="clock">09:00</div><span id="clockLeft"></span><span class="chip" id="lunch" hidden>점심</span></div>
+  <div id="clockBox"><div id="clock">09:00</div><span id="clockLeft"></span><span class="chip" id="lunch" hidden>점심</span><button id="skipBtn" type="button" hidden title="지금 할 일이 없을 때만 — 다음 업무가 오는 시각까지 시간을 넘깁니다">다음 업무까지 넘기기</button></div>
   <span id="saveStat"></span>
   <button id="seatBtn" type="button" title="내 자리로 걸어가 앉습니다">내 자리로</button>
   <button id="pcBtn" type="button" title="내 자리에 앉으면 컴퓨터를 켤 수 있어요">PC<span class="dot" id="pcDot" hidden></span></button>
@@ -590,7 +652,7 @@
       <div id="dockApps"></div>
       <span class="dock-sep"></span>
       <div id="tbWins"></div>
-      <div class="tb-right"><span id="tbClock">09:00</span><span class="tb-esc">ESC 로 사무실</span><button id="pcOff" type="button" title="ESC 를 눌러도 됩니다">사무실로</button><button id="pcHome" type="button" title="진행은 저장돼요">홈으로</button></div>
+      <div class="tb-right"><span id="tbClock">09:00</span><button id="pcSkip" type="button" hidden title="지금 할 일이 없을 때만 — 다음 업무가 오는 시각까지 시간을 넘깁니다">다음 업무까지 넘기기</button><span class="tb-esc">ESC 로 사무실</span><button id="pcOff" type="button" title="ESC 를 눌러도 됩니다">사무실로</button><button id="pcHome" type="button" title="진행은 저장돼요">홈으로</button></div>
     </div>
   </main>
   <!-- 사내 메신저 알림 — 사람 말풍선이 컴퓨터 화면 위에 끼어들지 않게, PC 가 켜져
@@ -632,9 +694,9 @@
 <div id="toasts"></div>
 <div id="dialog"><div class="who" id="dWho"></div><div class="tx" id="dTx"></div><div class="ft"><button class="btn" id="dSkip" type="button">건너뛰기</button><button class="btn pri" id="dNext" type="button">다음</button></div></div>
 <!-- 대화 모드 — NPC 와 주고받는 이야기 · 전화 · 방문 응대가 모두 이 창을 쓴다 -->
-<div id="talk"><div class="tkBox">
+<div id="talk" role="dialog" aria-label="대화"><div class="tkBox" tabindex="-1">
   <div class="tkWho"><span class="tkFace" id="tkFace"></span><span><b id="tkName"></b><small id="tkRole"></small></span></div>
-  <div class="tkTx" id="tkTx"></div>
+  <div class="tkTx" id="tkTx" aria-live="polite"></div>
   <div class="tkOpts" id="tkOpts"></div>
 </div></div>
 <div id="phoneBar"><span class="ring">☎</span><span id="phoneTx">전화가 왔어요</span><button class="btn" id="phoneTake" type="button">받기</button><button class="btn" id="phoneLater" type="button">나중에</button></div>
@@ -670,14 +732,14 @@ window.__backendReady=fetch('js/backend.js',{method:'HEAD'}).then(r=>{ if(!r.ok)
 <script src="js/desk/msgapp.js?v=20260907g"></script>
 <script src="js/desk/telapp.js?v=20260907g"></script>
 <script src="js/desk/deskapp.js?v=20260907g"></script>
-<script src="js/play/core.js?v=20260907g"></script>
-<script src="js/play/intro.js?v=20260908a"></script>
-<script src="js/play/grade.js?v=20260907g"></script>
-<script src="js/play/cards.js?v=20260907g"></script>
-<script src="js/play/day.js?v=20260907g"></script>
-<script src="js/play/ep7.js?v=20260907g"></script>
-<script src="js/play/talk.js?v=20260907g"></script>
-<script src="js/play/auto.js?v=20260907g"></script>
-<script src="js/play/pc.js?v=20260907g"></script>
+<script src="js/play/core.js?v=20260913e"></script>
+<script src="js/play/intro.js?v=20260913e"></script>
+<script src="js/play/grade.js?v=20260913e"></script>
+<script src="js/play/cards.js?v=20260913e"></script>
+<script src="js/play/day.js?v=20260913e"></script>
+<script src="js/play/ep7.js?v=20260913e"></script>
+<script src="js/play/talk.js?v=20260913e"></script>
+<script src="js/play/auto.js?v=20260913e"></script>
+<script src="js/play/pc.js?v=20260913e"></script>
 </body>
 </html>
