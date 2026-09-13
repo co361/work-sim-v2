@@ -143,7 +143,7 @@
      대표 지적: 브리핑에서 최주임·사수 대사가 **팀장 얼굴 위**에 나왔다(이름표만 맞고 얼굴은 팀장).
      얼굴 카메라가 켜진 대화 판에서는 줄마다 말하는 사람을 잡는다 — 3D 에서 그 사람을 잡을 수 있으면 talkView(그 사람 자리),
      못 잡으면(다른 방·자리 없는 동기) 얼굴 카메라를 잠깐 풀어 **어떤 얼굴도 이름표와 어긋나지 않게** 하고 대화창 사진으로 누구인지 보인다.
-     모여 선 사람(gather)·대화 상대끼리는 부드럽게 옮기고, 멀리 앉은 사람으로 갈 때는 끊어서 붙인다(rig snap). */
+     화자가 바뀔 때마다 끊어서 붙인다(rig snap). */
   function speakerSeat(who) { const n = normName(who); if (sess && n === sess.name && sess.seat) return sess.seat; const info = npcInfo(n); return (info && info.seat) || null; }
   function aimAt(item) {
     /* 판 밖에서 끼어든 줄(다른 사람의 반응 등)도 얼굴 카메라가 켜진 판이 있으면 같은 규칙 — 카메라가 다른 사람 얼굴에 머물지 않게 */
@@ -151,10 +151,10 @@
     const O = O3(); if (!O) return;
     const seat = speakerSeat(item.who);
     if (seat && seat === camSeat) return;
-    const near = (x) => !!x && (x === s.seat || (s.gathered || []).includes(x));
     if (seat) {
       let ok = false; try { ok = typeof O.talkView === 'function' && O.talkView(seat, true) !== false; } catch (e) {}
-      if (ok) { const cut = !(near(seat) && near(camSeat)); camSeat = seat; if (cut) { try { if (typeof O.rig === 'function') O.rig({}); } catch (e) {} } return; }
+      /* 화자가 바뀌면 **끊어서** 붙인다 — 미끄러져 옮기면 가운데 선 내 머리를 스치며 지나가 한동안 화면을 덮었다(라이브 스냅 flow_04) */
+      if (ok) { camSeat = seat; try { if (typeof O.rig === 'function') O.rig({}); } catch (e) {} return; }
     }
     if (camSeat) { try { if (typeof O.endTalk === 'function') O.endTalk(); if (typeof O.setControl === 'function') O.setControl(false); } catch (e) {} camSeat = null; }
   }
@@ -387,6 +387,8 @@
       /* 부르기(브리핑·마무리) — 한 줄씩 다 듣고 대화를 닫은 뒤 onHeard(시계 시작·결과 화면). Esc 로 끊으면 못 들은 줄은 다시 쌓는다 */
       if (heard.some((x) => x.call)) {
         const tk = heard.find((x) => x.token && x.token.gathered && x.token.gathered.length); s.gathered = tk ? tk.token.gathered : [];
+        /* 모이는 중에 T 를 눌렀으면 아직 걸어오는 사람을 제자리에 세운다(카메라가 걷는 뒷모습을 잡지 않게) */
+        if (s.gathered.length) { const O = O3(); try { if (O && typeof O.gatherSnap === 'function') O.gatherSnap(); } catch (e) {} }
         for (let i = 0; i < heard.length; i++) {
           const it = heard[i];
           if (s.closed) { const back = heard.slice(i); pending[name] = back.concat(pending[name] || []); noticed[name] = true; refresh(); break; }
