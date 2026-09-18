@@ -166,6 +166,20 @@
     if (camSeat) { try { if (typeof O.endTalk === 'function') O.endTalk(); if (typeof O.setControl === 'function') O.setControl(false); } catch (e) {} camSeat = null; }
   }
 
+  /* 말하는 사람의 입(45차 후속 — 대표 「말하는 사람이 계속 눈을 감고 웃는다」): 줄이 뜨면 3D 에 그 사람 자리로 speak(글자 수만큼, 0.9~5.2초).
+     3D 는 눈 뜬 얼굴에 입만 움직이고, 웃음(눈 감음)은 인사할 때 잠깐만 쓴다. 웃음소리가 적힌 줄(하하·ㅎㅎ·^^)이나 item.mood 가 있으면 첫머리에 그 표정.
+     내 줄이 뜨면 앞사람 입을 닫는다 */
+  let speakSeat = null;
+  function speakLine(item) {
+    const O = O3(); if (!O || typeof O.speak !== 'function' || item.keep) return;
+    if (item.me || !item.who || !item.text) { if (item.me && speakSeat) { try { O.speak(speakSeat, 0); } catch (e) {} speakSeat = null; } return; }
+    const seat = speakerSeat(item.who); if (!seat) return;
+    const t = fill(item.text); const ms = Math.max(900, Math.min(5200, 300 + 85 * t.length));
+    const mood = item.mood || (/하하|호호|허허|ㅎㅎ|\^\^/.test(t) ? 'happy' : null);
+    let ok = false; try { ok = O.speak(seat, ms, mood ? { mood } : {}) !== false; } catch (e) {}
+    speakSeat = ok ? seat : null;
+  }
+
   /* 한 장 그리기 — item {who, role, text, options[], timeLimit, me, keep} */
   function paint(item) {
     const box = T.box();
@@ -207,7 +221,7 @@
     jobs++;
     const run = () => new Promise((done) => { waitStill(item, () => {
       if (item.seq <= flushTo || (item.sess && item.sess.closed)) { done(hasOpts ? -1 : undefined); return; }
-      openBox(); aimAt(item); paint(item);
+      openBox(); aimAt(item); paint(item); speakLine(item);
       if (!item.me && item.text && !(item.options && item.options.length)) lastLine = { name: item.who, text: String(item.text), at: Date.now() };
       let fin = false;
       const end = (v) => {

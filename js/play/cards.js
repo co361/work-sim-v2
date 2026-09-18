@@ -88,7 +88,10 @@ function renderCardActs(id){ const c=CARD(id), st=S.cards[id]; const acts=$('cAc
   if(flow.includes('approval')){ notes.push('결재 문서예요. 숫자와 규정이 맞으면 승인, 어긋나면 반려하면서 의견을 적어요.'); acts.appendChild(mkBtn('반려 의견 쓰기','pri',()=>openComposer(id,'approval'))); acts.appendChild(mkBtn('이상 없음(승인)','',()=>doApprove(id))); for(const k of Object.keys(c.act||{})){ if(['reply','reject','approve'].includes(k)) continue; acts.appendChild(mkBtn(actLabel(k),'',()=>doButton(id,k))); } lockBtn(acts); note(notes.join('<br>')); return; }
   if(flow.includes('report')&&!steps.report){ const who=c.npc||(c.report&&c.report.npc)||D.dests.find(d=>d.seat==='lead').name;
     if(walkT()) notes.push(`팀장에게 직접 보고하는 건이에요. 근거를 들고 <b>${escapeHtml(who)}</b> 자리로 가서 ${T_KEY}로 보고하세요.`);
-    else { notes.push(`팀장에게 직접 보고하는 건이에요. 근거를 들고 가세요.`); acts.appendChild(mkBtn(`${who}에게 보고하러 가기`,'pri',()=>doReport(id))); } if(c.mode!=='report'||c.type!=='report'){ for(const k of Object.keys(c.act||{})){ if(k==='confirm'||k==='reply') continue; acts.appendChild(mkBtn(actLabel(k),'',()=>doButton(id,k))); } if(c.act&&c.act.confirm) acts.appendChild(mkBtn('메일로 상신','',()=>doButton(id,'confirm','mailConfirm'))); } lockBtn(acts); note(notes.join('<br>')); return; }
+    else { notes.push(`팀장에게 직접 보고하는 건이에요. 근거를 들고 가세요.`); acts.appendChild(mkBtn(`${who}에게 보고하러 가기`,'pri',()=>doReport(id))); }
+    if(st.mailTried) notes.push(`<b>메일로는 안 받았어요.</b> ${escapeHtml(who)} 자리로 가서 직접 보고하세요.`);
+    /* 46차 35: 최선 행동(보고 카드의 confirm·reject 등)은 대면 보고 + 회신으로만 닿는다 — 단추 한 번으로 최선 점수를 주지 않는다 */
+    if(c.mode!=='report'||c.type!=='report'){ for(const k of Object.keys(c.act||{})){ if(k==='confirm'||k==='reply'||k===c.best) continue; acts.appendChild(mkBtn(actLabel(k),'',()=>doButton(id,k))); } if(c.act&&c.act.confirm&&!st.mailTried) acts.appendChild(mkBtn('메일로 상신','',()=>doMailConfirm(id))); } lockBtn(acts); note(notes.join('<br>')); return; }
   if(flow.includes('report')&&steps.report&&!steps.reply){ notes.push(`<b>보고 끝.</b> ${escapeHtml(steps.report.line||'')}<br>이제 고객에게 회신하세요 — 결론은 아직 쓰지 않아요.`); acts.appendChild(mkBtn('고객에게 회신','pri',()=>openComposer(id,'reply'))); note(notes.join('<br>')); return; }
   /* 전달 · 질문 */
   if(flow.includes('deliver')||flow.includes('ask')){ const isAsk=flow.includes('ask'); const d=c.deliver||{}; const who=isAsk?c.npc:d.npc;
@@ -193,6 +196,19 @@ function doApprove(id){ const c=CARD(id); const a=c.act.approve||c.act.reply||[3
 /* ---------- 버튼 · 전화 · 반성 · 검산 ---------- */
 function doButton(id,k,branchKey){ const c=CARD(id); const a=c.act&&c.act[k]; if(!a) return; if(k==='delegate') S.counts.pass++; if(k==='confirm') S.counts.ask++; if(c.best&&['reject','confirm'].includes(c.best)){ S.counts.rejectAll++; if(k===c.best) S.counts.reject++; }
   const st=S.cards[id]; st.choice=k; record(id,{act:k,score:a[0],comment:a[1]}); if(k!==c.best){ runBranch(id,branchKey||k)||runBranch(id,'other'); } else runBranch(id,branchKey||'ok'); }
+/* 46차 35(메인 「메일로 온 대면 보고 카드를 「메일로 상신」만 눌러도 100점」): 메일·메신저로 온 보고 카드(mode report)를
+   자리로 안 가고 글로 올린 경우. 예전에는 doButton('confirm') 이 act.confirm(최선 100)을 그대로 적고 7일차 단서까지 챙겼다.
+   정본은 데이터 분기 branches[id].mailConfirm.today(각 팀 5화 md 선택 분기 표 「메일로 상신」 행) —
+   cs10·lg10·rc12·acct·ga·plan 60 · pr 50 · qc12 45 · edu 30. 점수가 없으면(buy by12 「시간 −1.5분 뒤 대면으로」) 끝내지 않고
+   팀장 한마디만 듣고 대면 보고로 돌아간다. 어느 쪽이든 단서는 챙기지 않는다(reportBest=false · 분기 clueGap). */
+function mailConfirmBranch(c){ return (c&&c.mode==='report'&&c.type!=='report'&&((D.branches||{})[c.id]||{}).mailConfirm)||null; }
+function doMailConfirm(id){ const c=CARD(id), st=S.cards[id]; if(!c||!st||st.status==='done') return; const br=mailConfirmBranch(c);
+  if(!br){ doButton(id,'confirm','mailConfirm'); return; }   /* 분기 표에 「메일로 상신」 행이 없는 카드는 act.confirm 이 데이터 점수다 */
+  const m=String(br.today||'').match(/(\d{2,3})/); st.lastNpc=c.npc||st.lastNpc; st.lastSeat='lead';
+  if(!m){ st.mailTried=true; runBranch(id,'mailConfirm'); if(S.cur===id) renderCardActs(id); renderInbox(); saveProgress(); return; }
+  S.counts.ask++; if(c.best&&['reject','confirm'].includes(c.best)) S.counts.rejectAll++;
+  st.choice='mailConfirm'; st.reportBest=false;
+  record(id,{act:'confirm',score:+m[1],comment:'메일로만 올렸어요. 이 건은 근거를 들고 팀장 자리로 가서 직접 보고해야 해요.'}); runBranch(id,'mailConfirm'); }
 function doPhone(id,k,keepAfter){ const c=CARD(id); const a=c.act[k]; if(!a) return null; const st=S.cards[id]; st.choice=k; if(k==='promise') S.counts.promise++; record(id,{act:k,score:a[0],comment:a[1]});
   /* 전화 너머 상대의 반응은 곧바로 — 통화 창이 열려 있으면 그 안에 이어진다(Talk.reply) */
   runBranch(id,k===c.best?'ok':k,{toastOnly:true})||runBranch(id,k,{toastOnly:true}); const br=(D.branches[id]||{})[k]||(k===c.best?(D.branches[id]||{}).ok:null); const after=(br&&br.after)||(k!==c.best&&c.after);
@@ -340,7 +356,7 @@ function msgActions(id,foot){ const c=CARD(id), st=S.cards[id];
     ta.addEventListener('input',()=>{ if(window.Msg) Msg.draft(who,ta.value); len.textContent=ta.value.length+'자'; });
     ta.addEventListener('focus',()=>{ S.composing={id,which,key}; });
     len.textContent=ta.value.length+'자'; foot.appendChild(ta);
-    const send=mkBtn(which==='reply2'?'안내 답장 보내기':key==='reject'?'거절 답장 보내기':key==='confirm'?'상신하고 답장 보내기':'답장 보내기','pri',async()=>{
+    const send=mkBtn(which==='reply2'?'안내 답장 보내기':key==='reject'?'거절 답장 보내기':(key==='confirm'&&!flow.includes('report'))?'상신하고 답장 보내기':'답장 보내기','pri',async()=>{   /* 46차 35: 보고 카드의 상신은 대면 보고 — 이 답장은 상신이 아니다 */
       const text=ta.value.trim();
       if(text.replace(/\s/g,'').length<8){ toast('내용이 너무 짧아요. 한 줄이라도 용건을 적어 주세요.'); return; }
       send.disabled=true;
@@ -348,7 +364,10 @@ function msgActions(id,foot){ const c=CARD(id), st=S.cards[id];
       try{ await sendCompose(id,text,which,key,null); } finally{ send.disabled=false; }
       msgResultNote(id); });
     btns.appendChild(send);
-    for(const k of Object.keys(c.act||{})){ if(k===key||k==='reply') continue;
+    for(const k of Object.keys(c.act||{})){ if(k==='reply') continue;
+      /* 46차 35: 보고 카드의 「상신」은 자리로 안 가고 글로 올리는 것 — 데이터 mailConfirm 점수(doMailConfirm) */
+      if(k==='confirm'&&mailConfirmBranch(c)){ if(!st.mailTried) btns.appendChild(mkBtn('메일로 상신','',()=>{ doMailConfirm(id); msgResultNote(id); })); continue; }
+      if(k===key||(flow.includes('report')&&k===c.best)) continue;
       btns.appendChild(mkBtn(actLabel(k),'',()=>{ doButton(id,k); msgResultNote(id); })); }
     btns.appendChild(len); drew=true; }
   if(btns.childElementCount){ foot.appendChild(btns); drew=true; }

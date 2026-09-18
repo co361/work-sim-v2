@@ -267,18 +267,22 @@
   .toast .btn{background:#fff;color:var(--ink)}
   .toast.cust{background:#fff;color:var(--ink);border:1px solid var(--line)}
   @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-  /* ── 대사 패널(아침 브리핑) ──
-     45차: 대화창과 같은 모양 — 아래 35% 안, 이름표는 윗변에 걸친 알약. 말풍선은 없다(day.js showBrief). */
-  #dialog{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:20;
-    width:min(980px,calc(100vw - 32px));max-height:calc(35vh - 14px);background:#fff;border:1px solid var(--line);border-radius:22px;
-    box-shadow:0 1px 2px rgba(20,30,45,.06),0 14px 40px rgba(20,30,45,.22);padding:24px 26px 14px;display:none}
+  /* 아침 브리핑: 이름·본문·진행을 패널 안에 정렬한 간결한 대사창. */
+  #dialog{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:20;
+    width:min(900px,calc(100vw - 40px));max-height:calc(35vh - 20px);background:#fff;border:1px solid var(--line2);border-radius:4px;
+    box-shadow:0 4px 16px rgba(20,30,45,.10);padding:20px 24px 14px;display:none}
   #dialog.open{display:flex;flex-direction:column}
-  #dialog .who{position:absolute;left:22px;top:0;transform:translateY(-55%);max-width:calc(100% - 44px);
-    background:var(--acc);color:#fff;border-radius:999px;padding:5px 16px;font-size:14px;font-weight:700;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px rgba(20,30,45,.18)}
+  #dialog .who{flex:none;margin:0 0 10px;color:var(--mute);font-size:13px;font-weight:600;line-height:1.5;
+    white-space:normal;overflow-wrap:anywhere}
   #dialog .who:empty{display:none}
-  #dialog .tx{flex:0 1 auto;min-height:0;overflow-y:auto;font-size:17px;line-height:1.7;margin:0 0 10px;white-space:pre-wrap}
-  #dialog .ft{flex:none;display:flex;gap:8px;justify-content:flex-end}
+  #dialog .tx{flex:0 1 auto;min-height:0;overflow-y:auto;font-size:17px;line-height:1.65;margin:0 0 14px;white-space:pre-wrap}
+  #dialog .ft{flex:none;display:flex;gap:16px;justify-content:flex-end;align-items:center;border-top:1px solid var(--line);padding-top:10px}
+  #dialog .ft .btn{min-height:40px;border-radius:3px;padding:8px 18px;font-size:13px;box-shadow:none}
+  #dialog #dSkip{border-color:transparent;background:transparent;color:var(--mute);padding-inline:4px}
+  #dialog #dSkip:hover{color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+  #dialog #dNext{background:var(--ink);border-color:var(--ink);color:#fff;min-width:76px}
+  #dialog #dNext:hover{background:var(--acc-d);border-color:var(--acc-d)}
+  #dialog .btn:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
   /* ── 대화 모드 ──────────────────────────────────────────────────────
      대표 "말을 걸었으면 말을 할 수 있게 해줘, 이야기를." / "화면 커지면서 채팅할 수 있게".
      45차 대표 "T를 누르면 상대 캐릭터 얼굴이 보이는 게 아니라 그냥 대화창만 보여" —
@@ -287,47 +291,39 @@
      대사만 있을 때는 오른쪽 아래 ▼ — 누르거나 Enter·Space 로 넘긴다. 선택지는 숫자키로도 고른다.
      전화·방문 응대의 선택지도 전부 이 창을 쓴다(같은 부품, 같은 모양). */
   #talk{position:fixed;left:0;right:0;bottom:0;z-index:28;display:none;pointer-events:none;
-    padding:22px 16px max(14px,env(safe-area-inset-bottom));
-    background:linear-gradient(to top,rgba(14,20,30,.22),rgba(14,20,30,0))}
+    padding:16px 20px max(20px,env(safe-area-inset-bottom))}
   #talk.open{display:block}
   .tkBox{pointer-events:auto;position:relative;width:min(980px,100%);margin:0 auto;outline:none;
-    display:flex;align-items:stretch;gap:22px;min-height:108px;max-height:calc(35vh - 36px);
-    background:#fff;border:1px solid var(--line);border-radius:22px;
-    box-shadow:0 1px 2px rgba(20,30,45,.06),0 14px 40px rgba(20,30,45,.22);padding:24px 26px 18px}
+    display:flex;align-items:stretch;gap:24px;min-height:108px;max-height:calc(35vh - 36px);
+    background:#fff;border:1px solid var(--line2);border-radius:4px;
+    box-shadow:0 4px 16px rgba(20,30,45,.10);padding:46px 24px 22px}
   #talk:not(.choosing) .tkBox{cursor:pointer}
-  .tkWho{position:absolute;left:22px;top:0;transform:translateY(-55%);display:flex;align-items:center;gap:8px;
-    max-width:calc(100% - 44px);background:var(--acc);color:#fff;border-radius:999px;padding:4px 16px 4px 4px;
-    box-shadow:0 4px 12px rgba(20,30,45,.18)}
-  .tkWho>span:last-child{display:flex;align-items:baseline;gap:8px;min-width:0}
-  .tkFace{flex:none;width:30px;height:30px;border-radius:50%;overflow:hidden;background:#fff;
-    display:grid;place-items:center;font-size:17px}
+  .tkWho{position:absolute;left:24px;right:24px;top:14px;display:flex;align-items:center;gap:8px;
+    max-width:calc(100% - 48px);color:var(--ink);padding:0}
+  .tkWho>span:last-child{display:flex;align-items:baseline;gap:10px;min-width:0}
+  .tkFace{flex:none;width:22px;height:22px;border-radius:3px;overflow:hidden;background:var(--soft);
+    display:grid;place-items:center;font-size:15px}
   .tkFace img{width:100%;height:100%;object-fit:cover;display:block}
-  /* 3D 가 얼굴을 크게 잡고 있을 때는 작은 얼굴 그림을 걷는다 — 얼굴은 위에 있다 */
-  #talk.cam .tkFace{display:none} #talk.cam .tkWho{padding-left:16px}
-  .tkWho b{font-size:15px;line-height:1.35;white-space:nowrap}
-  .tkWho small{font-size:12px;color:var(--acc-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #talk.cam .tkFace{display:none}
+  .tkWho b{font-size:13px;font-weight:600;line-height:1.4;white-space:nowrap}
+  .tkWho small{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tkWho small:empty{display:none}
-  #talk.me .tkWho{background:#fff;color:var(--ink);border:1px solid var(--line2)}
-  #talk.me .tkFace{background:var(--soft)}
-  .tkTx{flex:1 1 auto;min-width:0;max-height:calc(35vh - 78px);overflow-y:auto;margin:0;padding-right:4px;
-    font-size:17px;line-height:1.7;white-space:pre-wrap}
+  #talk.me .tkWho{color:var(--mute)}
+  .tkTx{flex:1 1 auto;min-width:0;max-height:calc(35vh - 108px);overflow-y:auto;margin:0;padding-right:4px;
+    font-size:17px;line-height:1.65;white-space:pre-wrap}
   #talk.me .tkTx{color:var(--mute)}
-  .tkOpts{flex:0 0 min(400px,42%);max-height:calc(35vh - 78px);overflow-y:auto;display:flex;flex-direction:column;
-    justify-content:center;gap:6px;padding:2px}
+  .tkOpts{flex:0 0 min(400px,42%);max-height:calc(35vh - 108px);overflow-y:auto;display:flex;flex-direction:column;
+    justify-content:flex-start;gap:6px;padding:2px}
   .tkOpts:empty{display:none}
-  .tkOpts .btn{position:relative;text-align:left;border-radius:12px;padding:9px 13px 9px 40px;font-size:14px;line-height:1.4;width:100%}
-  .tkOpts .btn::before{content:attr(data-n);position:absolute;left:10px;top:50%;transform:translateY(-50%);
-    width:21px;height:21px;border-radius:6px;display:grid;place-items:center;
-    background:var(--soft);color:var(--mute);font-size:11.5px;font-weight:700}
-  .tkOpts .btn.pri::before{background:rgba(255,255,255,.22);color:#fff}
-  .tkOpts .btn:not(.pri):hover,.tkOpts .btn:not(.pri):focus-visible{background:var(--acc-soft);border-color:var(--acc)}
+  .tkOpts .btn{position:relative;text-align:left;border-radius:3px;padding:9px 12px 9px 36px;font-size:14px;line-height:1.4;width:100%}
+  .tkOpts .btn::before{content:attr(data-n);position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    color:var(--mute);font-size:12px;font-weight:600}
+  .tkOpts .btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+  .tkOpts .btn.pri::before{color:#fff}
+  .tkOpts .btn:not(.pri):hover,.tkOpts .btn:not(.pri):focus-visible{background:var(--soft);border-color:var(--mute)}
   .tkOpts .btn:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
   .tkOpts .btn:disabled{opacity:.55;cursor:default}
-  /* 넘김 표시 — 대사만 떠 있을 때 */
-  #talk:not(.choosing) .tkBox::after{content:'▼';position:absolute;right:20px;bottom:9px;font-size:11px;color:var(--acc);
-    animation:tkNext 1s ease-in-out infinite}
-  @keyframes tkNext{0%,100%{transform:translateY(0);opacity:1}50%{transform:translateY(3px);opacity:.45}}
-  @media (prefers-reduced-motion:reduce){ #talk:not(.choosing) .tkBox::after{animation:none} }
+  #talk:not(.choosing) .tkBox::after{content:'계속 ›';position:absolute;right:24px;bottom:6px;font-size:11px;color:var(--mute)}
   .tkBar{height:5px;border-radius:3px;background:var(--soft);margin-top:4px;overflow:hidden;flex:none}
   .tkBar i{display:block;height:100%;width:100%;background:var(--bad)}
   /* 대화 중에는 조작 안내·알림을 걷는다 — 읽을 것이 둘이면 둘 다 안 읽힌다 */
@@ -496,12 +492,15 @@
     #dialog,#phoneBar{bottom:56px}
     #toasts{bottom:56px}
     /* 좁은 화면은 대사 위 · 선택지 아래로 쌓는다(높이는 조금 더 쓴다) */
-    .tkBox{flex-direction:column;gap:10px;padding:22px 16px 14px;border-radius:18px;max-height:56vh}
+    .tkBox{flex-direction:column;gap:10px;padding:44px 16px 22px;max-height:56vh}
+    .tkWho{left:16px;right:16px;max-width:calc(100% - 32px)}
     .tkTx{font-size:15.5px;max-height:20vh}
     .tkOpts{flex:none;max-height:30vh;justify-content:flex-start}
     .tkOpts .btn{font-size:14px;padding:10px 12px 10px 40px}
     #talk{padding:20px 10px max(10px,env(safe-area-inset-bottom))}
-    #dialog{max-height:50vh;padding:22px 16px 12px}
+    #dialog{width:calc(100vw - 24px);max-height:50vh;padding:16px 18px 12px}
+    #dialog .tx{font-size:15px;line-height:1.65}
+    #dialog .ft .btn{min-height:44px}
   }
   /* ── 사내 메신저 앱 (js/desk/msgapp.js 가 이 판을 그린다) ──────────
      대표 "메신저는 카톡처럼 그냥 화면 채워지는 막대로 있고, 누르면 창 바로 뜨면 될 것 같아.
@@ -735,10 +734,10 @@ window.__backendReady=fetch('js/backend.js',{method:'HEAD'}).then(r=>{ if(!r.ok)
 <script src="js/play/core.js?v=20260913f"></script>
 <script src="js/play/intro.js?v=20260913e"></script>
 <script src="js/play/grade.js?v=20260913e"></script>
-<script src="js/play/cards.js?v=20260913e"></script>
+<script src="js/play/cards.js?v=20260915a"></script>
 <script src="js/play/day.js?v=20260914a"></script>
 <script src="js/play/ep7.js?v=20260914a"></script>
-<script src="js/play/talk.js?v=20260914d"></script>
+<script src="js/play/talk.js?v=20260914e"></script>
 <script src="js/play/auto.js?v=20260914a"></script>
 <script src="js/play/pc.js?v=20260913e"></script>
 </body>

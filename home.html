@@ -738,8 +738,13 @@ var use3d = Q.get('still')==='1' ? false
 
 function office(){
   try{
-    var w=stage3d.contentWindow;
-    return (w && w.__office && w.__office.ready && w.__office.ready()) ? w.__office : null;
+    var w=stage3d.contentWindow, O=w && w.__office;
+    if(!(O && O.ready && O.ready())) return null;
+    /* 46차(대표 「책장·화분이 처음엔 크다가 갑자기 작아진다」): ready() 는 내 캐릭터만 준비된 때라
+       코드 임시 소품이 Meshy 소품으로 바뀌는 것·동료가 앉으며 의자가 맞춰지는 것이 히어로에 그대로 보였다.
+       play 로딩 화면과 같은 조건(warmupInfo().ready — 소품 교체·동료 착석·그래픽 준비 끝)에 보여 준다. 옛 무대면 ready() */
+    if(typeof O.warmupInfo==='function'){ var wi=O.warmupInfo(); if(!wi || !wi.ready) return null; }
+    return O;
   }catch(e){ return null; }
 }
 
