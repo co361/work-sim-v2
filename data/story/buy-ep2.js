@@ -755,6 +755,9 @@ window.STORY["buy-ep2"]={
     "긴급 구매는 결재를 어떻게 받아요?",
     "견적 비교는 생략돼요?"
    ],
+   "wrongNpcLine": {
+    "buy": "긴급 구매요? 그건 제 선에서 답 못 해요. 예외 건은 늘 선임분이 정리하시니까 그쪽에 여쭤보세요."
+   },
    "answer": "설비 고장은 긴급 구매 대상이에요. 부서장 구두 승인으로 먼저 가고, 그래도 발주서는 납품 전에 내고, 정식 결재는 다음 영업일까지 보완. 견적 비교는 생략할 수 있는데 생략 사유를 발주서에 남겨요.",
    "mustInclude": [
     "구두 승인",
@@ -884,7 +887,7 @@ window.STORY["buy-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "두께는 저희가 못 재요. 품질관리팀이요."
+     "text": "하자냐 아니냐가 먼저예요. 판정 없이는 저희도 뭐라 못 해요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -917,7 +920,7 @@ window.STORY["buy-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "지급일요? 회계팀이에요."
+     "text": "발행일은 알겠는데 지급일은 저희가 정하는 게 아니라서요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -1187,15 +1190,22 @@ window.STORY["buy-ep2"]={
    "team": "구매팀",
    "role": "사수"
   },
+  "엄주임": {
+   "seat": "chief",
+   "ch": "acnh_48",
+   "team": "구매팀",
+   "teamKey": "buy",
+   "role": "주임"
+  },
   "도주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_35",
    "team": "품질관리팀",
    "teamKey": "qc",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1210,13 +1220,19 @@ window.STORY["buy-ep2"]={
    "key": "buy"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "엄주임",
+   "team": "구매팀",
+   "key": "buy"
+  },
+  {
+   "seat": null,
    "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

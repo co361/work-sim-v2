@@ -918,7 +918,7 @@ window.STORY["ga-ep5"]={
     ]
    },
    "vars": {
-    "SENDER": "신주임",
+    "SENDER": "반주임",
     "HALF": "상반기",
     "DAY": "이번 주 목요일"
    },
@@ -1051,7 +1051,7 @@ window.STORY["ga-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "근태 정정은 채용팀이요."
+     "text": "기록이 안 찍힌 거랑 근태 정정은 다른 얘기예요. 정정하는 데로요."
     },
     "today": "시간 손실",
     "next": "—"
@@ -1340,8 +1340,15 @@ window.STORY["ga-ep5"]={
    "team": "총무팀",
    "role": "사수"
   },
+  "권주임": {
+   "seat": "chief",
+   "ch": "acnh_27",
+   "team": "총무팀",
+   "teamKey": "ga",
+   "role": "주임"
+  },
   "홍주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_43",
    "team": "채용팀",
    "teamKey": "rec",
@@ -1356,7 +1363,13 @@ window.STORY["ga-ep5"]={
    "key": "ga"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "권주임",
+   "team": "총무팀",
+   "key": "ga"
+  },
+  {
+   "seat": null,
    "name": "홍주임",
    "team": "채용팀",
    "key": "rec"

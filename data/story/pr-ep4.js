@@ -918,7 +918,7 @@ window.STORY["pr-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "실적 확정 여부는 경영기획팀에 물어보세요."
+     "text": "30% 가 확정인지부터 확인돼야 배포하죠. 저희는 못 정해요."
     },
     "today": "1분 손실",
     "next": "없음",
@@ -1026,7 +1026,7 @@ window.STORY["pr-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "채용 질문은 채용팀이요."
+     "text": "지원 질문은 채용 담당이 답해야 해요. 댓글로 저희가 답하면 안 돼요."
     },
     "today": "1분 손실",
     "next": "없음",
@@ -1271,22 +1271,29 @@ window.STORY["pr-ep4"]={
    "team": "홍보팀",
    "role": "사수"
   },
+  "표주임": {
+   "seat": "chief",
+   "ch": "acnh_33",
+   "team": "홍보팀",
+   "teamKey": "pr",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "엄주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
    "role": "조력자"
   },
   "신주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
@@ -1315,22 +1322,40 @@ window.STORY["pr-ep4"]={
    "key": "pr"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "표주임",
+   "team": "홍보팀",
+   "key": "pr"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
+  },
+  {
+   "seat": null,
+   "name": "홍주임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": null,
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
   },
   {
    "seat": "lead",

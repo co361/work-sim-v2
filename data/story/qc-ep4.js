@@ -1082,7 +1082,7 @@ window.STORY["qc-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "계약 조건은 구매팀이요."
+     "text": "표본을 줄일지는 계약 조건에 달렸어요. 계약한 데로요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음",
@@ -1105,8 +1105,8 @@ window.STORY["qc-ep4"]={
    },
    "wrongNpc": {
     "now": {
-     "who": "장주임",
-     "text": "접수 건수요? 상담팀이요."
+     "who": "@npc",
+     "text": "접수 건수는 접수하는 데가 세요. 판정은 물건 오면 저희가 해요."
     },
     "today": "−1.5분",
     "next": "없음"
@@ -1142,8 +1142,8 @@ window.STORY["qc-ep4"]={
    },
    "wrongNpc": {
     "now": {
-     "who": "엄주임",
-     "text": "지급일이요? 회계팀."
+     "who": "@npc",
+     "text": "지급일은 돈 다루는 데가 정해요. 부적합 통보는 저희가 넣을게요."
     },
     "today": "−1.5분 (구매는 오늘 두 번째 방문 → 같은 팀 두 번 감점)",
     "next": "없음"
@@ -1189,7 +1189,7 @@ window.STORY["qc-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "발주는 구매팀이요."
+     "text": "교정 결과는 드렸으니 수리 발주는 발주하는 데로요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음"
@@ -1598,22 +1598,29 @@ window.STORY["qc-ep4"]={
    "team": "품질관리팀",
    "role": "사수"
   },
+  "도주임": {
+   "seat": "chief",
+   "ch": "acnh_35",
+   "team": "품질관리팀",
+   "teamKey": "qc",
+   "role": "주임"
+  },
   "엄주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
    "role": "조력자"
   },
   "이주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1635,22 +1642,34 @@ window.STORY["qc-ep4"]={
    "key": "qc"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
+  },
+  {
+   "seat": null,
+   "name": "장주임",
+   "team": "물류팀",
+   "key": "logi"
   },
   {
    "seat": "lead",

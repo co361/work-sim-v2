@@ -328,12 +328,25 @@ window.STORY["plan-ep7"]={
    "ch": "acnh_40",
    "team": "경영기획팀",
    "role": "사수"
+  },
+  "신주임": {
+   "seat": "chief",
+   "ch": "acnh_38",
+   "team": "경영기획팀",
+   "teamKey": "plan",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "류선임",
+   "team": "경영기획팀",
+   "key": "plan"
+  },
+  {
+   "seat": "chief",
+   "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
   },

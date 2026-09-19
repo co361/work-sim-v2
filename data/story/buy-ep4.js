@@ -818,7 +818,7 @@ window.STORY["buy-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "저희가 받아도 되는 거예요? — 물건 놓는 건 물류예요."
+     "text": "발주서 없는 물건은 하역장에 그대로 두세요. 자리 잡는 건 저희 일이 아니에요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -840,7 +840,7 @@ window.STORY["buy-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "사양 변경 소요요? 경영기획이요."
+     "text": "리드타임은 드릴 수 있는데 사양 변경은 기획 쪽 숫자예요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -896,7 +896,7 @@ window.STORY["buy-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "불량률 기준은 품질이요."
+     "text": "이의는 판정한 데에 넣어야 해요. 저희는 로트 위치만 알아요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -922,7 +922,7 @@ window.STORY["buy-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "주차는 총무팀이에요."
+     "text": "방문 전날까지 등록해야 한다니까 오늘 중에 가 보세요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -1165,22 +1165,29 @@ window.STORY["buy-ep4"]={
    "team": "구매팀",
    "role": "사수"
   },
+  "엄주임": {
+   "seat": "chief",
+   "ch": "acnh_48",
+   "team": "구매팀",
+   "teamKey": "buy",
+   "role": "주임"
+  },
   "장주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "신주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
    "role": "조력자"
   },
   "도주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_35",
    "team": "품질관리팀",
    "teamKey": "qc",
@@ -1202,22 +1209,34 @@ window.STORY["buy-ep4"]={
    "key": "buy"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "엄주임",
+   "team": "구매팀",
+   "key": "buy"
+  },
+  {
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"
+  },
+  {
+   "seat": null,
+   "name": "최주임",
+   "team": "총무팀",
+   "key": "ga"
   },
   {
    "seat": "lead",

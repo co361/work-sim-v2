@@ -1120,7 +1120,7 @@ window.STORY["logi-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "장부 정정요? 회계팀이에요."
+     "text": "120개 차이는 장부 쪽 얘기예요. 실사 결과만 들고 가세요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1153,7 +1153,7 @@ window.STORY["logi-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "판정요? 품질관리팀이에요."
+     "text": "상온에 있었으면 판정부터예요. 출고 지시는 그다음에요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1675,15 +1675,22 @@ window.STORY["logi-ep6"]={
    "team": "물류팀",
    "role": "사수"
   },
+  "장주임": {
+   "seat": "chief",
+   "ch": "acnh_18",
+   "team": "물류팀",
+   "teamKey": "logi",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "도주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_35",
    "team": "품질관리팀",
    "teamKey": "qc",
@@ -1698,13 +1705,19 @@ window.STORY["logi-ep6"]={
    "key": "logi"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "장주임",
+   "team": "물류팀",
+   "key": "logi"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"

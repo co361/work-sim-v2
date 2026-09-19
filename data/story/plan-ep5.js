@@ -988,7 +988,7 @@ window.STORY["plan-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "클레임 건수는 받긴 하는데 측정 기준은 품질관리팀이에요."
+     "text": "건수만으론 지표가 안 돼요. 기준 정하는 데서 검토받으세요."
     },
     "today": "40초 손실, ⑨ 0",
     "next": "없음"
@@ -1375,8 +1375,15 @@ window.STORY["plan-ep5"]={
    "team": "경영기획팀",
    "role": "사수"
   },
+  "신주임": {
+   "seat": "chief",
+   "ch": "acnh_38",
+   "team": "경영기획팀",
+   "teamKey": "plan",
+   "role": "주임"
+  },
   "도주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_35",
    "team": "품질관리팀",
    "teamKey": "qc",
@@ -1391,7 +1398,13 @@ window.STORY["plan-ep5"]={
    "key": "plan"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "신주임",
+   "team": "경영기획팀",
+   "key": "plan"
+  },
+  {
+   "seat": null,
    "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"

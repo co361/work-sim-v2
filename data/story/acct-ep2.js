@@ -451,6 +451,9 @@ window.STORY["acct-ep2"]={
     "승인 취소는 언제 했어요?",
     "고객이 계좌로 받겠다면요?"
    ],
+   "wrongNpcLine": {
+    "acct": "카드 취소 반영이요… 저는 그 건 처리한 적이 없어서요. 어제 승인 취소를 직접 올린 분한테 물어보는 게 빨라요."
+   },
    "answer": "승인 취소는 우리가 어제 했고 당일이에요. 카드사 반영은 통상 영업일 3~5일. 그건 규정에 없어요, 카드사 안내문에 있어요. 우리 처리 기한은 접수 후 영업일 3일.",
    "mustInclude": [
     "영업일 3",
@@ -975,7 +978,7 @@ window.STORY["acct-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "휴가는 채용팀이요"
+     "text": "본인 결혼이라면서요. 축하할 일이니 얼른 가서 날짜부터 잡으세요."
     },
     "today": "40초 손실. 홍주임 신뢰 0",
     "next": "없음"
@@ -1044,7 +1047,7 @@ window.STORY["acct-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "입사일은 채용팀이요"
+     "text": "급여 계산은 우리가 하지만 날짜는 우리 것이 아니에요. 그것부터 받아 오세요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -1167,8 +1170,15 @@ window.STORY["acct-ep2"]={
    "team": "회계팀",
    "role": "사수"
   },
+  "문주임": {
+   "seat": "chief",
+   "ch": "acnh_20",
+   "team": "회계팀",
+   "teamKey": "acct",
+   "role": "주임"
+  },
   "홍주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_43",
    "team": "채용팀",
    "teamKey": "rec",
@@ -1183,7 +1193,13 @@ window.STORY["acct-ep2"]={
    "key": "acct"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "문주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
    "name": "홍주임",
    "team": "채용팀",
    "key": "rec"

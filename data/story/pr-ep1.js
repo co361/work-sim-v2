@@ -932,7 +932,7 @@ window.STORY["pr-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "사진만으론 못 봐요. 고객상담이요."
+     "text": "사진만으로 저희가 판정할 순 없어요. 접수부터 하세요."
     },
     "today": "되돌아옴, 1분 손실",
     "next": "없음",
@@ -1214,15 +1214,22 @@ window.STORY["pr-ep1"]={
    "team": "홍보팀",
    "role": "사수"
   },
+  "표주임": {
+   "seat": "chief",
+   "ch": "acnh_33",
+   "team": "홍보팀",
+   "teamKey": "pr",
+   "role": "주임"
+  },
   "이주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
    "role": "조력자"
   },
   "반주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_36",
    "team": "교육팀",
    "teamKey": "edu",
@@ -1237,13 +1244,19 @@ window.STORY["pr-ep1"]={
    "key": "pr"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "표주임",
+   "team": "홍보팀",
+   "key": "pr"
+  },
+  {
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "반주임",
    "team": "교육팀",
    "key": "edu"

@@ -144,7 +144,21 @@
      얼굴 카메라가 켜진 대화 판에서는 줄마다 말하는 사람을 잡는다 — 3D 에서 그 사람을 잡을 수 있으면 talkView(그 사람 자리),
      못 잡으면(다른 방·자리 없는 동기) 얼굴 카메라를 잠깐 풀어 **어떤 얼굴도 이름표와 어긋나지 않게** 하고 대화창 사진으로 누구인지 보인다.
      화자가 바뀔 때마다 끊어서 붙인다(rig snap). */
-  function speakerSeat(who) { const n = normName(who); if (sess && n === sess.name && sess.seat) return sess.seat; const info = npcInfo(n); return (info && info.seat) || null; }
+  /* 48차: 이 방에 자리가 없어도 **방문객으로 와 있으면** 그 사람이다
+     (1일차 사원증을 주러 온 총무팀 최주임 · 50차 「대면」 카드로 찾아온 조력자).
+     office 의 방문객 좌석 id 는 'visitor' 하나뿐이라 **이름이 같을 때만** 넘긴다. */
+  function visitorSeatOf(name) {
+    try { const O = O3(); const v = O && typeof O.visitorState === 'function' && O.visitorState();
+      if (v && v.state === 'seated' && v.name && normName(v.name) === normName(name)) return 'visitor'; } catch (e) {}
+    return null;
+  }
+  /* 「이 사람에게 말이 닿는가」 — 자리(이 방) 또는 방문객 */
+  function seatOf(name) { return seatByName(name) || visitorSeatOf(name); }
+  function speakerSeat(who) {
+    const n = normName(who); if (sess && n === sess.name && sess.seat) return sess.seat;
+    const info = npcInfo(n); if (info && info.seat) return info.seat;
+    return visitorSeatOf(n);
+  }
   /* 카메라를 다른 사람으로 옮겨야 하는 줄인데 내가 아직 말 거는 자리로 걸어가는 중이면(talkApproach) 멈출 때까지 잠깐 기다린다(최대 3초) —
      걷는 도중에 구도를 고르면 도착한 내 몸이 카메라 앞을 막았다(flow_04: 내 뒷머리가 화면 4할) */
   function waitStill(item, fn) {
@@ -414,6 +428,7 @@
           const it = heard[i];
           if (s.closed) { const back = heard.slice(i); pending[name] = back.concat(pending[name] || []); noticed[name] = true; refresh(); break; }
           await sayLine(it.who || name, it.text, { sess: s, role: it.who && it.who !== name && !npcInfo(it.who) ? (it.role || '') : undefined });
+          if (it.onSaid) { try { it.onSaid(); } catch (e) { console.warn('줄 뒤 처리 오류', e); } }
           if (it.onHeard) { if (it.token) { it.token.done = true; clearInterval(it.token.remind); } post.push(it.onHeard); }
         }
         throw { done: true };
@@ -651,6 +666,9 @@
     if (!name || !text) return false;
     /* 하루가 닫히는 중(결과 계산 · 팀장 마무리 대기)에 미처리 카드 분기가 쏟아내는 말은 흘려보낸다 — 마무리 대화 앞에 끼어들지 않게 */
     if (S.phase === 'debrief' || S.phase === 'wrap') return true;
+    /* 50차 주의: 여기서는 **자리만** 본다(seatOf 가 아니다).
+       hear 는 「가서 T 로 들어야 하는 말」인데, 머리 위 표시(refreshTalkHints)가 좌석만 훑어서
+       방문객에게 쌓으면 표시가 안 뜨고 말이 갇힌다. 찾아온 손님의 말은 reply(그 자리에서 바로)로 간다. */
     if (!seatByName(name)) { if (typeof msgLine === 'function') msgLine(name, fill(text)); return true; }
     if (sess && !sess.closed && sess.name === name) { sayLine(name, text, { sess }); return true; }
     const q = (pending[name] = pending[name] || []);
@@ -668,7 +686,7 @@
     /* 데이터에 연출 대사(wrongNpcLine 등)와 분기 반응(now.text)이 거의 같은 말로 두 번 적힌 경우가 있다 — 방금 한 말에 담기면 넘긴다 */
     const same = (a, b) => { const n = (x) => String(x || '').replace(/[\s.,!?…~"'「」]/g, ''); a = n(a); b = n(b); return !!a && !!b && (a.includes(b) || b.includes(a)); };
     if (lastLine && lastLine.name === name && Date.now() - lastLine.at < 60000 && same(lastLine.text, fill(text))) return;
-    const seat = seatByName(name);
+    const seat = seatOf(name);   /* 50차: 방문객으로 와 있는 사람도 대화창에 띄운다 */
     if (sess && !sess.closed && (sess.name === name || !seat)) { sayLine(name, text, { sess, role: (sess.name === name && !npcInfo(name) && sess.role) || undefined }); return; }
     if (!seat) { if (typeof msgLine === 'function') msgLine(name, fill(text)); return; }
     sayLine(name, text, { sess: null });
@@ -682,7 +700,8 @@
   function call(name, lines, opts) {
     name = normName(name); opts = opts || {};
     const token = { name, done: false, remind: null, gathered: [].concat(opts.gathered || []) };
-    const items = (lines || []).filter((l) => l && l.text).map((l) => ({ text: String(l.text), who: normName(l.who || name), role: l.role, call: true, token }));
+    /* 48차: onSaid — 그 줄을 다 들은 순간(다음 줄로 넘어가기 직전). 사원증을 준 최주임이 그때 문으로 나간다 */
+    const items = (lines || []).filter((l) => l && l.text).map((l) => ({ text: String(l.text), who: normName(l.who || name), role: l.role, onSaid: l.onSaid || null, call: true, token }));
     if (!name || !items.length) { token.done = true; if (opts.onHeard) { try { opts.onHeard(); } catch (e) { console.warn(e); } } return { cancel() {}, heard: () => true }; }
     items[items.length - 1].onHeard = opts.onHeard || null;
     (pending[name] = pending[name] || []).push(...items);
@@ -762,6 +781,8 @@
     pending: () => Object.fromEntries(Object.entries(pending).map(([k, q]) => [k, q.map((x) => x.text)])),
     call: call,
     norm: normName,
+    chOf: chOf,   /* 48차: 이름 → 3D 모델 번호(오늘 데이터에 없으면 office CAST 에서). 없으면 '' */
+    seatOf: seatOf,   /* 50차: 자리 또는 'visitor' — 말이 닿는가 */
     say: (who, text, opt) => sayLine(normName(who), text, Object.assign({ sess: sess }, opt || {})),
     begin: begin,
     end: end,

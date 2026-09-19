@@ -828,7 +828,7 @@ window.STORY["acct-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "임차 계약은 총무예요"
+     "text": "계약서를 봐야 답이 나오는 건이에요. 사본 갖고 계신 분한테요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -1010,15 +1010,22 @@ window.STORY["acct-ep3"]={
    "team": "회계팀",
    "role": "사수"
   },
+  "문주임": {
+   "seat": "chief",
+   "ch": "acnh_20",
+   "team": "회계팀",
+   "teamKey": "acct",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "홍주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_43",
    "team": "채용팀",
    "teamKey": "rec",
@@ -1033,13 +1040,19 @@ window.STORY["acct-ep3"]={
    "key": "acct"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "문주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "홍주임",
    "team": "채용팀",
    "key": "rec"

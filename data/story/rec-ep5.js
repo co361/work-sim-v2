@@ -640,6 +640,10 @@ window.STORY["rec-ep5"]={
     "REC-05",
     "REC-02"
    ],
+   "replyBan": [
+    "윤도경 님을 합격",
+    "차순위로 진행"
+   ],
    "deadline": 16
   },
   {
@@ -926,7 +930,7 @@ window.STORY["rec-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "열람 기록요? 총무팀."
+     "text": "명단을 파일로 보내려면 열람 기록이 남아야 해요. 그걸 관리하는 데부터요."
     },
     "today": "⑨ 0"
    }
@@ -977,9 +981,13 @@ window.STORY["rec-ep5"]={
     },
     "today": "40"
    },
-   "forbid:윤도경 님을 합격 처리": {
+   "forbid:윤도경 님을 합격": {
     "now": null,
-    "today": "replyBan → 10"
+    "today": "replyBan → 10",
+    "next": "6화 팀장 보고에서 노윤아 \"합격선 밑을 누가 올렸어?\" — 신뢰 −2, 7화 C 위반 후보에 \"합격선 미달 승격\" 표시"
+   },
+   "forbid:윤도경 님을 합격 처리": {
+    "next": "$delete"
    }
   },
   "rc12": {
@@ -1229,8 +1237,15 @@ window.STORY["rec-ep5"]={
    "team": "채용팀",
    "role": "사수"
   },
+  "홍주임": {
+   "seat": "chief",
+   "ch": "acnh_43",
+   "team": "채용팀",
+   "teamKey": "rec",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1245,7 +1260,13 @@ window.STORY["rec-ep5"]={
    "key": "rec"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "홍주임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

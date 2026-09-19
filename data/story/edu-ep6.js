@@ -884,7 +884,7 @@ window.STORY["edu-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "강사 견적은 구매팀이요."
+     "text": "대체 강사 견적은 저희가 못 받아요. 섭외하는 데로요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -1298,22 +1298,29 @@ window.STORY["edu-ep6"]={
    "team": "교육팀",
    "role": "사수"
   },
+  "반주임": {
+   "seat": "chief",
+   "ch": "acnh_36",
+   "team": "교육팀",
+   "teamKey": "edu",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "엄주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
@@ -1328,19 +1335,25 @@ window.STORY["edu-ep6"]={
    "key": "edu"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "반주임",
+   "team": "교육팀",
+   "key": "edu"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"

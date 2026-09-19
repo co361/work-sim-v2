@@ -244,6 +244,9 @@ window.STORY["qc-ep1"]={
    "mode": "ask",
    "to": "qc",
    "npc": "남선임",
+   "wrongNpcLine": {
+    "qc": "보류 로트 구역은 제가 안 정해요. 검사 판정 쪽 선임분이 어디에 두는지 아세요."
+   },
    "question": [
     "검사 보류 로트는 어느 구역에 두는 거예요?",
     "검사 보류 표시는 누가 떼는 거예요?",
@@ -1029,7 +1032,7 @@ window.STORY["qc-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "검수동 설비는 총무팀이요."
+     "text": "사람이 다쳤으면 설비 관리하는 데가 먼저 봐야 해요. 얼른요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음",
@@ -1088,7 +1091,7 @@ window.STORY["qc-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "발주량은 구매팀이요."
+     "text": "발주량 조정은 발주하는 데가 정해요. 저희는 기준만 드려요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음",
@@ -1135,7 +1138,7 @@ window.STORY["qc-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "고객 안내는 고객상담팀이요."
+     "text": "판정은 끝났으니 고객 안내는 고객 창구에서요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음"
@@ -1415,22 +1418,28 @@ window.STORY["qc-ep1"]={
    "team": "품질관리팀",
    "role": "사수"
   },
+  "도주임": {
+   "seat": "chief",
+   "ch": "acnh_35",
+   "team": "품질관리팀",
+   "teamKey": "qc",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "엄주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
    "role": "조력자"
   },
   "이주임": {
-   "seat": "staff3",
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
@@ -1445,19 +1454,25 @@ window.STORY["qc-ep1"]={
    "key": "qc"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"

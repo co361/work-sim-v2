@@ -892,7 +892,7 @@ window.STORY["rec-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "회의실요? 그건 총무팀이에요."
+     "text": "면접이 금요일이면 회의실부터 잡으세요. 예약하는 데로요."
     },
     "today": "되돌아옴(40초 손실), ⑨ 0점"
    },
@@ -1189,22 +1189,29 @@ window.STORY["rec-ep1"]={
    "team": "채용팀",
    "role": "사수"
   },
+  "홍주임": {
+   "seat": "chief",
+   "ch": "acnh_43",
+   "team": "채용팀",
+   "teamKey": "rec",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "반주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_36",
    "team": "교육팀",
    "teamKey": "edu",
@@ -1219,19 +1226,25 @@ window.STORY["rec-ep1"]={
    "key": "rec"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "홍주임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "반주임",
    "team": "교육팀",
    "key": "edu"

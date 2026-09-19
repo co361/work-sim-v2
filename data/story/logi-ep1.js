@@ -153,7 +153,8 @@ window.STORY["logi-ep1"]={
     "D구역"
    ],
    "wrongNpcLine": {
-    "ga": "창고 적재는 물류팀이요. 저희는 사무실 비품만."
+    "ga": "창고 적재는 물류팀이요. 저희는 사무실 비품만.",
+    "logi": "적재 구역은 제가 정하는 게 아니에요. 창고 배치는 대리님이 잡으세요. 기사님 기다리니까 얼른 가 보세요."
    }
   },
   {
@@ -1096,7 +1097,7 @@ window.STORY["logi-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "교환 접수는 고객상담팀이요. 물건이 와야 저희가 봐요."
+     "text": "물건이 와야 저희가 봐요. 접수는 고객 창구에서요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1176,7 +1177,7 @@ window.STORY["logi-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "운임 정산은 회계팀이요."
+     "text": "청구액이 다르면 정산하는 데가 대조해요. 저희는 운송만요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1324,15 +1325,22 @@ window.STORY["logi-ep1"]={
    "team": "물류팀",
    "role": "사수"
   },
+  "장주임": {
+   "seat": "chief",
+   "ch": "acnh_18",
+   "team": "물류팀",
+   "teamKey": "logi",
+   "role": "주임"
+  },
   "이주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1347,13 +1355,19 @@ window.STORY["logi-ep1"]={
    "key": "logi"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "장주임",
+   "team": "물류팀",
+   "key": "logi"
+  },
+  {
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

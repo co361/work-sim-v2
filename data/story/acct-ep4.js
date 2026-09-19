@@ -792,7 +792,7 @@ window.STORY["acct-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "거래 지속 판단은 경영기획이에요"
+     "text": "60일 넘긴 건 저희도 알아요. 거래를 이어갈지는 저희가 정할 일이 아니라서요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -824,7 +824,7 @@ window.STORY["acct-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "단가는 구매팀이요"
+     "text": "단가가 정해져야 저희가 전표를 끊죠. 순서가 그래요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -884,7 +884,7 @@ window.STORY["acct-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "납품 검수 확인은 물류팀이요."
+     "text": "검수가 끝났는지부터 확인돼야 25일 얘기를 할 수 있어요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -1111,22 +1111,29 @@ window.STORY["acct-ep4"]={
    "team": "회계팀",
    "role": "사수"
   },
+  "문주임": {
+   "seat": "chief",
+   "ch": "acnh_20",
+   "team": "회계팀",
+   "teamKey": "acct",
+   "role": "주임"
+  },
   "신주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
    "role": "조력자"
   },
   "엄주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
    "role": "조력자"
   },
   "장주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
@@ -1148,22 +1155,34 @@ window.STORY["acct-ep4"]={
    "key": "acct"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "문주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"
+  },
+  {
+   "seat": null,
+   "name": "반주임",
+   "team": "교육팀",
+   "key": "edu"
   },
   {
    "seat": "lead",

@@ -242,7 +242,13 @@ function renderRulebook(){ const RB=window.OC&&OC.data&&OC.data.RULEBOOK; if(!RB
   if(!n&&!shown.size) list.appendChild(h('div','empty-msg',q?'찾는 조항이 없어요':'')); }
 $('rbBook').onchange=()=>{ RB_BOOK=$('rbBook').value; $('rbSearch').value=''; renderRulebook(); }; $('rbSearch').addEventListener('input',renderRulebook);
 function insertText(t){ const ta=$('composeText'); if(!S.composing||$('composer').style.display==='none'){ toast('작성기를 연 뒤 넣을 수 있어요'); return; } const s=ta.selectionStart||ta.value.length; ta.value=ta.value.slice(0,s)+(s&&!/\s|\(/.test(ta.value[s-1])?' ':'')+`(${t})`+ta.value.slice(s); ta.dispatchEvent(new Event('input')); ta.focus(); }
-function initOrg(){ const box=$('orgList'); box.innerHTML=''; for(const k of TEAM_ORDER){ const o=ORG[k]; const row=h('div','orgrow'+(k===S.team?' me':'')); row.appendChild(h('b',null,TEAM_NAMES[k])); const here=Object.entries(D.npcs||{}).filter(([n,v])=>v.teamKey===k||(k===S.team&&!v.teamKey)).map(([n])=>n); row.appendChild(h('span',null,`${o.lead} · ${o.senior} · ${o.chief}`+(here.length?` — 지금 이 방: ${uniq(here).join(', ')}`:''))); box.appendChild(row); } }
+/* 조직도는 **팀 이름 + 사람 셋**이 전부다(50차, 대표 「그걸 찾는 것도 의사결정 연습이다」).
+   47차에 내가 붙였던 「지금 이 방 / 오늘 찾아갈 사람」 꼬리표를 뗀다 — 오늘 찾아갈 사람이 사실상 **정답표**여서
+   메일을 열기도 전에 누구에게 갈 일인지 다 알게 됐다(타 팀 등장 131건 중 128건이 그날 카드 상대).
+   「지금 이 방」도 같은 이유 — 내 팀 사람은 늘 있어 정보가 없고, 타 팀 손님이 뜨면 그게 또 누설이다.
+   팀 이름과 사람 셋은 남긴다. 「세금계산서 → 회계팀 → 거기 사람」을 학생이 **스스로** 잇는 근거다. */
+function initOrg(){ const box=$('orgList'); box.innerHTML=''; for(const k of TEAM_ORDER){ const o=ORG[k]; const row=h('div','orgrow'+(k===S.team?' me':'')); row.appendChild(h('b',null,TEAM_NAMES[k]));
+  row.appendChild(h('span',null,`${o.lead} · ${o.senior} · ${o.chief}`)); box.appendChild(row); } }
 function renderProgTab(){ const box=$('tab_prog'); box.innerHTML=''; box.appendChild(h('h4',null,`${S.name?S.name+' · ':''}${S.code||'데모'}`)); const ul=h('div','progdays'); for(let d=1; d<=7; d++){ const done=P&&P.done[String(d)]; const cur=d===S.ep; const e=h('div','pd '+(done?'done':cur?'cur':'lock'),`${d}일차 ${DAY_TITLES[d]||''} ${done?'✓':cur?'(오늘)':''}`); ul.appendChild(e); } box.appendChild(ul);
   const tr=Object.entries(Object.assign({},P&&P.trust||{})); for(const [n,v] of Object.entries(S.trust||{})){ const i=tr.findIndex(x=>x[0]===n); if(i>=0) tr[i][1]+=v; else tr.push([n,v]); } if(tr.length) box.appendChild(h('div','muted','신뢰: '+tr.map(([n,v])=>`${n} ${v>0?'+':''}${v}`).join(', ')));
   const cl=S.clues.length+((P&&P.clues&&Object.values(P.clues).reduce((a,b)=>a+b.length,0))||0); box.appendChild(h('div','muted',`모은 단서 ${cl}개`)); const ft=h('div','paneFoot'); box.appendChild(ft); ft.appendChild(mkBtn('홈으로','',()=>goHome(true))); }
@@ -271,11 +277,58 @@ function briefGatherStart(L,gate){ const gateSeat=seatByName(gate); const O=offi
   ungatherBrief();
   if(seats.length&&O&&typeof O.gather==='function'&&!navigator.webdriver){ briefGathered=seats; try{ O.gather(seats,gateSeat); }catch(e){ console.warn('모이기 실패',e); briefGathered=[]; } }
   return briefGathered.slice(); }
+/* ══ 48차 — 1일차 「사원증 전달」(9팀 ep1 브리핑 첫 줄, 총무팀 최주임) ════════════════════
+   47차에 타 팀 조력자의 내 방 좌석을 없애면서 최주임도 자리가 사라져 **대사만 나오고 3D 로는 안 보였다**
+   (briefGatherStart 가 자리 있는 사람만 모은다). 원래도 9팀 중 5팀만 3D 였다 — 자리가 있던 팀만.
+   이제 9팀 모두 **문으로 들어와 사원증을 주고 나간다**(office visitorIn({stand})/visitorOut).
+
+   왜 소파가 아니라 팀장 자리 둘레인가 — 지문은 「입구에서, 사원증을 건네며」다.
+   ① 브리핑은 팀장 자리에서 듣는다. 문 앞(6~7m 밖)에 세우면 카메라만 멀리 날아가고
+      「건네며」인데 받을 사람이 화면에 같이 안 잡힌다.
+   ② 소파에 앉히면(기본 visitorIn) 브리핑 내내 남의 팀 방에 앉아 있게 된다 — 47차에 없앤 바로 그 모양이다.
+   그래서 **들어오는 길**로 「입구에서」를 살리고, 건네는 것은 눈앞에서 하고, 그 줄이 끝나는 즉시 나간다.
+   최주임은 총무팀 사수다 — 나간 뒤 총무팀으로 찾아가면 거기 앉아 있다(같은 사람이 두 군데 동시에 보이지 않는다).
+
+   **1일차 첫 줄에만** 건다. 자기 팀 사람은 손님이 아니다 —
+   qc 6일차 도주임·pr 6일차 표주임은 **내 팀 주임**인데 한때 npcs 에 없어 자리 없는 화자로 잡혔다
+   (HANDOFF 47차 「남은 것」 3번. 48차에 npcs 에 chief 로 들어가 지금은 앉아 있다).
+   7일차 셋째 줄(동기)은 3D 모델이 없어 어차피 해당 없다(Talk.chOf 가 ''를 돌려준다). */
+let briefVisit=null;
+function briefVisitorPick(L){
+  if(NO_STAGE||Number(S.ep)!==1||!L||!L.length) return null;   /* 홈에서 고른 날짜가 글자로 올 수도 있다 */
+  const O=office(); if(!O||typeof O.visitorIn!=='function'||!window.Talk||!Talk.chOf) return null;
+  const l=L[0]; if(!l||!l.who) return null;
+  const who=Talk.norm?Talk.norm(l.who):l.who;
+  if(!who||seatByName(who)) return null;            /* 이 방에 자리가 있으면 그대로 앉아 있다(총무팀 ga 의 최주임 = 사수) */
+  const ch=Talk.chOf(l.who)||'';
+  if(!ch) return null;                              /* 3D 모델이 없는 사람(회계팀 동기 임도윤 등)은 예전처럼 대사만 */
+  return {who,ch};
+}
+/* 48차 후속(대표 「09:00 에 문 쪽 컷 0.8초」) — 손님이 문지방을 넘는 0.8초만 카메라가 그를 잡는다(office doorCut).
+   자동화(webdriver)는 볼 사람이 없고 카메라를 빌리면 검사 도구의 시점 조작과 엉킨다 → 컷 없음(모이기 gather 와 같은 규칙).
+   컷은 **걸어 들어오기와 따로** 돌아, 있든 없든 들어오는 시간은 같다. */
+const BRIEF_CUT_SEC=0.8;
+function briefVisitorIn(L,gate){
+  briefVisit=briefVisitorPick(L); if(!briefVisit) return null;
+  const O=office(); const seat=seatByName(gate)||'lead';
+  const cut=(Q.get('cut')==='0'||navigator.webdriver)?0:BRIEF_CUT_SEC;   /* ?cut=0 — 컷만 꺼서 앞뒤를 견준다(들어오는 시간이 늘었는지) */
+  try{ Promise.resolve(O.visitorIn({name:briefVisit.who,ch:briefVisit.ch,stand:seat,noTalk:true,cut}))
+        .catch(e=>console.warn('사원증 손님 들어오기 실패',e)); }
+  catch(e){ console.warn('사원증 손님 들어오기 실패',e); briefVisit=null; }
+  return briefVisit;
+}
+function briefVisitorOut(){ if(!briefVisit) return; briefVisit=null;
+  const O=office(); if(!O||typeof O.visitorOut!=='function') return;
+  try{ Promise.resolve(O.visitorOut()).catch(()=>{}); }catch(e){}
+}
 function callBriefing(onHeard){ const L=(D.dialog&&D.dialog.briefing)||[];
   const gate=L.length&&talkByT()?briefGate(L):null; if(!gate) return false;
   S.phase='briefing'; S.briefT=true;
   briefGatherStart(L,gate);
-  briefCall=Talk.call(gate,L.map(l=>({who:l.who,text:l.text,role:l.role})),{ gathered:briefGathered.slice(),
+  const bv=briefVisitorIn(L,gate);
+  briefCall=Talk.call(gate,L.map(l=>{ const o={who:l.who,text:l.text,role:l.role};
+    if(bv&&Talk.norm(l.who)===bv.who) o.onSaid=briefVisitorOut;   /* 사원증을 건넨 줄이 끝나면 곧바로 나간다 */
+    return o; }),{ gathered:briefGathered.slice(),
     notice:`${calledBy(gate)} 부르세요. 자리로 가서 T 로 이야기를 들어요. (들어야 하루가 시작돼요)`, remind:30000,
     onHeard:()=>{ briefCall=null; onHeard(); } });
   return true; }
@@ -287,7 +340,7 @@ function showBrief(){ const L=D.dialog.briefing||[]; const l=L[S.briefI]; if(!l)
   /* 45차: 말풍선을 띄우지 않는다 — 대사는 이 대사 창에만 나온다 */
   const O=office(); if(O){ try{ if(l.view) O.view(l.view); }catch(e){} } }
 $('dNext').onclick=()=>{ if(S.phase!=='briefing') return; S.briefI++; showBrief(); }; $('dSkip').onclick=()=>{ if(S.phase==='briefing') endBriefing(); };
-function endBriefing(){ if(briefCall){ briefCall.cancel(); briefCall=null; } ungatherBrief();
+function endBriefing(){ if(briefCall){ briefCall.cancel(); briefCall=null; } ungatherBrief(); briefVisitorOut();   /* 48차: 건너뛰거나 자동 플레이로 왔으면 여기서 내보낸다 */
   $('dialog').classList.remove('open'); const O=office(); if(O&&!S.briefT){ try{ O.hush(); O.view('default'); }catch(e){} } S.phase='work'; S.running=true; lastTick=0; arrivals();
   if(D.triage&&!(S.triage&&S.triage.done)){ startTriage(); return; }
   const L=D.todoLabels||['답할 것','넘길 것','물어볼 것']; toast(`메일함이 열렸어요. ${L.join(' / ')}을 나눠 보세요.`); saveProgress(); }

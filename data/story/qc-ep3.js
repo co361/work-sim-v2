@@ -747,6 +747,9 @@ window.STORY["qc-ep3"]={
      }
     ]
    },
+   "wrongNpcLine": {
+    "qc": "L-2607-52요? 그건 아직 대장에 안 올라왔어요. 검수동에서 종이로 들고 계신 분이 있을 거예요."
+   },
    "to": "qc",
    "question": [
     "L-2607-52 표본 20에서 불량 몇 건 나왔어요?",
@@ -1382,7 +1385,7 @@ window.STORY["qc-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "격리는 창고, 물류팀이요."
+     "text": "격리 자리는 창고가 정해요. 저희는 부적합 통보까지예요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음",
@@ -1612,15 +1615,22 @@ window.STORY["qc-ep3"]={
    "team": "품질관리팀",
    "role": "사수"
   },
+  "도주임": {
+   "seat": "chief",
+   "ch": "acnh_35",
+   "team": "품질관리팀",
+   "teamKey": "qc",
+   "role": "주임"
+  },
   "장주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "조반장": {
-   "seat": "staff2",
+   "seat": "staff",
    "ch": "acnh_20",
    "team": "품질관리팀",
    "role": "검사대"
@@ -1634,13 +1644,19 @@ window.STORY["qc-ep3"]={
    "key": "qc"
   },
   {
-   "seat": "staff2",
-   "name": "조반장",
+   "seat": "chief",
+   "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"
   },
   {
    "seat": "staff",
+   "name": "조반장",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"

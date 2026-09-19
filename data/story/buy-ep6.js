@@ -864,7 +864,7 @@ window.STORY["buy-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "판정은 품질이에요."
+     "text": "보류 물량이 풀려야 출고가 되죠. 판정부터 받아 오세요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -1143,8 +1143,15 @@ window.STORY["buy-ep6"]={
    "team": "구매팀",
    "role": "사수"
   },
+  "엄주임": {
+   "seat": "chief",
+   "ch": "acnh_48",
+   "team": "구매팀",
+   "teamKey": "buy",
+   "role": "주임"
+  },
   "도주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_35",
    "team": "품질관리팀",
    "teamKey": "qc",
@@ -1159,7 +1166,13 @@ window.STORY["buy-ep6"]={
    "key": "buy"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "엄주임",
+   "team": "구매팀",
+   "key": "buy"
+  },
+  {
+   "seat": null,
    "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"

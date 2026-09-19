@@ -58,12 +58,25 @@ window.STORY["ga-ep7"]={
    "ch": "acnh_22",
    "team": "총무팀",
    "role": "사수"
+  },
+  "권주임": {
+   "seat": "chief",
+   "ch": "acnh_27",
+   "team": "총무팀",
+   "teamKey": "ga",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "최주임",
+   "team": "총무팀",
+   "key": "ga"
+  },
+  {
+   "seat": "chief",
+   "name": "권주임",
    "team": "총무팀",
    "key": "ga"
   },

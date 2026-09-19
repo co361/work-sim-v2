@@ -130,7 +130,7 @@ window.STORY["ga-ep4"]={
     ]
    },
    "vars": {
-    "SENDER": "엄주임",
+    "SENDER": "여주임",
     "VENDOR": "한빛사무",
     "ITEM": "복사용지·토너",
     "MONTH": "두 달 뒤",
@@ -701,7 +701,7 @@ window.STORY["ga-ep4"]={
     ]
    },
    "vars": {
-    "SENDER": "한주임",
+    "SENDER": "장주임",
     "WHO": "여름 휴가철",
     "DAY": "이번 주 목요일"
    },
@@ -859,7 +859,7 @@ window.STORY["ga-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "정산은 회계팀 한주임 먼저요."
+     "text": "정산이 끝나야 다음이 있어요. 검산부터 받아 오세요."
     },
     "today": "시간 손실",
     "next": "—"
@@ -971,7 +971,7 @@ window.STORY["ga-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "촬영 협조는 홍보팀 표주임이요."
+     "text": "촬영 협조는 대외 창구가 정해요. 출입·주차는 그다음에 저희로요."
     },
     "today": "시간 손실",
     "next": "—"
@@ -1199,22 +1199,29 @@ window.STORY["ga-ep4"]={
    "team": "총무팀",
    "role": "사수"
   },
+  "권주임": {
+   "seat": "chief",
+   "ch": "acnh_27",
+   "team": "총무팀",
+   "teamKey": "ga",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "엄주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
    "role": "조력자"
   },
   "신주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
@@ -1243,22 +1250,40 @@ window.STORY["ga-ep4"]={
    "key": "ga"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "권주임",
+   "team": "총무팀",
+   "key": "ga"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
+  },
+  {
+   "seat": null,
+   "name": "홍주임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": null,
+   "name": "표주임",
+   "team": "홍보팀",
+   "key": "pr"
   },
   {
    "seat": "lead",

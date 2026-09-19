@@ -58,12 +58,25 @@ window.STORY["pr-ep7"]={
    "ch": "acnh_44",
    "team": "홍보팀",
    "role": "사수"
+  },
+  "표주임": {
+   "seat": "chief",
+   "ch": "acnh_33",
+   "team": "홍보팀",
+   "teamKey": "pr",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "진선임",
+   "team": "홍보팀",
+   "key": "pr"
+  },
+  {
+   "seat": "chief",
+   "name": "표주임",
    "team": "홍보팀",
    "key": "pr"
   },

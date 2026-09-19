@@ -613,10 +613,10 @@ window.STORY["edu-ep4"]={
   {
    "id": "ed33",
    "type": "email",
-   "from": "교육팀 신주임",
+   "from": "교육팀 반주임",
    "role": "사내 요청 (경력개발 계획)",
    "subj": "[하반기] 개인 경력개발 계획서 — 이번 주 목요일까지 회신 부탁드립니다",
-   "body": "교육팀 담당자님, 교육팀 신주임입니다.\n\n하반기 개인 경력개발 계획서를 받고 있습니다. 양식은 세 칸입니다.\n① 오늘 처리한 업무 가운데 가장 어려웠던 건 한 가지와 그때 무엇이 부족했는지\n② 그 부족한 것을 메우기 위해 하반기에 하려는 일 한 가지\n③ 그것이 되었는지 무엇으로 확인할 수 있는지\n잘 쓴 계획서를 뽑는 것이 아니라 본인이 쓰는 것이 목적이라, 짧아도 좋으니 오늘 실제로 있었던 일을 근거로 적어 주세요. 이번 주 목요일까지 회신 부탁드립니다.\n\n교육팀 신주임 드림",
+   "body": "교육팀 담당자님, 교육팀 반주임입니다.\n\n하반기 개인 경력개발 계획서를 받고 있습니다. 양식은 세 칸입니다.\n① 오늘 처리한 업무 가운데 가장 어려웠던 건 한 가지와 그때 무엇이 부족했는지\n② 그 부족한 것을 메우기 위해 하반기에 하려는 일 한 가지\n③ 그것이 되었는지 무엇으로 확인할 수 있는지\n잘 쓴 계획서를 뽑는 것이 아니라 본인이 쓰는 것이 목적이라, 짧아도 좋으니 오늘 실제로 있었던 일을 근거로 적어 주세요. 이번 주 목요일까지 회신 부탁드립니다.\n\n교육팀 반주임 드림",
    "urgent": 2,
    "importance": 2,
    "best": "reply",
@@ -643,7 +643,7 @@ window.STORY["edu-ep4"]={
     ]
    },
    "vars": {
-    "SENDER": "신주임",
+    "SENDER": "반주임",
     "HALF": "하반기",
     "DAY": "이번 주 목요일"
    },
@@ -846,7 +846,7 @@ window.STORY["edu-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "출입 기록은 총무예요."
+     "text": "다 들었다는 건 기록으로 증명돼야 해요. 기록 갖고 있는 데로요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -900,7 +900,7 @@ window.STORY["edu-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "값은 저희가 몰라요."
+     "text": "FAQ 값이 뭔지는 그 안내를 하는 팀이 알아요. 저희는 편성만 해요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -951,7 +951,7 @@ window.STORY["edu-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "강의 수당 지급은 회계팀이요."
+     "text": "수당은 지급하는 데가 날짜를 알아요. 저희는 강의 기록만 넘겨요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -1208,22 +1208,29 @@ window.STORY["edu-ep4"]={
    "team": "교육팀",
    "role": "사수"
   },
+  "반주임": {
+   "seat": "chief",
+   "ch": "acnh_36",
+   "team": "교육팀",
+   "teamKey": "edu",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "이주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
    "role": "조력자"
   },
   "신주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
@@ -1259,22 +1266,46 @@ window.STORY["edu-ep4"]={
    "key": "edu"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "반주임",
+   "team": "교육팀",
+   "key": "edu"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
+  },
+  {
+   "seat": null,
+   "name": "한주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
+   "name": "장주임",
+   "team": "물류팀",
+   "key": "logi"
+  },
+  {
+   "seat": null,
+   "name": "엄주임",
+   "team": "구매팀",
+   "key": "buy"
   },
   {
    "seat": "lead",

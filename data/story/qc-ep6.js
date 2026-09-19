@@ -1246,7 +1246,7 @@ window.STORY["qc-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "회수는 물류팀이요."
+     "text": "물건이 와야 판정하죠. 회수부터 잡으세요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음",
@@ -1262,7 +1262,7 @@ window.STORY["qc-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "취재는 홍보팀이요."
+     "text": "취재 전화는 저희가 받을 게 아니에요. 대외 창구로 돌리세요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음",
@@ -1659,15 +1659,22 @@ window.STORY["qc-ep6"]={
    "team": "품질관리팀",
    "role": "사수"
   },
+  "도주임": {
+   "seat": "chief",
+   "ch": "acnh_35",
+   "team": "품질관리팀",
+   "teamKey": "qc",
+   "role": "주임"
+  },
   "장주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "표주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_33",
    "team": "홍보팀",
    "teamKey": "pr",
@@ -1682,13 +1689,19 @@ window.STORY["qc-ep6"]={
    "key": "qc"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "표주임",
    "team": "홍보팀",
    "key": "pr"

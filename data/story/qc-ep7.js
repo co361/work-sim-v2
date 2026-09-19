@@ -58,12 +58,25 @@ window.STORY["qc-ep7"]={
    "ch": "acnh_28",
    "team": "품질관리팀",
    "role": "사수"
+  },
+  "도주임": {
+   "seat": "chief",
+   "ch": "acnh_35",
+   "team": "품질관리팀",
+   "teamKey": "qc",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "남선임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": "chief",
+   "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"
   },

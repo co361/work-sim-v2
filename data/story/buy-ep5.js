@@ -828,7 +828,7 @@ window.STORY["buy-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "설비 호환은 품질이요."
+     "text": "견적이 한 곳뿐인 건 알겠는데, 맞는 부품인지는 저희가 못 봐요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -1090,8 +1090,15 @@ window.STORY["buy-ep5"]={
    "team": "구매팀",
    "role": "사수"
   },
+  "엄주임": {
+   "seat": "chief",
+   "ch": "acnh_48",
+   "team": "구매팀",
+   "teamKey": "buy",
+   "role": "주임"
+  },
   "도주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_35",
    "team": "품질관리팀",
    "teamKey": "qc",
@@ -1106,7 +1113,13 @@ window.STORY["buy-ep5"]={
    "key": "buy"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "엄주임",
+   "team": "구매팀",
+   "key": "buy"
+  },
+  {
+   "seat": null,
    "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"

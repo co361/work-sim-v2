@@ -185,8 +185,41 @@ function rehydrateBoxes(){ if(!D) return;
 function checkLate(){ for(const id of S.order){ const c=CARD(id), st=S.cards[id]; if(!c||st.status==='done'||st.late) continue; const dl=(c.deadline!=null?c.deadline:10); if(S.t>st.arrivedAt+dl) st.late=true; } }
 setInterval(clockTick,200);
 
-/* ---------- 조력자가 찾아오는 카드(체인 후속 스텝) ---------- */
-function npcArrive(c){ const who=(c.from||'').replace(/\s*\(.*?\)\s*/g,'').trim(); const line=(c.npcLine||'').replace(/○○씨/g,(S.name||'○○')+'씨'); setTimeout(()=>{ if(!sayNpc(who,line,6)) toast(line,who,5000,'cust'); },300); }
+/* ---------- 조력자가 찾아오는 카드(체인 후속 스텝) ----------
+   50차(대표 「그 사람이 실제로 찾아오게 한다」). 카드에 「👋 대면」이라 적힌 `npcArrives` 29장은
+   47차로 그 사람들이 내 방에 자리가 없어져 **사내 메신저로만** 떨어졌다 — 대면이라 써 놓고 아무도 안 나타났다.
+   이제 48차 사원증과 **같은 틀**로 문으로 들어와 **내 자리 옆**에 서서 그 줄을 말하고 나간다.
+
+   정해 둔 것
+   · **글은 늘 남긴다** — 3D 가 없든(?stage=0) 있든 `sayNpc` 가 먼저 돌아 메신저에 기록이 남는다.
+     플레이어가 컴퓨터를 보고 있거나 다른 방에 있어 장면을 못 봐도 내용이 사라지지 않게.
+   · **이미 손님이 있으면 줄을 선다** — 6일차 방문 카드 손님(소파)과 겹칠 수 있다(방문 10~12분 · 대면 22.5~25분).
+     나갈 때까지 최대 90초 기다렸다 들어가고, 그래도 안 비면 **메모만 남기고 만다**(하루가 밀리지 않게).
+   · **문 쪽 컷은 넣지 않는다** — 손님이 **내 자리 옆**으로 오므로 카메라가 이미 그쪽을 본다.
+     1일차 사원증은 팀장 자리(멀다)라 컷이 필요했지만, 여기서 0.8초씩 카메라를 빼앗으면
+     한 판에 세 번(4·5·6일차) 업무 중에 끊긴다. 필요하면 `cut` 값만 넘기면 된다(office doorCut).
+   · 29장 모두 **타 팀 사람**이라 이 방에 자리가 없다. 자리가 있는 사람이면 예전대로 말풍선이다. */
+function npcArrive(c){ const who=(c.from||'').replace(/\s*\(.*?\)\s*/g,'').trim(); const line=(c.npcLine||'').replace(/○○씨/g,(S.name||'○○')+'씨');
+  if(!who||!line) return;
+  setTimeout(()=>{ if(!sayNpc(who,line,6)) toast(line,who,5000,'cust'); },300);   /* 기록(메신저·말풍선) — 예전 그대로 */
+  try{ Promise.resolve(npcArriveStage(who,line)).catch(e=>console.warn('대면 손님 오류',e)); }
+  catch(e){ console.warn('대면 손님 오류',e); } }   /* 3D: 문으로 들어와 말하고 나간다 — 글과 따로 돌고, 실패해도 하루를 막지 않는다 */
+async function npcArriveStage(who,line){
+  if(NO_STAGE||!window.Talk||!Talk.chOf) return false;
+  const O=office(); if(!O||typeof O.visitorIn!=='function'||typeof O.visitorState!=='function') return false;
+  if(seatByName(who)) return false;                     /* 이 방에 자리가 있으면 원래 길(말풍선) */
+  const ch=Talk.chOf(who)||''; if(!ch) return false;    /* 3D 모델이 없는 사람은 글로만 */
+  try{
+    for(let i=0;i<180;i++){ if(S.phase!=='work') return false;
+      const v=O.visitorState(); if(!v||v.state==='none') break; await sleep(500); }   /* 손님이 나갈 때까지(최대 90초) */
+    const v0=O.visitorState(); if(v0&&v0.state!=='none') return false;
+    if(S.phase!=='work') return false;
+    const ok=await O.visitorIn({name:who,ch,stand:'me',noTalk:true,faceCam:true});   /* faceCam — 대화 카메라를 안 켜므로 얼굴이 보이는 자리에 세운다 */
+    if(!ok) return false;
+    if(Talk.reply) Talk.reply(who,line);
+    if(Talk.idle) await Talk.idle(); else await sleep(4500);
+    await O.visitorOut(); return true;
+  }catch(e){ console.warn('대면 손님 오류',e); try{ O.visitorOut(); }catch(e2){} return false; } }
 
 /* ---------- 이동(전달·질문·보고): 사무실이 있으면 연출, 없으면 글 ---------- */
 async function travel(mode,opts){ const O=office(); const who=opts.who||''; const seat=opts.seat||null;

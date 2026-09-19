@@ -999,7 +999,7 @@ window.STORY["rec-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "사원증은 총무예요."
+     "text": "지원서 수정은 저희가 해 드릴게요. 사원증은 발급하는 데로요."
     },
     "today": "⑨ 0, 카드 10 지연"
    }
@@ -1381,8 +1381,15 @@ window.STORY["rec-ep6"]={
    "team": "채용팀",
    "role": "사수"
   },
+  "홍주임": {
+   "seat": "chief",
+   "ch": "acnh_43",
+   "team": "채용팀",
+   "teamKey": "rec",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1397,7 +1404,13 @@ window.STORY["rec-ep6"]={
    "key": "rec"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "홍주임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

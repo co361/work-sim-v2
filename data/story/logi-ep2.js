@@ -545,6 +545,9 @@ window.STORY["logi-ep2"]={
    "mode": "ask",
    "to": "logi",
    "npc": "오대리",
+   "wrongNpcLine": {
+    "logi": "택배사 배상 청구는 제가 안 해 봤어요. 그런 사고 건은 대리님이 택배사랑 직접 얘기하세요."
+   },
    "question": [
     "배상 청구 기한이 며칠이고 서류가 뭐예요?",
     "한도 넘는 상품가는 어떻게 돼요?",
@@ -1007,7 +1010,7 @@ window.STORY["logi-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "용차비요? 회계팀이에요. 저희는 사내 차량만."
+     "text": "청구 계정은 돈 다루는 데가 정해요. 영수증 챙겨 가세요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1044,7 +1047,7 @@ window.STORY["logi-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "자재 계약 조건은 구매팀이요."
+     "text": "공급가 협상은 계약하는 데 일이에요. 저희는 받기만 해요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1155,15 +1158,22 @@ window.STORY["logi-ep2"]={
    "team": "물류팀",
    "role": "사수"
   },
+  "장주임": {
+   "seat": "chief",
+   "ch": "acnh_18",
+   "team": "물류팀",
+   "teamKey": "logi",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "엄주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
@@ -1178,13 +1188,19 @@ window.STORY["logi-ep2"]={
    "key": "logi"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "장주임",
+   "team": "물류팀",
+   "key": "logi"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"

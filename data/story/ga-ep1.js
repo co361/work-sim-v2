@@ -888,6 +888,9 @@ window.STORY["ga-ep1"]={
     "외부 사람이 같이 들어와도 돼요?",
     "토요일에 냉난방 돼요?"
    ],
+   "wrongNpcLine": {
+    "ga": "시간 외 출입 신청은 제가 받는 게 아니에요. 출입 관리는 옆자리 선임분 담당이라서요."
+   },
    "answer": "출입 예정일 1영업일 전, 그러니까 금요일까지 부서장 승인받은 시간 외 출입 신청. 외부인은 시간 외에는 임직원이 같이 와도 못 들어와요. 엔지니어는 평일로 잡으시라고.",
    "mustInclude": [
     "금요일",
@@ -1022,7 +1025,7 @@ window.STORY["ga-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "그건 채용팀 홍주임이요."
+     "text": "면접 결과는 채용 담당이 알아요. 저희는 출입 관리만요."
     },
     "today": "시간 손실. 홍주임 신뢰 그대로"
    },
@@ -1042,7 +1045,7 @@ window.STORY["ga-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "수수료 지급은 회계팀이요."
+     "text": "정산이 안 됐다면 돈 나가는 데로 가야죠. 저희는 계약만 관리해요."
     },
     "today": "시간 손실",
     "next": "—"
@@ -1255,15 +1258,22 @@ window.STORY["ga-ep1"]={
    "team": "총무팀",
    "role": "사수"
   },
+  "권주임": {
+   "seat": "chief",
+   "ch": "acnh_27",
+   "team": "총무팀",
+   "teamKey": "ga",
+   "role": "주임"
+  },
   "홍주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_43",
    "team": "채용팀",
    "teamKey": "rec",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1278,13 +1288,19 @@ window.STORY["ga-ep1"]={
    "key": "ga"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "권주임",
+   "team": "총무팀",
+   "key": "ga"
+  },
+  {
+   "seat": null,
    "name": "홍주임",
    "team": "채용팀",
    "key": "rec"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

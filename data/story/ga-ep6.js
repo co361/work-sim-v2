@@ -996,7 +996,7 @@ window.STORY["ga-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "긴급 수리 발주는 구매팀이요."
+     "text": "승강기가 멈췄으면 발주가 먼저예요. 발주 내는 데로 바로요."
     },
     "today": "시간 손실",
     "next": "—"
@@ -1339,8 +1339,15 @@ window.STORY["ga-ep6"]={
    "team": "총무팀",
    "role": "사수"
   },
+  "권주임": {
+   "seat": "chief",
+   "ch": "acnh_27",
+   "team": "총무팀",
+   "teamKey": "ga",
+   "role": "주임"
+  },
   "엄주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
@@ -1355,7 +1362,13 @@ window.STORY["ga-ep6"]={
    "key": "ga"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "권주임",
+   "team": "총무팀",
+   "key": "ga"
+  },
+  {
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"

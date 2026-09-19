@@ -930,7 +930,7 @@ window.STORY["plan-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "저희가 물어본 거잖아요. 장부는 회계팀이요."
+     "text": "저희 숫자는 장부에서 온 거예요. 장부 보는 데로 가세요."
     },
     "today": "40초 손실, ⑨ 0",
     "next": "없음"
@@ -1164,8 +1164,15 @@ window.STORY["plan-ep3"]={
    "team": "경영기획팀",
    "role": "사수"
   },
+  "신주임": {
+   "seat": "chief",
+   "ch": "acnh_38",
+   "team": "경영기획팀",
+   "teamKey": "plan",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1180,7 +1187,13 @@ window.STORY["plan-ep3"]={
    "key": "plan"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "신주임",
+   "team": "경영기획팀",
+   "key": "plan"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

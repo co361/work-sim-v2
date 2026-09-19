@@ -878,8 +878,8 @@ window.STORY["pr-ep5"]={
    },
    "wrongNpc": {
     "now": {
-     "who": "신주임",
-     "text": "협약 등록은 저희지만 대가 확인은 회계 먼저요."
+     "who": "@npc",
+     "text": "대가가 붙는 협업이면 회계 확인이 먼저예요. 시안은 그다음에요."
     },
     "today": "1분 손실",
     "next": "없음",
@@ -1110,8 +1110,15 @@ window.STORY["pr-ep5"]={
    "team": "홍보팀",
    "role": "사수"
   },
+  "표주임": {
+   "seat": "chief",
+   "ch": "acnh_33",
+   "team": "홍보팀",
+   "teamKey": "pr",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1126,7 +1133,13 @@ window.STORY["pr-ep5"]={
    "key": "pr"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "표주임",
+   "team": "홍보팀",
+   "key": "pr"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

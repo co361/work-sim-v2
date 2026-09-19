@@ -969,7 +969,7 @@ window.STORY["buy-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "서류는 회계로요."
+     "text": "물건은 저희가 봤으니, 서류는 서류 보는 데로 가져가세요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -1018,7 +1018,7 @@ window.STORY["buy-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "창고 공간은 물류팀이요."
+     "text": "제2창고 남은 자리는 창고 사람이 세야 정확해요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -1119,15 +1119,22 @@ window.STORY["buy-ep3"]={
    "team": "구매팀",
    "role": "사수"
   },
+  "엄주임": {
+   "seat": "chief",
+   "ch": "acnh_48",
+   "team": "구매팀",
+   "teamKey": "buy",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "장주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
@@ -1142,13 +1149,19 @@ window.STORY["buy-ep3"]={
    "key": "buy"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "엄주임",
+   "team": "구매팀",
+   "key": "buy"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"

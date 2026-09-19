@@ -58,12 +58,25 @@ window.STORY["cs-ep7"]={
    "ch": "acnh_31",
    "team": "고객상담팀",
    "role": "사수"
+  },
+  "이주임": {
+   "seat": "chief",
+   "ch": "acnh_21",
+   "team": "고객상담팀",
+   "teamKey": "cs",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "박선임",
+   "team": "고객상담팀",
+   "key": "cs"
+  },
+  {
+   "seat": "chief",
+   "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"
   },

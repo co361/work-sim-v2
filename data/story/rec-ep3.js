@@ -143,12 +143,17 @@ window.STORY["rec-ep3"]={
    ],
    "hint": "모집 인원과 접수 인원으로 몇 대 1인지 세어요. 같은 시기에 낸 다른 공고와 비교한 한 줄이 있으면 좋아요.",
    "mode": "reply",
+   "board": {
+    "hire": 2,
+    "applied": 46
+   },
    "workAlt": [
     "23 : 1",
     "23대 1",
     "23대1",
     "23"
    ],
+   "noteBonus": "물류관리 9",
    "replyCheck": {
     "need": [
      [
@@ -223,13 +228,14 @@ window.STORY["rec-ep3"]={
    "mustInclude": [
     "38"
    ],
-   "workAlt": [
-    "38"
-   ],
    "wrongNpcLine": {
     "ga": "전형 현황판요? 그건 채용팀 안에 있어요.",
     "plan": "지원자 수는 채용팀 홍주임한테요."
-   }
+   },
+   "sasuLine": "접수 인원은 현황판 담당이 바로 알아요. 나는 아직 오늘 숫자를 못 봤어요 — 현황판 올리는 사람한테 물어봐요.",
+   "workAlt": [
+    "38"
+   ]
   },
   {
    "id": "rec_ep3_peer",
@@ -326,7 +332,29 @@ window.STORY["rec-ep3"]={
      "마감",
      "전형 절차"
     ]
-   ]
+   ],
+   "flagAlt": {
+    "연령": [
+     "35세",
+     "나이"
+    ],
+    "성별": [
+     "여성"
+    ],
+    "지역": [
+     "강남",
+     "거주"
+    ],
+    "마감일": [
+     "마감",
+     "전형 절차"
+    ]
+   },
+   "scoreByFlags": {
+    "3": 100,
+    "2": 70,
+    "1": 40
+   }
   },
   {
    "id": "rc16",
@@ -379,6 +407,16 @@ window.STORY["rec-ep3"]={
    ],
    "hint": "영업일이에요. 주말을 세면 틀려요. 오늘은 7월 8일 수요일이에요.",
    "mode": "compose",
+   "citeRule": "REC-02",
+   "workAlt": [
+    "7월 15일",
+    "7/15"
+   ],
+   "workTrap": [
+    "이번 주 일요일",
+    "다음 주 월요일",
+    "다음 주 화요일"
+   ],
    "compose": {
     "mustInclude": [
      "다음 주 수요일",
@@ -396,17 +434,7 @@ window.STORY["rec-ep3"]={
      "REC-02"
     ],
     "model": "재무기획 경력직 실무 면접 결과 통보 기한 확인했어요. 다음 주 수요일(7/15)까지예요.\n전형이 끝난 날(오늘 7/8 수)부터 영업일 5일, REC-02 기준입니다.\n늦어질 것 같으면 그 전에 지연 사실과 새 예정일을 먼저 알려야 해요. 제가 챙겨서 알려 드릴게요."
-   },
-   "citeRule": "REC-02",
-   "workAlt": [
-    "7월 15일",
-    "7/15"
-   ],
-   "workTrap": [
-    "이번 주 일요일",
-    "다음 주 월요일",
-    "다음 주 화요일"
-   ]
+   }
   },
   {
    "id": "rc29",
@@ -460,9 +488,6 @@ window.STORY["rec-ep3"]={
    "hint": "집계에 넣을 수 없는 시간이 하나 있어요. 다 더하면 틀려요.",
    "mode": "reply",
    "citeRule": "REC-11",
-   "ruleFacts": [
-    "승인"
-   ],
    "workAlt": [
     "4시간15분",
     "255분"
@@ -470,6 +495,9 @@ window.STORY["rec-ep3"]={
    "workTrap": [
     "5시간 15분",
     "5시간15분"
+   ],
+   "ruleFacts": [
+    "승인"
    ],
    "replyCheck": {
     "need": [
@@ -536,6 +564,15 @@ window.STORY["rec-ep3"]={
    ],
    "hint": "수습 종료일에서 영업일을 거꾸로 세어요. 통보 기한이 며칠 전인지는 규정에 있어요.",
    "mode": "compose",
+   "citeRule": "REC-07",
+   "workAlt": [
+    "7/24",
+    "다음다음 주 금요일"
+   ],
+   "workTrap": [
+    "7월 27일",
+    "7월 30일"
+   ],
    "compose": {
     "mustInclude": [
      "7월 24일",
@@ -546,16 +583,7 @@ window.STORY["rec-ep3"]={
      "REC-07"
     ],
     "model": "탁지훈 님 최종 평가 결과 통보 기한 확인했어요. 7월 24일(금), 다음다음 주 금요일이에요.\n수습 종료일 7/31(금)에서 5영업일 전(REC-07)입니다.\n평가 회의는 그 앞 주(7/20~22)에 잡으면 됩니다. 회의 일정 잡히면 알려 드릴게요."
-   },
-   "citeRule": "REC-07",
-   "workAlt": [
-    "7/24",
-    "다음다음 주 금요일"
-   ],
-   "workTrap": [
-    "7월 27일",
-    "7월 30일"
-   ]
+   }
   },
   {
    "id": "rc37",
@@ -808,7 +836,7 @@ window.STORY["rec-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "전형 현황판요? 채용팀 안에 있어요."
+     "text": "숫자는 현황판 보는 사람이 바로 알아요. 저는 안 봤어요."
     },
     "today": "⑨ 0",
     "next": "없음"
@@ -839,7 +867,7 @@ window.STORY["rec-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "저희 팀원 맞는데, 사원증은 총무예요."
+     "text": "사원증은 발급하는 데가 따로 있어요. 신청서 갖고 가세요."
     },
     "today": "⑨ 0",
     "next": "없음"
@@ -1043,8 +1071,15 @@ window.STORY["rec-ep3"]={
    "team": "채용팀",
    "role": "사수"
   },
+  "홍주임": {
+   "seat": "chief",
+   "ch": "acnh_43",
+   "team": "채용팀",
+   "teamKey": "rec",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1059,7 +1094,13 @@ window.STORY["rec-ep3"]={
    "key": "rec"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "홍주임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

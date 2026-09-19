@@ -956,7 +956,7 @@ window.STORY["pr-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "지급 내역은 회계예요."
+     "text": "지급 내역은 돈 나간 데가 알아요. 광고 표기는 그다음 얘기예요."
     },
     "today": "1분 손실",
     "next": "없음",
@@ -1167,8 +1167,15 @@ window.STORY["pr-ep6"]={
    "team": "홍보팀",
    "role": "사수"
   },
+  "표주임": {
+   "seat": "chief",
+   "ch": "acnh_33",
+   "team": "홍보팀",
+   "teamKey": "pr",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1183,7 +1190,13 @@ window.STORY["pr-ep6"]={
    "key": "pr"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "표주임",
+   "team": "홍보팀",
+   "key": "pr"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

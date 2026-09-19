@@ -66,6 +66,9 @@ window.STORY["acct-ep1"]={
     "정산은 어떤 양식으로 내요?",
     "영수증 없으면 어떻게 돼요?"
    ],
+   "wrongNpcLine": {
+    "acct": "정산 마감이요? 저는 전표 입력만 해서 마감 일정은 잘 몰라요. 출장 정산은 옆에 선임분이 쭉 보셨어요."
+   },
    "answer": "사용한 달의 다음 달 5일까지예요. 출장정산서 양식으로. 영수증 얘기는 내일.",
    "mustInclude": [
     "5일",
@@ -936,7 +939,7 @@ window.STORY["acct-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "고객 응대는 상담팀이요"
+     "text": "고객이 기다리는 돈이면 오늘 안에 가 보세요. 저는 여기까지만 알아요."
     },
     "today": "40초 손실. 이주임 신뢰 0 유지",
     "next": "없음"
@@ -966,7 +969,7 @@ window.STORY["acct-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "명함은 총무팀이요"
+     "text": "명함 한 통 때문에 헛걸음하지 마시고, 신청서 들고 바로 가세요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -1181,15 +1184,22 @@ window.STORY["acct-ep1"]={
    "team": "회계팀",
    "role": "사수"
   },
+  "문주임": {
+   "seat": "chief",
+   "ch": "acnh_20",
+   "team": "회계팀",
+   "teamKey": "acct",
+   "role": "주임"
+  },
   "이주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
    "role": "조력자"
   },
   "최주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1204,13 +1214,19 @@ window.STORY["acct-ep1"]={
    "key": "acct"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "문주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

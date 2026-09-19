@@ -856,7 +856,7 @@ window.STORY["cs-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "반송품 도착일은 창고, 물류팀이요."
+     "text": "도착일이 있어야 며칠 남았는지 세죠. 창고 기록부터요."
     },
     "today": "⑨ 0"
    }
@@ -865,7 +865,7 @@ window.STORY["cs-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "세금계산서는 회계팀이요."
+     "text": "발행 권한이 있는 데서 다시 끊어야 해요. 저희가 손대면 더 꼬여요."
     },
     "today": "⑨ 0"
    },
@@ -977,15 +977,22 @@ window.STORY["cs-ep3"]={
    "team": "고객상담팀",
    "role": "사수"
   },
+  "이주임": {
+   "seat": "chief",
+   "ch": "acnh_21",
+   "team": "고객상담팀",
+   "teamKey": "cs",
+   "role": "주임"
+  },
   "오대리": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_23",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1000,13 +1007,19 @@ window.STORY["cs-ep3"]={
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": "chief",
+   "name": "이주임",
+   "team": "고객상담팀",
+   "key": "cs"
+  },
+  {
+   "seat": null,
    "name": "오대리",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

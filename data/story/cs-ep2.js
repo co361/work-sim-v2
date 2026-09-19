@@ -547,6 +547,9 @@ window.STORY["cs-ep2"]={
     "배상 청구에 뭐가 필요해요?",
     "청구 기한이 있어요?"
    ],
+   "wrongNpcLine": {
+    "cs": "분실 배상은 제가 해 본 적이 없어요. 사수분이 지난달에 같은 건을 처리하셨을 거예요."
+   },
    "answer": "물류 편 분실·파손 배상 조항. 거래명세서랑 사고 접수서를 같이 내고, 사고 확정일부터 30일 안에 청구. 배상은 건당 한도 안에서.",
    "mustInclude": [
     "사고 접수서",
@@ -964,7 +967,7 @@ window.STORY["cs-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "회수요? 그건 물류팀이에요."
+     "text": "고객이 기사님 오는 날을 묻는 거잖아요. 회수 잡는 데가 알아요."
     },
     "today": "⑨ 0, 40초 손실"
    },
@@ -1007,7 +1010,7 @@ window.STORY["cs-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "타는 냄새는 저희가 판정 못 해요. 품질관리팀이요."
+     "text": "타는 냄새면 급한 건이에요. 판정하는 데로 바로 가세요."
     },
     "today": "⑨ 0"
    },
@@ -1124,15 +1127,22 @@ window.STORY["cs-ep2"]={
    "team": "고객상담팀",
    "role": "사수"
   },
+  "이주임": {
+   "seat": "chief",
+   "ch": "acnh_21",
+   "team": "고객상담팀",
+   "teamKey": "cs",
+   "role": "주임"
+  },
   "오대리": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_23",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "도주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_35",
    "team": "품질관리팀",
    "teamKey": "qc",
@@ -1147,13 +1157,19 @@ window.STORY["cs-ep2"]={
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": "chief",
+   "name": "이주임",
+   "team": "고객상담팀",
+   "key": "cs"
+  },
+  {
+   "seat": null,
    "name": "오대리",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"

@@ -58,12 +58,25 @@ window.STORY["acct-ep7"]={
    "ch": "acnh_37",
    "team": "회계팀",
    "role": "사수"
+  },
+  "문주임": {
+   "seat": "chief",
+   "ch": "acnh_20",
+   "team": "회계팀",
+   "teamKey": "acct",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "한주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": "chief",
+   "name": "문주임",
    "team": "회계팀",
    "key": "acct"
   },

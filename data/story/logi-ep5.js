@@ -1044,7 +1044,7 @@ window.STORY["logi-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "검수 생략요? 판정은 저희지만 리스크 등록은 경영기획이에요."
+     "text": "검수 생략은 안 돼요. 반복 요구는 등록하는 데가 따로 있어요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1560,8 +1560,15 @@ window.STORY["logi-ep5"]={
    "team": "물류팀",
    "role": "사수"
   },
+  "장주임": {
+   "seat": "chief",
+   "ch": "acnh_18",
+   "team": "물류팀",
+   "teamKey": "logi",
+   "role": "주임"
+  },
   "신주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
@@ -1576,7 +1583,13 @@ window.STORY["logi-ep5"]={
    "key": "logi"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "장주임",
+   "team": "물류팀",
+   "key": "logi"
+  },
+  {
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"

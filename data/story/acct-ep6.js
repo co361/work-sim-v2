@@ -964,7 +964,7 @@ window.STORY["acct-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "배차 기록은 총무예요"
+     "text": "그 시간에 차가 나갔는지는 기록을 가진 데가 알아요. 저희는 전표만 봐요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -1469,8 +1469,15 @@ window.STORY["acct-ep6"]={
    "team": "회계팀",
    "role": "사수"
   },
+  "문주임": {
+   "seat": "chief",
+   "ch": "acnh_20",
+   "team": "회계팀",
+   "teamKey": "acct",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1485,7 +1492,13 @@ window.STORY["acct-ep6"]={
    "key": "acct"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "문주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

@@ -1081,7 +1081,7 @@ window.STORY["qc-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "대외 홍보는 홍보팀이요."
+     "text": "회사 이름으로 나가는 자료예요. 대외 창구 확인 없이는 서명 못 해요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음",
@@ -1564,8 +1564,15 @@ window.STORY["qc-ep5"]={
    "team": "품질관리팀",
    "role": "사수"
   },
+  "도주임": {
+   "seat": "chief",
+   "ch": "acnh_35",
+   "team": "품질관리팀",
+   "teamKey": "qc",
+   "role": "주임"
+  },
   "표주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_33",
    "team": "홍보팀",
    "teamKey": "pr",
@@ -1580,7 +1587,13 @@ window.STORY["qc-ep5"]={
    "key": "qc"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
    "name": "표주임",
    "team": "홍보팀",
    "key": "pr"

@@ -240,7 +240,7 @@ function visitArrive(c){ const O=office(); const st=S.cards[c.id]; if(!O||NO_STA
 /* ---------- 전달 · 질문 · 보고 · 방문 ---------- */
 function destOk(c,d,kind){ const target=kind==='ask'?{npc:c.npc,to:c.to}:{npc:c.deliver.npc,to:c.deliver.to}; if(target.npc&&d.name===target.npc) return true; if(target.to&&d.key&&d.key===target.to&&(!target.npc||!npcInfo(target.npc))) return true; return false; }
 function wrongLine(c,d,kind){ const w=kind==='ask'?c.wrongNpcLine:(c.deliver&&c.deliver.wrongNpcLine); if(typeof w==='string') return w; if(w&&d.key&&w[d.key]) return w[d.key]; const target=kind==='ask'?c.to:(c.deliver&&c.deliver.to); const tn=TEAM_NAMES[target]||'다른 팀'; return `그건 ${tn}이요.`; }
-async function doDeliver(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&O.busy){ toast('지금은 이동할 수 없어요'); return; } const dl=c.deliver||{}; const ok=destOk(c,d,'deliver'); const who=d.name; const trust=trustOf(dl.npc);
+async function doDeliver(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&(O.busy||O.walking)){ toast('지금은 이동할 수 없어요'); return; } const dl=c.deliver||{}; const ok=destOk(c,d,'deliver'); const who=d.name; const trust=trustOf(dl.npc);
   const line=ok?((dl.npcLineTrust&&(trust>=2?dl.npcLineTrust.high:dl.npcLineTrust.low))||dl.okLine||'네, 처리할게요.').replace(/○○씨/g,(S.name||'○○')+'씨'):wrongLine(c,d,'deliver');
   const text=dl.text||dl.deliverText||(dl.handoff?`${c.subj} 건이에요. ${dl.handoff.join(', ')} 전달드려요.`:'이거 전달드리러 왔어요.');
   $('card').classList.add('min'); $('cActs').innerHTML=''; note(`${escapeHtml(who)} 자리로 가는 중…`);
@@ -250,7 +250,7 @@ async function doDeliver(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=o
   st.lastSeat=d.seat; st.lastNpc=who;
   if(ok){ st.delivered=true; st.deliveredAt=S.t; S.counts.pass++; S.counts.rightNpc++; S.ncs['9'].push(100); const okBr=(D.branches[id]||{}).ok; if(dl.npc&&!c.pre&&!(okBr&&okBr.trust)) S.trust[dl.npc]=(S.trust[dl.npc]||0)+1; runBranch(id,'ok',{toastOnly:true}); scheduleChain(c); markStep(id,'deliver',{seat:d.seat,line:r.line||line,score:100}); if(stepsLeft(id).length) toast('전달했어요. 고객에게도 안내 회신을 보내야 완료예요.'); }
   else { st.wrong=line; st.tries=(st.tries||0)+1; S.counts.wrongNpc++; S.ncs['9'].push(0); runBranch(id,'wrongNpc',{toastOnly:true}); if(S.cur===id) renderCardActs(id); } }
-async function doAsk(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&O.busy){ toast('지금은 이동할 수 없어요'); return; } const who=d.name; const senior=D.dests.find(x=>x.seat==='senior'); const isSenior=senior&&d.name===senior.name; const ok=destOk(c,d,'ask');
+async function doAsk(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&(O.busy||O.walking)){ toast('지금은 이동할 수 없어요'); return; } const who=d.name; const senior=D.dests.find(x=>x.seat==='senior'); const isSenior=senior&&d.name===senior.name; const ok=destOk(c,d,'ask');
   $('card').classList.add('min'); $('cActs').innerHTML=''; note(`${escapeHtml(who)} 자리로 가는 중…`);
   if(ok){ const answers=askAnswers(c); const r=await travel('ask',{seat:d.seat,who,teamKey:d.key,teamName:d.team,questions:c.question,answers,answer:c.answer,auto}); $('card').classList.remove('min'); setStatusLine('');
     if(!r||!r.present||r.choice==null||r.choice<0){ toast('답을 못 듣고 돌아왔어요'); if(S.cur===id) renderCardActs(id); return; }
@@ -263,7 +263,7 @@ async function doAsk(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=offic
   const line=isSenior?(c.sasuLine||c.wrongNpcLine&&typeof c.wrongNpcLine==='string'&&c.wrongNpcLine||`그건 ${TEAM_NAMES[c.to]||'다른 팀'}에 물어봐요.`):wrongLine(c,d,'ask');
   const r=await travel('deliver',{seat:d.seat,who,teamKey:d.key,teamName:d.team,text:(c.question&&c.question[0])||'여쭤볼 게 있는데요.',npcLine:line,ok:false,auto}); $('card').classList.remove('min'); setStatusLine('');
   st.wrong=line; st.lastSeat=d.seat; if(isSenior){ S.counts.sasu=(S.counts.sasu||0)+1; runBranch(id,'senior',{toastOnly:true}); } else { S.counts.wrongNpc++; S.ncs['9'].push(0); runBranch(id,'wrongNpc',{toastOnly:true}); } if(S.cur===id) renderCardActs(id); }
-async function doReport(id,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&O.busy){ toast('지금은 이동할 수 없어요'); return; } const rp=c.report||c; const keys=Object.keys(rp.choices||{}); const labels=keys.map(k=>rp.choices[k]); const best=keys.indexOf(c.best in (rp.score||{})?c.best:(rp.best||keys[0]));
+async function doReport(id,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&(O.busy||O.walking)){ toast('지금은 이동할 수 없어요'); return; } const rp=c.report||c; const keys=Object.keys(rp.choices||{}); const labels=keys.map(k=>rp.choices[k]); const best=keys.indexOf(c.best in (rp.score||{})?c.best:(rp.best||keys[0]));
   const lead=D.dests.find(x=>x.seat==='lead'); const who=c.npc||rp.npc||(lead&&lead.name); const lines=keys.map(k=>(rp.leadAfter&&rp.leadAfter[k])||((D.branches[id]||{})[k]&&(D.branches[id][k].now||{}).text)||'');
   $('card').classList.add('min'); $('cActs').innerHTML=''; note(`${escapeHtml(who)} 자리로 가는 중…`);
   const r=await travel('report',{seat:'lead',who,text:`${who.replace(' 팀장','')} 팀장님, ${c.subj.replace(/^\(대면\)\s*/,'')} 건 보고드립니다.`,ask:rp.leadAsk||'근거가 뭐야?',choices:labels,lines,best:best<0?0:best,auto:auto!=null?auto:undefined});

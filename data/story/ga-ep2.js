@@ -479,6 +479,9 @@ window.STORY["ga-ep2"]={
     "지붕 공사면 예산은 어디서 나와요?",
     "서과장이 뭐라고 했어요?"
    ],
+   "wrongNpcLine": {
+    "ga": "창고동 계약서요? 저는 그거 본 적도 없어요. 캐비닛 열쇠도 선임분이 가지고 계세요."
+   },
    "answer": "원본은 총무 캐비닛, 업무엔 사본 써요. 12조 — 구조부 하자 수선은 임대인 부담. 근데 임대인이 해외라 관리인 거쳐서 서면으로만 답이 와요. 예산은 시설예산인데 승인 없이 바로 쓸 수 있는 상한이 700만 원이에요. 넘으면 승인에 4일 더 걸려요.",
    "mustInclude": [
     "12조",
@@ -871,6 +874,7 @@ window.STORY["ga-ep2"]={
     "먼저"
    ],
    "citeRule": "GA-11",
+   "sasuLine": "예약을 옮긴 건 내가 아니에요. 회의실 예약은 우리 팀에서 한 사람이 맡아 보잖아요 — 옮긴 사람한테 직접 이유를 들어요.",
    "compose": {
     "mustInclude": [
      "GA-11",
@@ -954,7 +958,7 @@ window.STORY["ga-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "계약 갱신 판단은 경영기획이요."
+     "text": "갱신할지 말지는 저희가 정하는 게 아니에요. 결재 라인 쪽으로요."
     },
     "today": "시간 손실",
     "next": "—"
@@ -972,7 +976,7 @@ window.STORY["ga-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "소방 교육이요? 교육팀 반주임."
+     "text": "이수 명단은 교육 기록 가진 데가 뽑아 줘요. 토요일까지라니 서두르세요."
     },
     "today": "시간 손실",
     "next": "—"
@@ -1193,25 +1197,25 @@ window.STORY["ga-ep2"]={
    "team": "총무팀",
    "role": "사수"
   },
+  "권주임": {
+   "seat": "chief",
+   "ch": "acnh_27",
+   "team": "총무팀",
+   "teamKey": "ga",
+   "role": "주임"
+  },
   "신주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
    "role": "조력자"
   },
   "반주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_36",
    "team": "교육팀",
    "teamKey": "edu",
-   "role": "조력자"
-  },
-  "권주임": {
-   "seat": "chief",
-   "ch": "acnh_27",
-   "team": "총무팀",
-   "teamKey": "ga",
    "role": "조력자"
   }
  },
@@ -1223,22 +1227,22 @@ window.STORY["ga-ep2"]={
    "key": "ga"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "권주임",
+   "team": "총무팀",
+   "key": "ga"
+  },
+  {
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "반주임",
    "team": "교육팀",
    "key": "edu"
-  },
-  {
-   "seat": "chief",
-   "name": "권주임",
-   "team": "총무팀",
-   "key": "ga"
   },
   {
    "seat": "lead",

@@ -871,7 +871,7 @@ window.STORY["ga-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "측정값이요? 그건 품질관리팀이요."
+     "text": "측정값이 흔들리는 게 문제라면 검사실 쪽이 봐야 해요."
     },
     "today": "시간 손실",
     "next": "—"
@@ -1022,8 +1022,15 @@ window.STORY["ga-ep3"]={
    "team": "총무팀",
    "role": "사수"
   },
+  "권주임": {
+   "seat": "chief",
+   "ch": "acnh_27",
+   "team": "총무팀",
+   "teamKey": "ga",
+   "role": "주임"
+  },
   "도주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_35",
    "team": "품질관리팀",
    "teamKey": "qc",
@@ -1038,7 +1045,13 @@ window.STORY["ga-ep3"]={
    "key": "ga"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "권주임",
+   "team": "총무팀",
+   "key": "ga"
+  },
+  {
+   "seat": null,
    "name": "도주임",
    "team": "품질관리팀",
    "key": "qc"

@@ -902,7 +902,7 @@ window.STORY["edu-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "발주서 확인은 구매팀이요."
+     "text": "발주서 번호는 발주한 데가 갖고 있어요. 저희한텐 없어요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -987,8 +987,15 @@ window.STORY["edu-ep3"]={
    "team": "교육팀",
    "role": "사수"
   },
+  "반주임": {
+   "seat": "chief",
+   "ch": "acnh_36",
+   "team": "교육팀",
+   "teamKey": "edu",
+   "role": "주임"
+  },
   "엄주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
@@ -1003,7 +1010,13 @@ window.STORY["edu-ep3"]={
    "key": "edu"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "반주임",
+   "team": "교육팀",
+   "key": "edu"
+  },
+  {
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"

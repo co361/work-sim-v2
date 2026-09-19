@@ -772,7 +772,7 @@ window.STORY["pr-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "실적 확정치는 경영기획이에요."
+     "text": "보도자료에 실적이 들어가면 확정치여야 해요. 원자료 가진 데로요."
     },
     "today": "1분 손실",
     "next": "없음",
@@ -848,7 +848,7 @@ window.STORY["pr-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "매체 게재비는 회계예요."
+     "text": "게재비 청구서는 저희가 결재 못 해요. 돈 다루는 데로요."
     },
     "today": "1분 손실",
     "next": "없음",
@@ -985,15 +985,22 @@ window.STORY["pr-ep3"]={
    "team": "홍보팀",
    "role": "사수"
   },
+  "표주임": {
+   "seat": "chief",
+   "ch": "acnh_33",
+   "team": "홍보팀",
+   "teamKey": "pr",
+   "role": "주임"
+  },
   "신주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1008,13 +1015,19 @@ window.STORY["pr-ep3"]={
    "key": "pr"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "표주임",
+   "team": "홍보팀",
+   "key": "pr"
+  },
+  {
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

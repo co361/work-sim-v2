@@ -957,7 +957,7 @@ window.STORY["edu-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "교육비 예산 확인은 경영기획이요."
+     "text": "개강이 다음 달이면 예산 확인부터 받아 오세요. 순서가 그래요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -1336,8 +1336,15 @@ window.STORY["edu-ep5"]={
    "team": "교육팀",
    "role": "사수"
   },
+  "반주임": {
+   "seat": "chief",
+   "ch": "acnh_36",
+   "team": "교육팀",
+   "teamKey": "edu",
+   "role": "주임"
+  },
   "신주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
@@ -1352,7 +1359,13 @@ window.STORY["edu-ep5"]={
    "key": "edu"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "반주임",
+   "team": "교육팀",
+   "key": "edu"
+  },
+  {
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"

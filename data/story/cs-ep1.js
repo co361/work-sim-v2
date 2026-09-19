@@ -1243,22 +1243,29 @@ window.STORY["cs-ep1"]={
    "team": "고객상담팀",
    "role": "사수"
   },
+  "이주임": {
+   "seat": "chief",
+   "ch": "acnh_21",
+   "team": "고객상담팀",
+   "teamKey": "cs",
+   "role": "주임"
+  },
   "오대리": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_23",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "최주임": {
-   "seat": "staff4",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1273,19 +1280,25 @@ window.STORY["cs-ep1"]={
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": "chief",
+   "name": "이주임",
+   "team": "고객상담팀",
+   "key": "cs"
+  },
+  {
+   "seat": null,
    "name": "오대리",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff4",
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

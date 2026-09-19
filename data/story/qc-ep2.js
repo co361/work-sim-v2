@@ -589,6 +589,9 @@ window.STORY["qc-ep2"]={
    "mode": "ask",
    "to": "qc",
    "npc": "남선임",
+   "wrongNpcLine": {
+    "qc": "출고 순서는 창고랑 얘기해야 하는데 저는 검사만 해서요. 유효기간 기준은 선임분이 맡고 계세요."
+   },
    "question": [
     "출고 순서는 사규집 어느 편이에요?",
     "접착 필름 유효기간이 며칠이에요?",
@@ -1141,8 +1144,8 @@ window.STORY["qc-ep2"]={
    },
    "wrongNpc": {
     "now": {
-     "who": "한주임",
-     "text": "기한은 구매팀 규정이에요."
+     "who": "@npc",
+     "text": "샘플 검사는 해 드릴 텐데, 기한은 등록 규정 쪽이에요."
     },
     "today": "되돌아옴 −1.5분, ⑨ 감점",
     "next": "없음"
@@ -1213,7 +1216,7 @@ window.STORY["qc-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "시설은 총무팀이요."
+     "text": "조도는 시설이에요. 지적 회신에 저희 이름 넣지 마세요."
     },
     "today": "되돌아옴(1.5분 손실), ⑨ 0",
     "next": "없음",
@@ -1336,15 +1339,22 @@ window.STORY["qc-ep2"]={
    "team": "품질관리팀",
    "role": "사수"
   },
+  "도주임": {
+   "seat": "chief",
+   "ch": "acnh_35",
+   "team": "품질관리팀",
+   "teamKey": "qc",
+   "role": "주임"
+  },
   "엄주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
    "role": "조력자"
   },
   "최주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1359,13 +1369,19 @@ window.STORY["qc-ep2"]={
    "key": "qc"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

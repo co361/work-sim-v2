@@ -469,7 +469,8 @@ window.STORY["plan-ep2"]={
     ]
    },
    "wrongNpcLine": {
-    "acct": "권한은 우리 편이긴 한데, 프로모션 예산은 경영기획 소관이에요. 그쪽 사수분한테 먼저 물어보세요."
+    "acct": "권한은 우리 편이긴 한데, 프로모션 예산은 경영기획 소관이에요. 그쪽 사수분한테 먼저 물어보세요.",
+    "plan": "카테고리 전체 인하는 제가 답할 크기가 아니에요. 예산이 걸리는 건 선임분이 보세요."
    },
    "sasuLineDay4": "회계 편이에요. 내일부터는 한주임한테 물어봐요.",
    "clue": {
@@ -859,7 +860,7 @@ window.STORY["plan-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "권한은 우리 편인데 프로모션 예산은 경영기획이에요. 사수분한테 먼저 물어보세요."
+     "text": "권한이랑 예산은 다른 얘기예요. 예산 보는 데서 먼저 확인받으세요."
     },
     "today": "40초 손실, 답은 못 받음",
     "next": "없음"
@@ -987,7 +988,7 @@ window.STORY["plan-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "회수 기기 처분은 창고 쪽이에요. 물류팀 장주임."
+     "text": "남은 기기는 창고에 있잖아요. 처분도 거기서 정해요."
     },
     "today": "40초 손실, ⑨ 0",
     "next": "없음"
@@ -1253,15 +1254,22 @@ window.STORY["plan-ep2"]={
    "team": "경영기획팀",
    "role": "사수"
   },
+  "신주임": {
+   "seat": "chief",
+   "ch": "acnh_38",
+   "team": "경영기획팀",
+   "teamKey": "plan",
+   "role": "주임"
+  },
   "장주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "최주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1276,13 +1284,19 @@ window.STORY["plan-ep2"]={
    "key": "plan"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "신주임",
+   "team": "경영기획팀",
+   "key": "plan"
+  },
+  {
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

@@ -974,7 +974,7 @@ window.STORY["logi-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "상계요? 회계팀이요."
+     "text": "상계 처리는 저희 손을 떠난 얘기예요. 정산 쪽으로요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1014,7 +1014,7 @@ window.STORY["logi-ep3"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "배관은 총무팀이요. 젖은 물건은 나중에 저희로."
+     "text": "물 새는 건 설비예요. 젖은 물건은 나중에 저희가 볼게요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1114,15 +1114,22 @@ window.STORY["logi-ep3"]={
    "team": "물류팀",
    "role": "사수"
   },
+  "장주임": {
+   "seat": "chief",
+   "ch": "acnh_18",
+   "team": "물류팀",
+   "teamKey": "logi",
+   "role": "주임"
+  },
   "한주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
    "role": "조력자"
   },
   "최주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1137,13 +1144,19 @@ window.STORY["logi-ep3"]={
    "key": "logi"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "장주임",
+   "team": "물류팀",
+   "key": "logi"
+  },
+  {
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

@@ -999,7 +999,7 @@ window.STORY["cs-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "출고 기록은 물류예요."
+     "text": "뭐가 나갔는지는 출고 기록에 있어요. 그걸 보는 데로 가세요."
     },
     "today": "⑨ 0"
    },
@@ -1251,7 +1251,7 @@ window.STORY["cs-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "주차 등록이요? 그건 총무팀이에요."
+     "text": "등록이 안 돼 있으면 저희는 손댈 게 없어요. 그것부터요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -1427,8 +1427,15 @@ window.STORY["cs-ep5"]={
    "team": "고객상담팀",
    "role": "사수"
   },
+  "이주임": {
+   "seat": "chief",
+   "ch": "acnh_21",
+   "team": "고객상담팀",
+   "teamKey": "cs",
+   "role": "주임"
+  },
   "오대리": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_23",
    "team": "물류팀",
    "teamKey": "logi",
@@ -1443,7 +1450,13 @@ window.STORY["cs-ep5"]={
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": "chief",
+   "name": "이주임",
+   "team": "고객상담팀",
+   "key": "cs"
+  },
+  {
+   "seat": null,
    "name": "오대리",
    "team": "물류팀",
    "key": "logi"

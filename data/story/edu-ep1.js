@@ -1043,7 +1043,7 @@ window.STORY["edu-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "그건 총무팀 최주임한테 물어보세요."
+     "text": "강의장 설비는 관리하는 데가 따로 있어요. 거기서 안내받으세요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -1143,7 +1143,7 @@ window.STORY["edu-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "거래 등록은 구매팀이요."
+     "text": "등록이 끝나야 인쇄가 나가요. 등록하는 데부터요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -1165,7 +1165,7 @@ window.STORY["edu-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "근태·수당 계산은 채용팀이요."
+     "text": "교육 시간을 근무로 잡는 건 근태 보는 데가 정해요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -1328,22 +1328,29 @@ window.STORY["edu-ep1"]={
    "team": "교육팀",
    "role": "사수"
   },
+  "반주임": {
+   "seat": "chief",
+   "ch": "acnh_36",
+   "team": "교육팀",
+   "teamKey": "edu",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "엄주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
    "role": "조력자"
   },
   "홍주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_43",
    "team": "채용팀",
    "teamKey": "rec",
@@ -1358,19 +1365,25 @@ window.STORY["edu-ep1"]={
    "key": "edu"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "반주임",
+   "team": "교육팀",
+   "key": "edu"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "홍주임",
    "team": "채용팀",
    "key": "rec"

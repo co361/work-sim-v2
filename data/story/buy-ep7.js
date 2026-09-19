@@ -58,12 +58,25 @@ window.STORY["buy-ep7"]={
    "ch": "acnh_47",
    "team": "구매팀",
    "role": "사수"
+  },
+  "엄주임": {
+   "seat": "chief",
+   "ch": "acnh_48",
+   "team": "구매팀",
+   "teamKey": "buy",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "구선임",
+   "team": "구매팀",
+   "key": "buy"
+  },
+  {
+   "seat": "chief",
+   "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
   },

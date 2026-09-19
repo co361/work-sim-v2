@@ -1002,7 +1002,7 @@ window.STORY["acct-ep5"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "계약서 원본은 총무예요"
+     "text": "지급은 계약서 대조가 끝나야 해요. 원본 보관하는 데부터요."
     },
     "today": "40초 손실",
     "next": "없음"
@@ -1380,8 +1380,15 @@ window.STORY["acct-ep5"]={
    "team": "회계팀",
    "role": "사수"
   },
+  "문주임": {
+   "seat": "chief",
+   "ch": "acnh_20",
+   "team": "회계팀",
+   "teamKey": "acct",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1396,7 +1403,13 @@ window.STORY["acct-ep5"]={
    "key": "acct"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "문주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

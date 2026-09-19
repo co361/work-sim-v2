@@ -128,7 +128,7 @@ window.STORY["rec-ep4"]={
     ]
    },
    "vars": {
-    "SENDER": "표주임",
+    "SENDER": "홍주임",
     "MONTH": "다음 달",
     "COUNT": "7",
     "JOB": "생산관리 경력",
@@ -144,6 +144,27 @@ window.STORY["rec-ep4"]={
    ],
    "hint": "넘기는 기한은 급여를 맡는 팀이 알아요. 받아 온 값을 회신에 옮기고 그 팀을 참조로 넣으세요.",
    "mode": "ask",
+   "to": "acct",
+   "npc": "한주임",
+   "sasuLine": "급여 등록은 회계팀. 한주임.",
+   "question": [
+    "입사자 급여 등록은 언제까지 넘겨야 해요?",
+    "입사 달 급여는 어떻게 계산돼요?",
+    "인건비 증가분은 누가 승인해요?"
+   ],
+   "answer": "입사일 5영업일 전까지 명단이랑 연봉 넘겨 주세요. 입사 달은 근무한 날수만큼 일할이에요. 예산 승인은 경영기획.",
+   "mustInclude": [
+    "5영업일",
+    "날수"
+   ],
+   "ccTeams": [
+    "acct"
+   ],
+   "citeRule": "ACCT-08",
+   "wrongNpcLine": {
+    "plan": "급여 등록은 회계팀이요. 예산은 저희지만.",
+    "ga": "인건비요? 회계팀 한주임."
+   },
    "compose": {
     "mustInclude": [
      "5영업일",
@@ -164,26 +185,6 @@ window.STORY["rec-ep4"]={
       "영업일 닷새"
      ]
     }
-   },
-   "to": "acct",
-   "npc": "한주임",
-   "ccTeams": [
-    "acct"
-   ],
-   "citeRule": "ACCT-08",
-   "question": [
-    "입사자 급여 등록은 언제까지 넘겨야 해요?",
-    "입사 달 급여는 어떻게 계산돼요?",
-    "인건비 증가분은 누가 승인해요?"
-   ],
-   "answer": "입사일 5영업일 전까지 명단이랑 연봉 넘겨 주세요. 입사 달은 근무한 날수만큼 일할이에요. 예산 승인은 경영기획.",
-   "mustInclude": [
-    "5영업일",
-    "날수"
-   ],
-   "wrongNpcLine": {
-    "plan": "급여 등록은 회계팀이요. 예산은 저희지만.",
-    "ga": "인건비요? 회계팀 한주임."
    }
   },
   {
@@ -476,6 +477,11 @@ window.STORY["rec-ep4"]={
    ],
    "hint": "누구 연차를 자를지는 우리가 정하지 않아요. 겹친 내용을 정리해 그 팀에 가서 조정을 요청하세요.",
    "mode": "deliver",
+   "alsoReply": true,
+   "citeRule": "REC-09",
+   "ruleFacts": [
+    "부서장"
+   ],
    "deliver": {
     "to": "logi",
     "npc": "오대리",
@@ -484,17 +490,12 @@ window.STORY["rec-ep4"]={
      "같은 팀 신청 겹침",
      "업무 공백 기준 부서장 조정 요청"
     ],
-    "okLine": "두 건 겹친 거요? 제가 팀장님께 올려서 조정할게요.",
     "wrongNpcLine": {
      "ga": "휴가 조정요? 그건 그 팀 부서장이에요. 물류팀.",
      "acct": "연차는 저희 아니에요. 물류팀 오대리한테요."
-    }
-   },
-   "citeRule": "REC-09",
-   "ruleFacts": [
-    "부서장"
-   ],
-   "alsoReply": true
+    },
+    "okLine": "두 건 겹친 거요? 제가 팀장님께 올려서 조정할게요."
+   }
   },
   {
    "id": "rc33",
@@ -880,7 +881,7 @@ window.STORY["rec-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "회의실요? 총무팀이에요."
+     "text": "면접 시간 바꾸면 회의실도 다시 잡아야 해요. 예약하는 데로요."
     },
     "today": "⑨ 0"
    }
@@ -898,7 +899,7 @@ window.STORY["rec-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "급여 등록은 회계팀이요."
+     "text": "처우가 확정됐으면 급여 등록이 남았어요. 등록하는 데로요."
     },
     "today": "⑨ 0",
     "next": "없음"
@@ -966,7 +967,7 @@ window.STORY["rec-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "휴가 조정요? 그 팀 부서장이에요."
+     "text": "겹친 연차를 반려하는 건 그 팀 부서장이에요. 저희가 대신 못 해요."
     },
     "today": "⑨ 0",
     "next": "없음"
@@ -1185,25 +1186,46 @@ window.STORY["rec-ep4"]={
    "team": "채용팀",
    "role": "사수"
   },
+  "홍주임": {
+   "seat": "chief",
+   "ch": "acnh_43",
+   "team": "채용팀",
+   "teamKey": "rec",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
+  "한주임": {
+   "seat": null,
+   "ch": "acnh_37",
+   "team": "회계팀",
+   "teamKey": "acct",
+   "role": "조력자"
+  },
   "표주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_33",
    "team": "홍보팀",
    "teamKey": "pr",
    "role": "조력자"
   },
   "신주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_38",
    "team": "경영기획팀",
    "teamKey": "plan",
+   "role": "조력자"
+  },
+  "오대리": {
+   "seat": null,
+   "ch": "acnh_23",
+   "team": "물류팀",
+   "teamKey": "logi",
    "role": "조력자"
   }
  },
@@ -1215,22 +1237,40 @@ window.STORY["rec-ep4"]={
    "key": "rec"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "홍주임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff2",
+   "seat": null,
+   "name": "한주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
    "name": "표주임",
    "team": "홍보팀",
    "key": "pr"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "신주임",
    "team": "경영기획팀",
    "key": "plan"
+  },
+  {
+   "seat": null,
+   "name": "오대리",
+   "team": "물류팀",
+   "key": "logi"
   },
   {
    "seat": "lead",

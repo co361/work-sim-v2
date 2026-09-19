@@ -58,12 +58,25 @@ window.STORY["logi-ep7"]={
    "ch": "acnh_23",
    "team": "물류팀",
    "role": "사수"
+  },
+  "장주임": {
+   "seat": "chief",
+   "ch": "acnh_18",
+   "team": "물류팀",
+   "teamKey": "logi",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "오대리",
+   "team": "물류팀",
+   "key": "logi"
+  },
+  {
+   "seat": "chief",
+   "name": "장주임",
    "team": "물류팀",
    "key": "logi"
   },

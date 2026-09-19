@@ -565,6 +565,11 @@ window.STORY["rec-ep2"]={
     "파쇄 업체를 꼭 불러야 해요?",
     "파기하고 뭘 남겨요?"
    ],
+   "wrongNpcLine": {
+    "rec": "그걸 저한테 물어보면 어떡해요, 제가 물어본 건데. 규정은 선임님이 아시니까 그쪽에 확인해서 답 줘요.",
+    "ga": "총무 편 GA-14요. 근데 오늘까진 김선임님이 다 답해 줄 텐데요?",
+    "acct": "서류 파기요? 그건 총무 편이에요."
+   },
    "answer": "총무 편 문서 파기 조항이에요. 파기 목록 만들어서 우리 확인 받고, 개인정보 문서는 세단이나 소각. 일자랑 방법 기록. 폐지는 안 돼요.",
    "mustInclude": [
     "세단",
@@ -574,10 +579,7 @@ window.STORY["rec-ep2"]={
     "GA-14",
     "REC-05"
    ],
-   "wrongNpcLine": {
-    "ga": "총무 편 GA-14요. 근데 오늘까진 김선임님이 다 답해 줄 텐데요?",
-    "acct": "서류 파기요? 그건 총무 편이에요."
-   }
+   "sasuLineDay4": "그건 총무 편이에요. 내일부터는 최주임한테 물어봐요."
   },
   {
    "id": "rc45",
@@ -784,7 +786,8 @@ window.STORY["rec-ep2"]={
    },
    "ruleScope": "rec",
    "ruleFacts": [
-    "발령 사유"
+    "당사자에게 먼저",
+    "사유"
    ],
    "arrive": 25,
    "ncs": [
@@ -797,6 +800,9 @@ window.STORY["rec-ep2"]={
    "hint": "사수의 지시라도 순서가 규정과 다르면 되돌려야 해요. 무엇을 어떤 순서로 하면 되는지까지 적어요.",
    "mode": "reply",
    "citeRule": "REC-13",
+   "replyBan": [
+    "그렇게 할게요"
+   ],
    "replyCheck": {
     "need": [
      [
@@ -893,8 +899,8 @@ window.STORY["rec-ep2"]={
    },
    "wrongNpc": {
     "now": {
-     "who": "최주임",
-     "text": "총무 편 GA-14요. 근데 오늘까진 김선임님이 다 답해 줄 텐데요?"
+     "who": "@npc",
+     "text": "폐지 수거에 내놓으면 안 돼요. 파기 절차부터 확인하세요."
     },
     "today": "답은 얻지만 걸음이 길어짐"
    }
@@ -914,7 +920,7 @@ window.STORY["rec-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "자리요? 총무팀."
+     "text": "자리랑 장비는 사무실 관리하는 데가 잡아요. 출근 전에 신청하세요."
     },
     "today": "⑨ 0"
    },
@@ -928,15 +934,19 @@ window.STORY["rec-ep2"]={
    }
   },
   "rc32": {
-   "forbid:네, 그렇게 할게요": {
+   "forbid:그렇게 할게요": {
     "now": {
      "who": "김선임",
      "text": "…고마워요."
     },
     "today": "20점",
+    "next": "3화 아침 노윤아 한 줄 \"발령 공지 순서 누가 정했어?\" — 팀장 신뢰 −1, 김선임 사과 대사",
     "trust": {
      "팀장": -1
     }
+   },
+   "forbid:네, 그렇게 할게요": {
+    "next": "$delete"
    }
   },
   "rc26": {
@@ -1050,15 +1060,22 @@ window.STORY["rec-ep2"]={
    "team": "채용팀",
    "role": "사수"
   },
+  "홍주임": {
+   "seat": "chief",
+   "ch": "acnh_43",
+   "team": "채용팀",
+   "teamKey": "rec",
+   "role": "주임"
+  },
   "반주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_36",
    "team": "교육팀",
    "teamKey": "edu",
    "role": "조력자"
   },
   "최주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1073,13 +1090,19 @@ window.STORY["rec-ep2"]={
    "key": "rec"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "홍주임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": null,
    "name": "반주임",
    "team": "교육팀",
    "key": "edu"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

@@ -58,12 +58,25 @@ window.STORY["rec-ep7"]={
    "ch": "acnh_17",
    "team": "채용팀",
    "role": "사수"
+  },
+  "홍주임": {
+   "seat": "chief",
+   "ch": "acnh_43",
+   "team": "채용팀",
+   "teamKey": "rec",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "김선임",
+   "team": "채용팀",
+   "key": "rec"
+  },
+  {
+   "seat": "chief",
+   "name": "홍주임",
    "team": "채용팀",
    "key": "rec"
   },

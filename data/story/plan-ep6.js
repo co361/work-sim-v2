@@ -1127,7 +1127,7 @@ window.STORY["plan-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "문서고는 총무예요."
+     "text": "파기 목록은 문서고 관리하는 데가 갖고 있어요."
     },
     "today": "40초 손실, ⑨ 0",
     "next": "없음"
@@ -1502,8 +1502,15 @@ window.STORY["plan-ep6"]={
    "team": "경영기획팀",
    "role": "사수"
   },
+  "신주임": {
+   "seat": "chief",
+   "ch": "acnh_38",
+   "team": "경영기획팀",
+   "teamKey": "plan",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
@@ -1518,7 +1525,13 @@ window.STORY["plan-ep6"]={
    "key": "plan"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "신주임",
+   "team": "경영기획팀",
+   "key": "plan"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"

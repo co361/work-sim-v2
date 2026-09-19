@@ -773,7 +773,7 @@ window.STORY["edu-ep2"]={
     ]
    },
    "vars": {
-    "SENDER": "한주임",
+    "SENDER": "장주임",
     "WHO": "여름 휴가철",
     "DAY": "이번 주 목요일"
    },
@@ -977,7 +977,7 @@ window.STORY["edu-ep2"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "회사망 장애는 총무예요."
+     "text": "11명이 같이 끊기면 회선 문제예요. 망 관리하는 데로요."
     },
     "today": "1.5분 손실",
     "next": "없음",
@@ -1132,22 +1132,29 @@ window.STORY["edu-ep2"]={
    "team": "교육팀",
    "role": "사수"
   },
+  "반주임": {
+   "seat": "chief",
+   "ch": "acnh_36",
+   "team": "교육팀",
+   "teamKey": "edu",
+   "role": "주임"
+  },
   "홍주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_43",
    "team": "채용팀",
    "teamKey": "rec",
    "role": "조력자"
   },
   "최주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1162,19 +1169,25 @@ window.STORY["edu-ep2"]={
    "key": "edu"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "반주임",
+   "team": "교육팀",
+   "key": "edu"
+  },
+  {
+   "seat": null,
    "name": "홍주임",
    "team": "채용팀",
    "key": "rec"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

@@ -993,7 +993,7 @@ window.STORY["cs-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "물건이 와야 저희가 봐요."
+     "text": "물건이 와야 저희 차례예요. 회수부터 잡으세요."
     },
     "today": "⑨ 0, 40초"
    },
@@ -1080,7 +1080,7 @@ window.STORY["cs-ep6"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "결제 취소는 회계팀이요."
+     "text": "420세트면 큰 건이에요. 결제 쪽부터 막아야 해요."
     },
     "today": "⑨ 0",
     "next": "없음"
@@ -1489,15 +1489,22 @@ window.STORY["cs-ep6"]={
    "team": "고객상담팀",
    "role": "사수"
   },
+  "이주임": {
+   "seat": "chief",
+   "ch": "acnh_21",
+   "team": "고객상담팀",
+   "teamKey": "cs",
+   "role": "주임"
+  },
   "오대리": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_23",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "한주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_37",
    "team": "회계팀",
    "teamKey": "acct",
@@ -1512,13 +1519,19 @@ window.STORY["cs-ep6"]={
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": "chief",
+   "name": "이주임",
+   "team": "고객상담팀",
+   "key": "cs"
+  },
+  {
+   "seat": null,
    "name": "오대리",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "한주임",
    "team": "회계팀",
    "key": "acct"

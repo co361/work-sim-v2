@@ -854,7 +854,7 @@ window.STORY["plan-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "자리 배정은 저희지만 발령은 채용팀이에요."
+     "text": "공석이면 발령 나는 데에 물어야죠. 저희는 자리만 정해요."
     },
     "today": "40초 손실, ⑨ 0",
     "next": "없음"
@@ -1012,7 +1012,7 @@ window.STORY["plan-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "인증 시험 결과는 품질관리팀 도주임이요."
+     "text": "인증 통과 여부는 시험한 데가 알아요. 저희는 발주만요."
     },
     "today": "40초 손실, ⑨ 0",
     "next": "없음"
@@ -1075,7 +1075,7 @@ window.STORY["plan-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "감가상각은 회계팀 한주임이요."
+     "text": "감가상각은 회계 처리예요. 계산한 데서 받아 오세요."
     },
     "today": "40초 손실, ⑨ 0",
     "next": "없음"
@@ -1314,22 +1314,29 @@ window.STORY["plan-ep4"]={
    "team": "경영기획팀",
    "role": "사수"
   },
+  "신주임": {
+   "seat": "chief",
+   "ch": "acnh_38",
+   "team": "경영기획팀",
+   "teamKey": "plan",
+   "role": "주임"
+  },
   "홍주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_43",
    "team": "채용팀",
    "teamKey": "rec",
    "role": "조력자"
   },
   "장주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "표주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_33",
    "team": "홍보팀",
    "teamKey": "pr",
@@ -1365,22 +1372,46 @@ window.STORY["plan-ep4"]={
    "key": "plan"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "신주임",
+   "team": "경영기획팀",
+   "key": "plan"
+  },
+  {
+   "seat": null,
    "name": "홍주임",
    "team": "채용팀",
    "key": "rec"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "표주임",
    "team": "홍보팀",
    "key": "pr"
+  },
+  {
+   "seat": null,
+   "name": "한주임",
+   "team": "회계팀",
+   "key": "acct"
+  },
+  {
+   "seat": null,
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
+   "name": "엄주임",
+   "team": "구매팀",
+   "key": "buy"
   },
   {
    "seat": "lead",

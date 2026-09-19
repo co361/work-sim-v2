@@ -830,7 +830,7 @@ window.STORY["logi-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "고객 안내요? 고객상담팀이에요."
+     "text": "고객한테 뭐라 할지는 고객 창구가 정해요. 출고 여부만 저희예요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -867,7 +867,7 @@ window.STORY["logi-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "출입 통제는 총무팀이요. 저희는 예약만 넘겨요."
+     "text": "게이트 통제는 건물 관리하는 데가 알아요. 저희는 예약만 넘겨요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -963,7 +963,7 @@ window.STORY["logi-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "입고 일정은 구매팀이요."
+     "text": "입고 날짜는 발주한 데가 알아요. 출고 지시는 그다음이에요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -999,7 +999,7 @@ window.STORY["logi-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "재판매 판정요? 품질관리팀이에요."
+     "text": "다시 팔 수 있는지는 판정하는 데가 정해요. 냉장존에 그냥 넣진 마세요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1028,7 +1028,7 @@ window.STORY["logi-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "지급은 회계팀이에요. 저희는 접수만."
+     "text": "회수는 끝났으니 환불은 돈 나가는 데로요. 저희는 접수까지예요."
     },
     "today": "⑨ 0, 40초 손실",
     "next": "없음"
@@ -1233,22 +1233,29 @@ window.STORY["logi-ep4"]={
    "team": "물류팀",
    "role": "사수"
   },
+  "장주임": {
+   "seat": "chief",
+   "ch": "acnh_18",
+   "team": "물류팀",
+   "teamKey": "logi",
+   "role": "주임"
+  },
   "이주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
    "role": "조력자"
   },
   "최주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "엄주임": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_48",
    "team": "구매팀",
    "teamKey": "buy",
@@ -1277,22 +1284,40 @@ window.STORY["logi-ep4"]={
    "key": "logi"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "장주임",
+   "team": "물류팀",
+   "key": "logi"
+  },
+  {
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "엄주임",
    "team": "구매팀",
    "key": "buy"
+  },
+  {
+   "seat": null,
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
+   "name": "한주임",
+   "team": "회계팀",
+   "key": "acct"
   },
   {
    "seat": "lead",

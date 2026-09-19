@@ -520,6 +520,9 @@ window.STORY["buy-ep1"]={
    "mode": "ask",
    "to": "buy",
    "npc": "구선임",
+   "wrongNpcLine": {
+    "buy": "거래처 등록은 제가 안 봐요. 저는 발주서만 내고요. 등록 서류 챙기시는 선임분이 따로 계세요."
+   },
    "question": [
     "신규 거래처 등록 서류는 첫 발주일 며칠 전까지예요?",
     "등록에 무슨 서류가 필요해요?",
@@ -994,7 +997,7 @@ window.STORY["buy-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "하역장은 물류팀이요. 저희는 사내 택배만."
+     "text": "기사님 기다린다면서요. 창고 쪽에 바로 물어보세요."
     },
     "today": "시간 −1분, 조직이해 미측정",
     "next": "없음",
@@ -1016,7 +1019,7 @@ window.STORY["buy-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "고객 응대는 고객상담팀이에요."
+     "text": "고객한테 직접 답하진 마시고요. 접수 창구로 넘기세요."
     },
     "today": "시간 −1분",
     "next": "없음",
@@ -1323,15 +1326,22 @@ window.STORY["buy-ep1"]={
    "team": "구매팀",
    "role": "사수"
   },
+  "엄주임": {
+   "seat": "chief",
+   "ch": "acnh_48",
+   "team": "구매팀",
+   "teamKey": "buy",
+   "role": "주임"
+  },
   "장주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "이주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
@@ -1346,13 +1356,19 @@ window.STORY["buy-ep1"]={
    "key": "buy"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "엄주임",
+   "team": "구매팀",
+   "key": "buy"
+  },
+  {
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"

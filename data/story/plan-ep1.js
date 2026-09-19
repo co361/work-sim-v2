@@ -802,6 +802,9 @@ window.STORY["plan-ep1"]={
     "연한은 어느 날부터 세요?",
     "폐기하면 뭘 남겨요?"
    ],
+   "wrongNpcLine": {
+    "plan": "보존 연한이요… 저도 헷갈려서 매번 선임한테 물어봐요. 문서 관리 기준은 그분이 정확해요."
+   },
    "answer": "사업계획서는 10년. 확정된 해의 다음 해 1월 1일부터 세요. 폐기하면 목록이랑 일자를 남기고요.",
    "mustInclude": [
     "2031"
@@ -1060,7 +1063,7 @@ window.STORY["plan-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "환불 접수는 고객상담팀이에요. 저희는 입금만 해요."
+     "text": "환불 접수는 고객 창구예요. 저희는 입금만 해요."
     },
     "today": "되돌아옴(40초 손실), ⑨ 0",
     "next": "없음"
@@ -1097,7 +1100,7 @@ window.STORY["plan-ep1"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "창고 재고는 물류팀 장주임이요."
+     "text": "실사는 창고에서 세야죠. 저희는 결과만 받아요."
     },
     "today": "되돌아옴(40초 손실), ⑨ 0",
     "next": "없음"
@@ -1450,15 +1453,22 @@ window.STORY["plan-ep1"]={
    "team": "경영기획팀",
    "role": "사수"
   },
+  "신주임": {
+   "seat": "chief",
+   "ch": "acnh_38",
+   "team": "경영기획팀",
+   "teamKey": "plan",
+   "role": "주임"
+  },
   "이주임": {
-   "seat": "staff",
+   "seat": null,
    "ch": "acnh_21",
    "team": "고객상담팀",
    "teamKey": "cs",
    "role": "조력자"
   },
   "장주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_18",
    "team": "물류팀",
    "teamKey": "logi",
@@ -1473,13 +1483,19 @@ window.STORY["plan-ep1"]={
    "key": "plan"
   },
   {
-   "seat": "staff",
+   "seat": "chief",
+   "name": "신주임",
+   "team": "경영기획팀",
+   "key": "plan"
+  },
+  {
+   "seat": null,
    "name": "이주임",
    "team": "고객상담팀",
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": null,
    "name": "장주임",
    "team": "물류팀",
    "key": "logi"

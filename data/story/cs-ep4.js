@@ -662,10 +662,10 @@ window.STORY["cs-ep4"]={
   {
    "id": "cs42",
    "type": "email",
-   "from": "한주임 (물류팀)",
+   "from": "장주임 (물류팀)",
    "role": "사내 요청 (업무 인수인계 메모)",
    "subj": "고객상담팀 인수인계 메모 — 여름 휴가철 대비해서 오늘 중 부탁해요",
-   "body": "고객상담팀 담당자님, 한주임예요.\n\n여름 휴가철 대비해서 담당별 인수인계 메모를 걷고 있어요. 세 줄이면 됩니다.\n① 오늘 내가 맡아서 처리한 일 가운데 다른 사람이 이어받기 어려운 것 한 가지\n② 왜 어려운지 — 아는 사람만 아는 기준이나 순서가 있다면 그것\n③ 그걸 남이 이어받으려면 무엇을 먼저 봐야 하는지\n형식은 안 봐요. 오늘 본인이 실제로 한 일로 써 주셔야 쓸모가 있어요. 오늘 안에 회신 부탁해요.",
+   "body": "고객상담팀 담당자님, 장주임예요.\n\n여름 휴가철 대비해서 담당별 인수인계 메모를 걷고 있어요. 세 줄이면 됩니다.\n① 오늘 내가 맡아서 처리한 일 가운데 다른 사람이 이어받기 어려운 것 한 가지\n② 왜 어려운지 — 아는 사람만 아는 기준이나 순서가 있다면 그것\n③ 그걸 남이 이어받으려면 무엇을 먼저 봐야 하는지\n형식은 안 봐요. 오늘 본인이 실제로 한 일로 써 주셔야 쓸모가 있어요. 오늘 안에 회신 부탁해요.",
    "urgent": 2,
    "importance": 2,
    "best": "reply",
@@ -692,7 +692,7 @@ window.STORY["cs-ep4"]={
     ]
    },
    "vars": {
-    "SENDER": "한주임",
+    "SENDER": "장주임",
     "WHO": "여름 휴가철",
     "DAY": "이번 주 목요일"
    },
@@ -853,7 +853,7 @@ window.STORY["cs-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "주차요? 그건 총무팀이에요."
+     "text": "영수증은 잘 챙겨 가세요. 등록이 돼야 환급도 되니까요."
     },
     "today": "⑨ 0, 40초 손실"
    },
@@ -879,7 +879,7 @@ window.STORY["cs-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "운임요? 물류팀이요."
+     "text": "도서 지역 운임표는 배송 쪽에 있어요. 고객 기다리니까 얼른요."
     },
     "today": "⑨ 0",
     "next": "없음"
@@ -919,7 +919,7 @@ window.STORY["cs-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "입고 예정은 구매팀이요."
+     "text": "입고 날짜는 발주한 데가 알아요. 저희는 들어온 뒤 얘기예요."
     },
     "today": "⑨ 0"
    },
@@ -949,7 +949,7 @@ window.STORY["cs-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "취재는 홍보팀 표주임이요."
+     "text": "기자한테는 답하지 마세요. 회사 입장은 창구가 따로 있어요."
     },
     "today": "⑨ 0",
     "next": "없음"
@@ -980,7 +980,7 @@ window.STORY["cs-ep4"]={
    "wrongNpc": {
     "now": {
      "who": "@npc",
-     "text": "기획전 조건은 경영기획팀이요."
+     "text": "기획전 조건은 만든 데가 정해요. 저희는 그대로 안내만 해요."
     },
     "today": "⑨ 0"
    },
@@ -1164,22 +1164,29 @@ window.STORY["cs-ep4"]={
    "team": "고객상담팀",
    "role": "사수"
   },
+  "이주임": {
+   "seat": "chief",
+   "ch": "acnh_21",
+   "team": "고객상담팀",
+   "teamKey": "cs",
+   "role": "주임"
+  },
   "최주임": {
-   "seat": "staff2",
+   "seat": null,
    "ch": "acnh_22",
    "team": "총무팀",
    "teamKey": "ga",
    "role": "조력자"
   },
   "오대리": {
-   "seat": "staff3",
+   "seat": null,
    "ch": "acnh_23",
    "team": "물류팀",
    "teamKey": "logi",
    "role": "조력자"
   },
   "유대리": {
-   "seat": "staff4",
+   "seat": "staff2",
    "ch": "acnh_46",
    "team": "구매팀",
    "teamKey": "buy",
@@ -1193,7 +1200,7 @@ window.STORY["cs-ep4"]={
    "role": "조력자"
   },
   "감주임": {
-   "seat": null,
+   "seat": "staff3",
    "ch": "acnh_36",
    "team": "경영기획팀",
    "teamKey": "plan",
@@ -1222,22 +1229,52 @@ window.STORY["cs-ep4"]={
    "key": "cs"
   },
   {
-   "seat": "staff2",
+   "seat": "chief",
+   "name": "이주임",
+   "team": "고객상담팀",
+   "key": "cs"
+  },
+  {
+   "seat": null,
    "name": "최주임",
    "team": "총무팀",
    "key": "ga"
   },
   {
-   "seat": "staff3",
+   "seat": null,
    "name": "오대리",
    "team": "물류팀",
    "key": "logi"
   },
   {
-   "seat": "staff4",
+   "seat": "staff2",
    "name": "유대리",
    "team": "구매팀",
    "key": "buy"
+  },
+  {
+   "seat": null,
+   "name": "표주임",
+   "team": "홍보팀",
+   "key": "pr"
+  },
+  {
+   "seat": "staff3",
+   "name": "감주임",
+   "team": "경영기획팀",
+   "key": "plan"
+  },
+  {
+   "seat": null,
+   "name": "도주임",
+   "team": "품질관리팀",
+   "key": "qc"
+  },
+  {
+   "seat": null,
+   "name": "한주임",
+   "team": "회계팀",
+   "key": "acct"
   },
   {
    "seat": "lead",

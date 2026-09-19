@@ -58,12 +58,25 @@ window.STORY["edu-ep7"]={
    "ch": "acnh_46",
    "team": "교육팀",
    "role": "사수"
+  },
+  "반주임": {
+   "seat": "chief",
+   "ch": "acnh_36",
+   "team": "교육팀",
+   "teamKey": "edu",
+   "role": "주임"
   }
  },
  "dests": [
   {
    "seat": "senior",
    "name": "손선임",
+   "team": "교육팀",
+   "key": "edu"
+  },
+  {
+   "seat": "chief",
+   "name": "반주임",
    "team": "교육팀",
    "key": "edu"
   },
