@@ -81,10 +81,10 @@ function renderCardActs(id){ const c=CARD(id), st=S.cards[id]; const acts=$('cAc
   if(flow.includes('report')&&steps.report&&!steps.reply){ notes.push(`<b>보고 끝.</b> ${escapeHtml(steps.report.line||'')}<br>이제 고객에게 회신하세요 — 결론은 아직 쓰지 않아요.`); acts.appendChild(mkBtn('고객에게 회신','pri',()=>openComposer(id,'reply'))); note(notes.join('<br>')); return; }
   /* 전달 · 질문 */
   if(flow.includes('deliver')||flow.includes('ask')){ const isAsk=flow.includes('ask'); const d=c.deliver||{}; const who=isAsk?c.npc:d.npc;
-    if(st.ask){ notes.push(`<b>${escapeHtml(who)} 답:</b> "${escapeHtml(st.ask.answer)}"<br>받은 답을 회신에 옮겨 적으세요.`); }
+    if(st.ask){ notes.push(`<b>${escapeHtml(who)} 답:</b> "${escapeHtml(st.ask.answer)}"<br>받은 답을 회신에 옮겨 적으세요.`+(st.ask.open&&st.ask.cap<100?' <b>다 못 물어본 것이 있어요</b> — 회신 점수에 상한이 걸려요.':'')); }
     else if(isAsk&&!steps.reply){ if(st.wrong) notes.push(`<b>다시 가 볼 수 있어요.</b> ${escapeHtml(st.wrong)}`);
       /* 누구에게 물을지 고르는 것이 이 카드의 일이다 — 이름을 알려 주지 않는다 */
-      if(walkT()) notes.push(`이 일을 맡은 사람을 찾아가 ${T_KEY}로 여쭤보세요. 누구 소관인지는 카드 내용과 조직도를 보고 판단해요.`);
+      if(walkT()) notes.push(`이 일을 맡은 사람을 찾아가 ${T_KEY}로 여쭤보세요. 누구 소관인지는 카드 내용과 조직도를 보고 판단해요.`+(c.askOpen?' <b>무엇을 물을지는 직접 정해요</b> — 회신에 무엇이 들어가야 하는지부터 생각해요.':''));
       else acts.appendChild(mkBtn('가서 물어보기','pri',()=>renderDest(id,'ask'))); }
     if(!isAsk){ if(steps.deliver){ notes.push(`<b>${escapeHtml(who)}에게 전달 완료.</b> ${escapeHtml(steps.deliver.line||'')}`+(flow.includes('reply')&&!steps.reply?`<br>이제 ${c.alsoReply===true&&c.alsoReplyTo?escapeHtml(c.alsoReplyTo):'고객'}에게 어디로 넘어갔는지 안내 회신을 보내세요.`:'')); }
       else { if(st.wrong) notes.push(`<b>다시 가 볼 수 있어요.</b> ${escapeHtml(st.wrong)}`);
@@ -220,10 +220,27 @@ async function doDeliver(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=o
   else { st.wrong=line; st.tries=(st.tries||0)+1; S.counts.wrongNpc++; S.ncs['9'].push(0); runBranch(id,'wrongNpc',{toastOnly:true}); if(S.cur===id) renderCardActs(id); } }
 async function doAsk(id,d,auto){ const c=CARD(id), st=S.cards[id]; const O=office(); if(O&&(O.busy||O.walking)){ toast('지금은 이동할 수 없어요'); return; } const who=d.name; const senior=D.dests.find(x=>x.seat==='senior'); const isSenior=senior&&d.name===senior.name; const ok=destOk(c,d,'ask');
   $('card').classList.add('min'); $('cActs').innerHTML=''; note(`${escapeHtml(who)} 자리로 가는 중…`);
-  if(ok){ let answers; try{ answers=(await Grader.run('askAnswers',c,{})).answers||[]; }catch(e){ $('card').classList.remove('min'); setStatusLine(''); return gradeFail(id,e); } const r=await travel('ask',{seat:d.seat,who,teamKey:d.key,teamName:d.team,questions:c.question,answers,answer:c.answer||answers[0],auto}); $('card').classList.remove('min'); setStatusLine('');
-    if(!r||!r.present||r.choice==null||r.choice<0){ toast('답을 못 듣고 돌아왔어요'); if(S.cur===id) renderCardActs(id); return; }
-    let cap; try{ cap=(await Grader.run('ask',c,{choice:r.choice})).cap; }catch(e){ return gradeFail(id,e); } st.ask={choice:r.choice,answer:r.answer,cap}; S.counts.ask++; st.lastSeat=d.seat; S.ncs['9'].push(cap>=100?100:cap>=60?60:40); if(cap>=100){ S.counts.rightNpc++; const okBr=(D.branches[id]||{}).ok; if(c.npc&&!c.pre&&!(okBr&&okBr.trust)) S.trust[c.npc]=(S.trust[c.npc]||0)+1; }
-    runBranch(id,cap>=100?'ok':('q'+(r.choice+1)),{toastOnly:true}); st.steps=st.steps||{}; st.steps.ask={at:S.t,choice:r.choice};
+  if(ok){ let r, cap;
+    if(c.askOpen){
+      /* 직접 묻기(docs/plan-interaction-design.md §3-A) — 준비된 질문 3개 대신 학생이 한 줄로 묻는다. 채점(어느 조각을 건드렸나)은 Grader 가 한 질문마다 한다(배포본은 서버) */
+      let meta; try{ meta=await Grader.run('askOpenAnswer',c,{got:[]}); }catch(e){ $('card').classList.remove('min'); setStatusLine(''); return gradeFail(id,e); }
+      /* 모범 질문은 자동 플레이(검사) 전용이다. 서버에 물으면 「무엇을 물어야 하는지」가 그대로 나가므로 절대 Grader 로 보내지 않는다.
+         배포본에서도 안전하다 — askOpenSpec(grade.js)이 facts 없는 공개본 카드에는 null 을 주어 q 가 빈 문자열이 된다. */
+      let model=''; if(auto!=null){ try{ model=(typeof Score!=='undefined'&&Score.askOpenModel?Score.askOpenModel(c).q:'')||''; }catch(e){} }
+      const open={greet:meta.greet,tries:meta.tries,model,classify:(text,got,n)=>Grader.run('askOpen',c,{text,got,n})};
+      r=await travel('ask',{seat:d.seat,who,teamKey:d.key,teamName:d.team,open,auto}); $('card').classList.remove('min'); setStatusLine('');
+      if(!r||!r.present||!r.open||!(r.asked&&r.asked.length)){ toast('답을 못 듣고 돌아왔어요'); if(S.cur===id) renderCardActs(id); return; }
+      let ans; try{ ans=await Grader.run('askOpenAnswer',c,{got:r.got||[]}); }catch(e){ return gradeFail(id,e); }
+      cap=r.cap!=null?r.cap:40; const got=r.got||[];
+      st.ask={open:true,asked:r.asked.slice(),got:got.slice(),answer:ans.answer||'(필요한 답을 얻지 못했어요)',cap};
+      S.counts.askQ=(S.counts.askQ||0)+r.asked.length; S.counts.askHit=(S.counts.askHit||0)+got.length; S.counts.askNeed=(S.counts.askNeed||0)+(+r.need||0);
+      S.ncs['1'].push(cap);   /* 무엇을 물을지 스스로 정했는가 — 구두 소통 */ }
+    else {
+      let answers; try{ answers=(await Grader.run('askAnswers',c,{})).answers||[]; }catch(e){ $('card').classList.remove('min'); setStatusLine(''); return gradeFail(id,e); } r=await travel('ask',{seat:d.seat,who,teamKey:d.key,teamName:d.team,questions:c.question,answers,answer:c.answer||answers[0],auto}); $('card').classList.remove('min'); setStatusLine('');
+      if(!r||!r.present||r.choice==null||r.choice<0){ toast('답을 못 듣고 돌아왔어요'); if(S.cur===id) renderCardActs(id); return; }
+      try{ cap=(await Grader.run('ask',c,{choice:r.choice})).cap; }catch(e){ return gradeFail(id,e); } st.ask={choice:r.choice,answer:r.answer,cap}; }
+    S.counts.ask++; st.lastSeat=d.seat; S.ncs['9'].push(cap>=100?100:cap>=60?60:40); if(cap>=100){ S.counts.rightNpc++; const okBr=(D.branches[id]||{}).ok; if(c.npc&&!c.pre&&!(okBr&&okBr.trust)) S.trust[c.npc]=(S.trust[c.npc]||0)+1; }
+    runBranch(id,cap>=100?'ok':(c.askOpen?'askPartial':('q'+(r.choice+1))),{toastOnly:true}); st.steps=st.steps||{}; st.steps.ask=c.askOpen?{at:S.t,open:true,n:r.asked.length,got:(r.got||[]).length}:{at:S.t,choice:r.choice};
     /* 메신저 카드는 별도 작성 창을 띄우지 않는다 — 대화창 아래에서 짧게 답한다(대표 지시) */
     if(c.type==='msg'){ if(window.Msg) Msg.refresh(); return; }
     /* T 로 물어본 경우 컴퓨터에는 다른 메일(쓰던 회신)이 열려 있을 수 있다 — 그때는 작성 칸을 덮어쓰지 않는다(45차) */

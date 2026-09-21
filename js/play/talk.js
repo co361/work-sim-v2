@@ -198,7 +198,7 @@
   function paint(item) {
     const box = T.box();
     const hasOpts = !!(item.options && item.options.length);
-    box.classList.toggle('choosing', hasOpts);
+    box.classList.toggle('choosing', hasOpts || !!item.input);
     box.classList.toggle('me', !!item.me);
     /* 얼굴 카메라가 잡은 사람이 말할 때는 작은 사진을 숨긴다(얼굴은 위에 있다). 다른 사람의 줄(브리핑의 사수 등)이면 사진으로 누구인지 보인다 */
     /* 작은 사진은 **말하는 사람의 얼굴이 화면에 잡혀 있을 때만** 숨긴다. 내 줄·얼굴을 못 잡은 사람의 줄은 사진으로 누구인지 보인다 */
@@ -211,6 +211,17 @@
       T.text().scrollTop = 0;
     }
     const ob = T.opts(); ob.innerHTML = '';
+    /* 직접 묻기(plan-interaction-design §3-A): 선택지 대신 **한 줄 입력 칸**. Enter·「묻기」로 보내면 글(string)로, 아래 선택지를 고르면 번호로 풀린다 */
+    if (item.input) {
+      const row = h('div', 'tkIn'); const inp = document.createElement('input'); inp.type = 'text'; inp.autocomplete = 'off'; inp.maxLength = 120;
+      inp.placeholder = item.input.placeholder || '한 줄로 물어보세요'; inp.setAttribute('aria-label', inp.placeholder);
+      const send = mkBtn(item.input.label || '묻기', 'pri', () => { const v = inp.value.trim(); if (!v) { inp.focus(); return; } if (showing && showing.item === item) showing.end(v); });
+      inp.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'NumpadEnter') { ev.preventDefault(); ev.stopPropagation(); send.click(); } if (ev.code === 'Escape') { ev.stopPropagation(); } });
+      row.appendChild(inp); row.appendChild(send); ob.appendChild(row);
+      (item.options || []).forEach((o, i) => { const b = mkBtn(o.label, o.cls || '', () => { if (showing && showing.item === item) showing.end(i); }); b.dataset.n = String(i + 1); ob.appendChild(b); });
+      setTimeout(() => { try { if (showing && showing.item === item && !BOT) inp.focus({ preventScroll: true }); } catch (e) {} }, 90);
+      return;
+    }
     if (hasOpts) {
       item.options.forEach((o, i) => {
         const b = mkBtn(o.label, o.cls || '', () => { if (showing && showing.item === item) showing.end(i); });
@@ -234,7 +245,7 @@
     const hasOpts = !!(item.options && item.options.length);
     jobs++;
     const run = () => new Promise((done) => { waitStill(item, () => {
-      if (item.seq <= flushTo || (item.sess && item.sess.closed)) { done(hasOpts ? -1 : undefined); return; }
+      if (item.seq <= flushTo || (item.sess && item.sess.closed)) { done((hasOpts || item.input) ? -1 : undefined); return; }
       openBox(); aimAt(item); paint(item); speakLine(item);
       if (!item.me && item.text && !(item.options && item.options.length)) lastLine = { name: item.who, text: String(item.text), at: Date.now() };
       let fin = false;
@@ -242,9 +253,9 @@
         if (fin) return; fin = true;
         if (showing && showing.timer) clearTimeout(showing.timer);
         if (showing && showing.item === item) showing = null;
-        T.opts().querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        T.opts().querySelectorAll('button,input').forEach((b) => { b.disabled = true; });
         if (item.onEnd) { try { item.onEnd(v); } catch (e) {} }
-        done(hasOpts ? (v == null ? -1 : v) : undefined);
+        done((hasOpts || item.input) ? (v == null ? -1 : v) : undefined);
       };
       showing = { end, item, timer: null };
       if (hasOpts) { if (item.timeLimit) showing.timer = setTimeout(() => end(-1), item.timeLimit * 1000); }
@@ -253,7 +264,7 @@
     }); });
     const p = chain.then(run, run);
     chain = p.then(() => {}, () => {});
-    return p.then((v) => { jobs--; maybeClose(); return v; }, () => { jobs--; maybeClose(); return hasOpts ? -1 : undefined; });
+    return p.then((v) => { jobs--; maybeClose(); return v; }, () => { jobs--; maybeClose(); return (hasOpts || item.input) ? -1 : undefined; });
   }
   async function idle() { while (jobs > 0) { await chain; await new Promise((r) => setTimeout(r, 0)); } }
 
@@ -523,6 +534,7 @@
       await them(ln);
       return { ok: opts.ok !== false, present: true, line: ln };
     }
+    if (mode === 'ask' && opts.open) return askOpenFlow(opts, s, who, A, me, them);
     if (mode === 'ask') {
       const qs = opts.questions || [];
       const i = A ? autoI(qs.length) : await choose(`${who}에게 무엇을 물어볼까요?`, qs, null, { who, role: roleOf(who), sess: s });
@@ -557,6 +569,38 @@
     }
     return { ok: true, present: true };
   }
+  /* ---------- 직접 묻기(askOpen · docs/plan-interaction-design.md §3-A) ----------
+     opts.open = {greet, tries, model, classify(text, got, n) → Promise<{say, got, done, cap, need}>}. 채점(어느 조각을 건드렸나)은 classify 가 한다 —
+     로컬은 Score.askOpen, 배포본은 서버(정답 조각은 서버에만). 이 함수는 **대화 판만** 돈다.
+       ① 담당자 첫마디 → 입력 칸(「무엇을 물어볼까요?」) + 「이만 됐어요」
+       ② 학생이 한 줄 묻는다 → 내 줄 → 담당자 답(건드린 조각만, 못 알아들으면 되묻기) → 다시 입력 칸
+       ③ 필요한 조각을 다 얻었거나 횟수를 다 쓰면 끝. 「이만 됐어요」는 언제든 — 한 번도 안 물었으면 취소(-1)와 같다.
+     자동 플레이는 모범 질문(model) 한 줄로 한 번에 묻는다. */
+  async function askOpenFlow(opts, s, who, A, me, them) {
+    const O = opts.open; const asked = []; let got = []; let last = null;
+    const cls = (t, n) => Promise.resolve(O.classify(t, got.slice(), n));
+    if (A) {
+      const q = O.model || ''; if (!q) return { open: true, asked, got, cap: 40, present: true };
+      asked.push(q); const r = await cls(q, 1); got = r.got || []; last = r;
+      return { open: true, asked, got, cap: r.cap, need: r.need, present: true };
+    }
+    let prompt = O.greet || '네, 말씀하세요.';
+    const tries = Math.max(1, +O.tries || 3);
+    while (asked.length < tries) {
+      const left = tries - asked.length;
+      const v = await display({ who, role: roleOf(who), text: prompt, sess: s,
+        input: { placeholder: asked.length ? `더 물어볼 것 (${left}번 남음)` : `무엇을 물어볼까요? 한 줄로 (${left}번까지)`, label: '묻기' },
+        options: [{ label: asked.length ? '이만 됐어요' : '그냥 갈게요' }] });
+      if (typeof v !== 'string') break;
+      const text = v.trim(); if (!text) continue;
+      asked.push(text); await me(text);
+      let r; try { r = await cls(text, asked.length); } catch (e) { console.warn('직접 묻기 채점 실패', e); asked.pop(); await them('잠깐만요, 다시 한 번 말씀해 주세요.'); continue; }
+      got = r.got || got; last = r; prompt = r.say || '…';
+      if (r.done) { await them(prompt); break; }
+    }
+    if (!asked.length) return { choice: -1, open: true, asked, got, present: true };
+    return { open: true, asked, got, cap: last ? last.cap : 40, need: last ? last.need : 0, present: true };
+  }
   /* 3D 가 이 연출을 할 수 있는가 — core.js travel() 의 분기와 같은 조건 */
   function stageCan(opts) {
     const O = O3(); if (!O || O.busy) return false;
@@ -581,6 +625,16 @@
         return talkFlow(mode, opts, sess);
       }
       const human = opts.auto == null && !BOT;
+      if (mode === 'ask' && opts.open) {
+        if (stageCan(opts)) {
+          const ap = Object.assign({}, opts, { text: '여쭤볼 게 있는데요.', npcLine: opts.open.greet || '네, 말씀하세요.', ok: true }); delete ap.open;
+          const r0 = await stage(ap, () => orig.call(this, 'deliver', ap));
+          if (r0 && r0.present === false) return { present: false };
+        }
+        const s = begin({ name: opts.who || '', seat: null, hold: false, human });
+        try { return await talkFlow(mode, opts, s); }
+        finally { setTimeout(() => end(s), 0); }
+      }
       if (!stageCan(opts)) {
         /* 예전의 「알림 한 줄」 대체 연출 — 이제 대화창에서 한다 */
         const s = begin({ name: opts.who || opts.name || '', seat: null, hold: false, human });

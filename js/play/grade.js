@@ -98,6 +98,30 @@ Score.pick=(c,inp)=>{ const ok=(c.answerAny||[]).includes(inp.pick); return {ok,
 /* 질문 카드 — 맞는 사람 앞에서 고를 질문 3개의 답(내용) · 고른 질문의 상한 */
 Score.askAnswers=(c)=>({answers:askAnswers(c)});
 Score.ask=(c,inp)=>({choice:inp.choice,cap:askCap(c,inp.choice),answer:askAnswers(c)[inp.choice]||''});
+/* ---------- 직접 묻기(askOpen · docs/plan-interaction-design.md §3-A) ----------
+   준비된 질문 3개 대신 학생이 **한 줄로 직접 묻는다.** 담당자는 질문이 건드린 조각(facts[].topic)만 답하고,
+   못 알아들으면 되묻는다(unknown). 끝났을 때의 상한(cap)은 옛 askCap 과 같은 자리 — 회신 점수의 상한.
+   대조는 공백·문장부호를 지운 부분 문자열이다(「입구가 어디예요」→ 입구·어디). AI 를 쓰지 않는다 — 주제가 좁아 규칙으로 충분하고, 오탐은 되묻기로 회복된다. */
+function askOpenSpec(c){ const a=c.askOpen; if(!a||!Array.isArray(a.facts)||!a.facts.length) return null;
+  const facts=a.facts.filter(f=>f&&f.key&&Array.isArray(f.topic)&&f.topic.length&&f.say);
+  const keys=facts.map(f=>f.key); const need=(Array.isArray(a.need)&&a.need.length?a.need:keys).filter(k=>keys.includes(k));
+  return {facts,need,tries:Math.max(1,+a.tries||3),unknown:[].concat(a.unknown||['음, 뭘 물으시는 거예요?','좀 더 구체적으로 물어봐 주세요.']),nudge:a.nudge||'',greet:a.greet||'네, 말씀하세요.',model:a.model||''}; }
+const askOpenNorm=(s)=>String(s==null?'':s).toLowerCase().replace(/[\s.,!?…~"'「」()\-·]/g,'');
+/* 한 질문 — inp {text, got:[이미 얻은 키], n:이번이 몇 번째 질문(1부터)}. 돌려주는 것: hits(이번에 새로 건드린 키) · say(담당자 대사) · got(누적) · done · cap */
+Score.askOpen=(c,inp)=>{ const sp=askOpenSpec(c); if(!sp) return {ok:false};
+  const q=askOpenNorm(inp.text); const got=uniq([].concat(inp.got||[])); const n=Math.max(1,+inp.n||1);
+  const hitAll=q?sp.facts.filter(f=>f.topic.some(t=>{ const k=askOpenNorm(t); return k&&q.includes(k); })).map(f=>f.key):[];
+  const hits=hitAll.filter(k=>!got.includes(k)); const after=uniq(got.concat(hits));
+  const left=sp.need.filter(k=>!after.includes(k)); const done=left.length===0||n>=sp.tries;
+  let say='';
+  if(hitAll.length){ say=sp.facts.filter(f=>hitAll.includes(f.key)).map(f=>f.say).join(' '); if(hits.length===0) say=(sp.repeat||'아까 말씀드린 대로예요. ')+say; }
+  else { const miss=Math.max(0,n-1-got.length); say=sp.unknown[Math.min(miss,sp.unknown.length-1)]||sp.unknown[0]; if(sp.nudge&&n>=2) say+=' '+sp.nudge; }
+  const cap=after.length>=sp.need.length?100:after.length?60:40;
+  return {ok:true,hits,hitAll,say,got:after,left,done,cap,n,tries:sp.tries,need:sp.need.length}; };
+/* 자동 플레이용 한 줄 — 조각의 첫 topic 을 이어 붙여 한 번에 전부 묻는다(정본 데이터에서만 만든다) */
+Score.askOpenModel=(c)=>{ const sp=askOpenSpec(c); if(!sp) return {q:''}; if(sp.model) return {q:sp.model}; return {q:sp.need.map(k=>(sp.facts.find(f=>f.key===k)||{}).topic[0]).filter(Boolean).join('이랑 ')+' 어떻게 돼요?'}; };
+/* 다 물은 뒤 회신에 넘길 답(얻은 조각의 대사만) */
+Score.askOpenAnswer=(c,inp)=>{ const sp=askOpenSpec(c); if(!sp) return {answer:''}; const got=[].concat(inp.got||[]); return {answer:sp.facts.filter(f=>got.includes(f.key)).map(f=>f.say).join(' '),greet:sp.greet,tries:sp.tries}; };
 /* 메일로 상신 — 분기 표에 점수(today)가 있으면 그 점수로 끝, 점수가 없으면 팀장 한마디만 듣고 대면으로 */
 Score.mailConfirm=(c)=>{ const br=mailConfirmBranch(c); if(!br){ const a=Score.act(c,{key:'confirm'}); return Object.assign({mode:'act'},a); }
   const m=String(br.today||'').match(/(\d{2,3})/); return {mode:m?'score':'line',score:m?+m[1]:null,bestRC:bestRC(c),bestComment:bestComment(c)}; };

@@ -326,6 +326,13 @@
   #talk:not(.choosing) .tkBox::after{content:'계속 ›';position:absolute;right:24px;bottom:6px;font-size:11px;color:var(--mute)}
   .tkBar{height:5px;border-radius:3px;background:var(--soft);margin-top:4px;overflow:hidden;flex:none}
   .tkBar i{display:block;height:100%;width:100%;background:var(--bad)}
+  /* 직접 묻기 입력 칸(plan-interaction-design §3-A) — 선택지 자리에 한 줄 입력 + 「묻기」 */
+  .tkIn{display:flex;gap:6px;width:100%}
+  .tkIn input{flex:1 1 auto;min-width:0;padding:9px 12px;border:1px solid var(--line2);border-radius:3px;font:inherit;font-size:14px;line-height:1.4;background:#fff;color:var(--ink)}
+  .tkIn input:focus{outline:2px solid var(--acc);outline-offset:0}
+  .tkIn input:disabled{opacity:.55}
+  .tkOpts .tkIn .btn{flex:none;width:auto;padding:9px 14px}
+  .tkOpts .tkIn .btn::before{content:none}
   /* 대화 중에는 조작 안내·알림을 걷는다 — 읽을 것이 둘이면 둘 다 안 읽힌다 */
   body.talk-on #pcHint,body.talk-on #toasts,body.talk-on #phoneBar{display:none}
   /* ── 전화 벨 ──────────────────────────────────────────────────────
