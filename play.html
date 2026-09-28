@@ -659,6 +659,7 @@
   <div id="homeMsg"></div>
   <div class="muted" id="homeBackend"></div>
   <div id="homeDays"></div>
+  <div class="row" id="homePdf" style="display:none"></div>
   <div class="row"><span class="muted" style="margin:0">내 캐릭터</span><button class="btn" id="homeAvF" type="button" aria-pressed="false">여성</button><button class="btn" id="homeAvM" type="button" aria-pressed="false">남성</button></div>
   <div class="row"><button class="btn" id="homeReset" type="button">이 기기의 진행 지우기</button></div>
 </div></div>
@@ -782,13 +783,15 @@ window.__backendReady=fetch('js/backend.js',{method:'HEAD'}).then(r=>{ if(!r.ok)
 <script src="js/play/intro.js?v=20260913e"></script>
 <script src="js/ncs.js?v=20260923e1"></script>
 <script src="js/ncs_eval.js?v=20260923e1c"></script>
+<script src="js/ncs_report.js?v=20260928r"></script>
 <script src="js/play/grade.js?v=20260927f"></script>
 <script src="js/play/grader.js?v=20260923e1b"></script>
 <script src="js/play/cards.js?v=20260927f"></script>
-<script src="js/play/day.js?v=20260927f"></script>
+<script src="js/play/day.js?v=20260928r"></script>
 <script src="js/play/ep7grade.js?v=20260923e1c"></script>
-<script src="js/play/ep7.js?v=20260923e1c"></script>
+<script src="js/play/ep7.js?v=20260928r"></script>
 <script src="js/play/talk.js?v=20260923e1c"></script>
 <script src="js/play/pc.js?v=20260927f"></script>
+<script src="js/play/result_pdf.js?v=20260928r"></script>
 </body>
 </html>

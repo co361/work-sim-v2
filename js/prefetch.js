@@ -50,7 +50,7 @@
     'js/desk/desktop.js', 'js/desk/msgapp.js', 'js/desk/telapp.js', 'js/desk/deskapp.js', 'js/desk/desk.css',
     'js/backend-url.js', 'js/play/core.js', 'js/play/intro.js', 'js/ncs.js', 'js/ncs_eval.js',
     'js/play/grade.js', 'js/play/cards.js', 'js/play/day.js',
-    'js/play/ep7.js', 'js/play/talk.js', 'js/play/pc.js', 'js/play/grader.js', 'js/play/ep7grade.js', 'js/gated.js',
+    'js/play/ep7.js', 'js/play/talk.js', 'js/play/pc.js', 'js/play/grader.js', 'js/play/ep7grade.js', 'js/gated.js', 'js/ncs_report.js', 'js/play/result_pdf.js',
     /* data/rulebook.js·data/story 는 배포본에 없다(서버가 토큰 확인 뒤 준다) — 미리 받지 않는다(57차: 받으면 배포본에서 404) */
     /* PC 를 켜는 순간 벽지가 없으면 폴백 그라디언트가 한 번 번쩍인다 —
        기본(lake) 한 장만 미리 받는다. 나머지 셋은 지금 쓰지 않는다. */
