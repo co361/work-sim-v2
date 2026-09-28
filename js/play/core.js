@@ -2,22 +2,30 @@
    WORK SIM 7일차 1인용 직무 게임 — 엔진 v2 · 공통부 (docs/plan-play-v2.md W1)
    순서: core.js → grade.js → cards.js → day.js → ep7.js → auto.js (모듈 아님, 전역 공유)
    ====================================================================== */
-const Q=new URLSearchParams(location.search);
+/* 주소 인자. 57차 Y6 — 토큰 모드에서는 검사·시연용 인자 ?speed=(시계 배속)·?api=(백엔드 주소)·?fresh=1(이어 하기 무시)를 없는 것으로 읽는다.
+   토큰 모드 = 배포본(js/gated.js 의 WS7_GATED) · 주소에 ?code= · 이 기기에 저장된 코드로 들어옴(day.js boot 과 같은 조건: ?team= 없음) · 들어온 뒤 S.code(데모 아님).
+   읽는 곳(아래 SPEED · day.js ?api=·?fresh= · ep7.js ?fresh=)은 그대로 두고 여기 한 곳에서 막는다 — 학생이 주소창을 고쳐
+   시계를 늦추거나(시간관리 점수) 채점 서버를 바꾸거나 기록 없이 하루를 처음부터 다시 하지 못하게. 토큰 없는 로컬(개발·검사·시연)은 그대로다 */
+const Q=(()=>{ const q=new URLSearchParams(location.search); const get=q.get.bind(q), has=q.has.bind(q); const TEST_ARGS=['speed','api','fresh'];
+  const tokenMode=()=>{ if(window.WS7_GATED) return true; if((get('code')||'').trim()) return true;
+    try{ if(localStorage.getItem('ws7.code')&&!get('team')) return true; }catch(e){}
+    const s=window.S; return !!(s&&s.code&&!s.demo); };
+  q.get=(k)=>(TEST_ARGS.includes(k)&&tokenMode())?null:get(k);
+  q.has=(k)=>(TEST_ARGS.includes(k)&&tokenMode())?false:has(k);
+  return q; })();
 const $=(id)=>document.getElementById(id);
-const AXES=['1','2','3','4','5','6','7','8','9','10'];
-const CIRC={'1':'①','2':'②','3':'③','4':'④','5':'⑤','6':'⑥','7':'⑦','8':'⑧','9':'⑨','10':'⑩'};
-const NCS_NAMES={'1':'의사소통','2':'수리','3':'문제해결','4':'자기개발','5':'자원관리','6':'대인관계','7':'정보','8':'기술','9':'조직이해','10':'직업윤리'};
-/* 축마다 고유색 — 「알록달록」의 본체이자 장식이 아닌 정보다(대표 확정 스펙).
-   막대·점·띠·칩에만 쓴다. 본문 글자색으로는 절대 쓰지 않는다. */
-const NCS_HUE={'1':'#2563a8','2':'#0f7b6c','3':'#b4530a','4':'#7a3fa8','5':'#1b7a3e',
-  '6':'#c0396b','7':'#0d6b8f','8':'#5c6b1f','9':'#8a4a1f','10':'#3f4b9a'};
+/* 57차 E1 — 옛 NCS 직업기초능력 10축(AXES·CIRC·NCS_NAMES·NCS_HUE·S.ncs)은 걷었다. 역량은 NCS 직업공통능력 2025.12(7영역·21하위·63요소) —
+   이름·코드·영역 색은 js/ncs.js(NCS 레지스트리), 계산은 js/ncs_eval.js(NcsEval), 증거는 채점 결과의 ev(grade.js Ev). 영역 색도 막대·점·칩에만 쓴다 */
 /* 섹션 색 머리 · 화자 색 — 같은 표를 두 곳에 적지 않으려고 여기 모아 둔다 */
 const BOX_HUE={summary:'#2563a8',ncs:'#7a3fa8',mistake:'#b3261e',next:'#1b7a3e',gap:'#b4530a'};
 const ROLE_HUE={팀장:'#b4530a',사수:'#2563a8',동기:'#0f7b6c'};
 const TEAM_NAMES={cs:'고객상담팀',logi:'물류팀',acct:'회계팀',ga:'총무팀',rec:'채용팀',plan:'경영기획팀',qc:'품질관리팀',pr:'홍보팀',edu:'교육팀',buy:'구매팀'};
 const TEAM_ORDER=['cs','logi','acct','ga','rec','plan','qc','pr','edu','buy'];
-/* 조직도(집필 지침 §5 명부): 팀장·사수·주임 */
-const ORG={cs:{lead:'김민아 팀장',senior:'박선임',chief:'이주임'},logi:{lead:'강태호 팀장',senior:'오대리',chief:'장주임'},acct:{lead:'서지현 팀장',senior:'한주임',chief:'문주임'},ga:{lead:'이재훈 팀장',senior:'최주임',chief:'권주임'},rec:{lead:'노윤아 팀장',senior:'김선임',chief:'홍주임'},plan:{lead:'조성민 팀장',senior:'류선임',chief:'신주임'},qc:{lead:'배정훈 팀장',senior:'남선임',chief:'도주임'},pr:{lead:'황서연 팀장',senior:'진선임',chief:'표주임'},edu:{lead:'문경수 팀장',senior:'손선임',chief:'반주임'},buy:{lead:'양지훈 팀장',senior:'구선임',chief:'엄주임'}};
+/* 조직도(집필 지침 §5 명부): 팀장·사수·주임 + more(늘 조직도에 있는 조력자 — 57차 E2후속 F8).
+   more 는 화 데이터에서 전달·질문의 정답 상대로 나오는 조직도 밖 사람이다(명부 tools/story_extract.py HELPERS · qc 검사대 조반장).
+   예전에는 그 사람이 나오는 날에만 목록(cards.js orgTeams — 비 3D 전달·질문·메신저)의 그 팀 줄 끝에 붙어 그날의 정답 상대가 튀었다(cs 4화 유대리·감주임, qc 3화 조반장).
+   🔴 새 조력자를 정답 상대로 쓰면 여기 more 에도 넣는다(안 넣으면 그날만 줄 끝에 붙는다 — 닿기는 한다) */
+const ORG={cs:{lead:'김민아 팀장',senior:'박선임',chief:'이주임'},logi:{lead:'강태호 팀장',senior:'오대리',chief:'장주임'},acct:{lead:'서지현 팀장',senior:'한주임',chief:'문주임'},ga:{lead:'이재훈 팀장',senior:'최주임',chief:'권주임'},rec:{lead:'노윤아 팀장',senior:'김선임',chief:'홍주임'},plan:{lead:'조성민 팀장',senior:'류선임',chief:'신주임',more:['감주임']},qc:{lead:'배정훈 팀장',senior:'남선임',chief:'도주임',more:['조반장']},pr:{lead:'황서연 팀장',senior:'진선임',chief:'표주임'},edu:{lead:'문경수 팀장',senior:'손선임',chief:'반주임'},buy:{lead:'양지훈 팀장',senior:'구선임',chief:'엄주임',more:['유대리']}};
 const UNLOCK_LABEL={rulebook:'사규집',approval:'결재 검토',orgchart:'조직도',report:'대면 보고',decide:'결정'};
 const UNLOCK_DAY={rulebook:2,approval:3,orgchart:4,report:5,decide:7};
 const DAY_TITLES={1:'첫 출근',2:'사규집',3:'숫자',4:'옆 팀',5:'거절',6:'위기',7:'결정'};
@@ -25,7 +33,7 @@ const SPEED=Math.max(0.1,+(Q.get('speed')||1));
 /* 게임 1분 = 실시간 80초/speed → 하루 30분이 실시간 40분이다(소개 페이지 「하루 40분씩」과 같다).
    38차 12초(=6분) → 22초(=11분) → 45차 80초. 대표 「하루 플레이타임을 늘리는게 좋을 것 같아」 —
    시나리오 검토(docs/review-scenario-playtime-45.md): 보통 학생이 22초에서는 하루 업무의 32%, 80초에서는 99%를 끝낸다.
-   `?speed=` 로 조절하는 구조는 그대로다(검사·시연은 ?speed=N). 자동 플레이(auto.js)는 advance(게임 분)로 건너뛰므로 이 값과 무관하다.
+   `?speed=` 로 조절하는 구조는 그대로다(검사·시연은 ?speed=N — 토큰 모드에서는 무시, 57차 Y6 · 위 Q). 자동 플레이(auto.js)는 advance(게임 분)로 건너뛰므로 이 값과 무관하다.
    실제 초로 적힌 것(방문·전화 응답 제한 timeLimit, 알림 표시 시간)은 게임 분이 아니라 반응 시간이라 그대로 둔다. */
 const SEC_PER_MIN=80/SPEED;
 const NO_STAGE=Q.get('stage')==='0';             /* 3D 사무실 없이(저사양·검사용) — 이동 연출은 글로 대신한다 */
@@ -35,8 +43,9 @@ const ACT_LABELS_DEFAULT={reply:'회신',hold:'보류',delegate:'전달',confirm
 let D=null;                                  /* 오늘 화 데이터 */
 let P=null;                                  /* 진행(7일) */
 const S={ team:'cs', ep:1, code:null, name:'', demo:true, phase:'home', t:0, running:false, paused:false, ended:false,
-  cards:{}, order:[], extra:[], ncs:{}, trust:{}, nexts:[], mistakes:[], counts:{done:0,pass:0,ask:0,follow:0,wrongNpc:0,rightNpc:0,promise:0,cite:0,calc:0,calcAll:0,reject:0,rejectAll:0}, cur:null, composing:null, briefI:0, triage:null, clues:[], visitTimer:null };
-for(const a of AXES) S.ncs[a]=[];
+  cards:{}, order:[], extra:[], trust:{}, nexts:[], mistakes:[], counts:{done:0,pass:0,ask:0,follow:0,wrongNpc:0,rightNpc:0,promise:0,cite:0,calc:0,calcAll:0,reject:0,rejectAll:0}, cur:null, composing:null, briefI:0, triage:null, clues:[], visitTimer:null,
+  /* 57차 E1 — 역량 증거: evTip(카드.항목 → 코칭 문장, 저장 안 함) · evPart(서버가 증거를 안 준 채점이 있었음 → 그날 ncs2.part) · quit(「오늘 그만하기」) · finishP(하루 마감 한 번) */
+  evTip:{}, evPart:0, quit:false, finishP:null };
 const CARD=(id)=>(D&&D.cards.find(c=>c.id===id))||S.extra.find(c=>c.id===id);
 /* ---------- 표시 시각 ----------
    내부 타임라인은 그대로 0~30분이다(카드 arrive·마감·채점 전부 이 분을 쓴다).
@@ -58,6 +67,8 @@ const npcBySeat=(seat)=>{ if(!D) return null; for(const [n,v] of Object.entries(
 const npcByTeam=(key)=>{ if(!D) return null; for(const [n,v] of Object.entries(D.npcs)) if(v.teamKey===key) return n; return null; };
 const trustOf=(name)=>((P&&P.trust&&P.trust[name])||0)+((S.trust&&S.trust[name])||0);
 const uniq=(a)=>Array.from(new Set(a));
+/* 받침에 맞는 조사(은/는 · 을/를 · 이/가) — 끝 글자가 한글이 아니면 받침 없음으로 본다 */
+const josa=(w,a,b)=>{ const s=String(w||''); const c=s.charCodeAt(s.length-1)-0xAC00; return (c>=0&&c<=11171&&c%28!==0)?a:b; };
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
 const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('시간 초과')),ms))]);
 
@@ -79,7 +90,7 @@ function npcLabel(who){ return who==='@npc'?'상대':who; }
 
 /* ---------- 진행 저장 ---------- */
 const LS_KEY=()=>`ws7.progress.${(S.code||('demo-'+S.team)).toLowerCase()}`;
-function emptyProgress(){ return {code:S.code,team:S.team,name:S.name||'',day:1,avatar:null,done:{},clues:{},trust:{},unlocked:[],cur:null,updatedAt:null}; }
+function emptyProgress(){ return {v:2,code:S.code,team:S.team,name:S.name||'',day:1,avatar:null,done:{},clues:{},trust:{},unlocked:[],rbOpen:[],cur:null,updatedAt:null}; }
 
 /* ---------- 플레이어 캐릭터(여성·남성) ----------
    남성은 3D 의 기본값(acnh_25 — 어느 팀에도 없는 전용 모델) 그대로다.
@@ -126,10 +137,32 @@ function aiOn(){ return backendOn()&&typeof window.Backend.grade==='function'&&(
 async function loadProgress(){ let p=null;
   try{ const raw=localStorage.getItem(LS_KEY()); if(raw) p=JSON.parse(raw); }catch(e){}
   if(hasBackend()&&S.code&&!S.demo){ try{ const r=await withTimeout(window.Backend.load(S.code),9000); if(r&&r.ok&&r.progress){ const rp=(typeof r.progress==='string')?JSON.parse(r.progress):r.progress; if(!p||(rp.updatedAt||'')>=(p.updatedAt||'')) p=rp; } }catch(e){ console.warn('진행 불러오기 실패(서버):',e.message); } }
-  if(!p) p=emptyProgress(); p.code=S.code; p.team=p.team||S.team; p.done=p.done||{}; p.clues=p.clues||{}; p.trust=p.trust||{}; p.unlocked=p.unlocked||[]; p.day=p.day||1; return p; }
+  if(!p) p=emptyProgress(); p.code=S.code; p.team=p.team||S.team; p.done=p.done||{}; p.clues=p.clues||{}; p.trust=p.trust||{}; p.unlocked=p.unlocked||[]; p.rbOpen=p.rbOpen||[]; p.day=p.day||1; return p; }
 let saveTimer=null, saveSeq=0;
-function saveProgress(now){ if(!P) return; P.updatedAt=new Date().toISOString(); P.team=S.team; P.name=S.name||P.name||'';
-  if(S.phase==='work'||S.phase==='triage'||S.phase==='ep7'){ P.cur={day:S.ep,phase:S.phase,t:S.t,cards:S.cards,order:S.order,extra:S.extra,ncs:S.ncs,trust:S.trust,counts:S.counts,nexts:S.nexts,mistakes:S.mistakes,triage:S.triage,clues:S.clues,ep7:(window.EP7&&window.EP7.snapshot)?window.EP7.snapshot():null}; }
+/* 진행 중인 날(P.cur)의 카드 상태 — 이어 하기에 필요한 것만(57차 E1 · spec D28). 하루 도중 저장본이 GAS 상한(45,000자)을 넘었다(cs·qc 6일차 오후 45.8천 자).
+   · 끝낸 카드: 결과 화면 전용(요소 판정 상세 detail·AI 총평 feedback·모범 답안 model·정답 코멘트 bestComment)·단계 기록(steps — 안 끝난 카드만 읽는다)·
+     걸어간 기록(lastNpc·lastSeat·ask·wrong …)을 뺀다. 디브리프·저장 기록(cardRecord)·「오늘의 실수」 조건(mistakeWhenMet)이 읽는 것은 남긴다.
+   · 안 끝난 카드: 모범 답안만 빼고, 단계 기록 안의 글(steps.*.text — st.text·text2 와 같은 글)을 뺀다.
+   이어 한 뒤 끝낸 카드를 다시 열면 점수·코멘트·쓴 글은 그대로이고 요소 칩·모범 답안(배포본)만 안 보인다 */
+const CUR_DONE_DROP=['steps','model','bestComment','detail','detail2','feedback','ask','order','qorder','workDraft','workWrong','workTries','lastNpc','lastSeat','deliveredAt','readyAt','reportChoice','wrong','visitorHere','visitorComing','go','onTime'];
+function curCards(cards){ const out={}; for(const [id,st] of Object.entries(cards||{})){ if(!st||typeof st!=='object'){ out[id]=st; continue; } const o=Object.assign({},st);
+    if(o.status==='done'||o.status==='skipped'){ for(const k of CUR_DONE_DROP) delete o[k]; }
+    else { delete o.model; if(o.steps){ const s2={}; for(const [k,v] of Object.entries(o.steps)){ const v2=Object.assign({},v); delete v2.text; s2[k]=v2; } o.steps=s2; } }
+    for(const [k,v] of Object.entries(o)) if(v==null||v===''||(v===false&&k!=='workOk'&&k!=='reportBest')) delete o[k];   /* workOk·reportBest 의 false 는 뜻이 있다(실수 대사 조건·단서) */
+    out[id]=o; }
+  return out; }
+function nonzeroCounts(o){ const out={}; for(const [k,v] of Object.entries(o||{})) if(v) out[k]=v; return out; }
+/* 진행 중 사본(P.cur)을 지금 상태로 — saveProgress 와 이 기기 주기 저장(snapLocal)이 같이 쓴다 */
+function fillCur(){ if(!P) return false; P.updatedAt=new Date().toISOString(); P.team=S.team; P.name=S.name||P.name||''; P.v=2;
+  /* 7일차는 발표를 마쳐 결과(P.done['7'])를 적은 뒤에는 진행 중이 아니다 — 예전에는 끝난 뒤에도 결정 칸 사본(cur)이 남아 1.6천 자를 더 썼다 */
+  const ep7Done=S.phase==='ep7'&&window.EP7&&typeof window.EP7.result==='function'&&!!window.EP7.result();
+  if((S.phase==='work'||S.phase==='triage'||S.phase==='ep7')&&!ep7Done){ P.cur={v:2,day:S.ep,phase:S.phase,t:S.t,cards:curCards(S.cards),order:S.order,extra:S.extra,trust:S.trust,counts:nonzeroCounts(S.counts),nexts:S.nexts,mistakes:S.mistakes,triage:S.triage,clues:S.clues,ev:S.evPart?{part:1}:undefined,ep7:(window.EP7&&window.EP7.snapshot)?window.EP7.snapshot():null}; return true; }
+  return false; }
+/* 하루 도중 이 기기에 자주 남긴다(57차 E1 후속 · QA Y-5) — 저장은 동작 때만이라 오래 기다린 뒤 새로고침하면 시계가 마지막 동작 시각으로 되감겼다(늦음 판정도 되돌아감).
+   이 기기(localStorage)에만 — 서버 저장은 동작 때 그대로(주기 저장을 서버로 보내면 반 전체가 GAS 시트를 몇 초마다 쓴다) */
+function snapLocal(){ if(!P||S.phase!=='work'||!S.running) return; try{ if(fillCur()) localStorage.setItem(LS_KEY(),JSON.stringify(P)); }catch(e){} }
+setInterval(snapLocal,10000); window.addEventListener('pagehide',snapLocal);
+function saveProgress(now){ if(!P) return; fillCur();
   try{ localStorage.setItem(LS_KEY(),JSON.stringify(P)); }catch(e){}
   if(hasBackend()&&S.code&&!S.demo){ const seq=++saveSeq; const go=()=>{ if(seq!==saveSeq&&!now) return; window.Backend.save(P).then(r=>{ if(!r||!r.ok) setStatus('서버 저장 실패 — 이 기기에는 저장됨'); else setStatus('저장됨'); }).catch(()=>setStatus('서버 저장 실패 — 이 기기에는 저장됨')); }; clearTimeout(saveTimer); if(now) go(); else saveTimer=setTimeout(go,1500); }
   else setStatus('이 기기에 저장됨'); }
@@ -222,7 +255,13 @@ async function npcArriveStage(who,line){
   }catch(e){ console.warn('대면 손님 오류',e); try{ O.visitorOut(); }catch(e2){} return false; } }
 
 /* ---------- 이동(전달·질문·보고): 사무실이 있으면 연출, 없으면 글 ---------- */
-async function travel(mode,opts){ const O=office(); const who=opts.who||''; const seat=opts.seat||null;
+/* 사규집 편 잠금(56차) — 협동판은 「본문은 ○○팀이 가지고 있습니다」로 막고 그 팀 학생에게 묻게 한다.
+   1인용에는 물을 사람이 없어 10편이 통째로 열려 있었고, 타 팀 소관 카드 95장을 혼자 읽고 끝냈다.
+   그 팀 사람과 실제로 만나야 그 편이 열리도록 travel 을 한 겹 감싼다(만나지 못하면 present:false 라 안 열린다). */
+async function travel(mode,opts){ const r=await travelRaw(mode,opts);
+  try{ if(r&&r.present!==false&&opts&&opts.teamKey) rbUnlock(opts.teamKey); }catch(e){}
+  return r; }
+async function travelRaw(mode,opts){ const O=office(); const who=opts.who||''; const seat=opts.seat||null;
   /* 다른 팀 상대는 복도 경로가 우선. 사무실이 아직 복도를 모르면(goToTeam 없음·null) 같은 방 임시 좌석으로 떨어진다 */
   if(O&&!O.busy&&typeof O.goToTeam==='function'&&opts.teamKey&&opts.teamKey!==S.team){ try{ const r=await O.goToTeam(opts.teamKey,Object.assign({mode},opts)); if(r) return r; }catch(e){ console.warn('복도 이동 오류',e); } }
   if(O&&!O.busy&&seat&&O.npcAt&&O.npcAt(seat)){ try{ const r=await O.interact(mode,Object.assign({},opts,{to:seat})); return r||{present:false}; }catch(e){ console.warn('연출 오류',e); } }
@@ -246,4 +285,4 @@ function choosePanel(title,items,timeLimit,opts){
    `const` 로 선언한 것(S·CARD·fmtClock…)은 조용히 undefined 였다 — 얼굴도 시각도 비었다.
    필요한 것만 이름 그대로 내어 준다. 같은 객체라 두 벌이 되지 않는다. */
 Object.assign(window,{S,CARD,fmtClock,dispMin,isLunch,npcInfo,seatByName,npcBySeat,
-  avatarPic,playerChar,actLabel,escapeHtml,uniq,h,mkBtn,NCS_NAMES,NCS_HUE,CIRC,TEAM_NAMES,AXES});
+  avatarPic,playerChar,actLabel,escapeHtml,uniq,h,mkBtn,TEAM_NAMES});

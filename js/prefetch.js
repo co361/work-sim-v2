@@ -48,9 +48,10 @@
   var CODE_FILES = [
     'js/backend.js', 'js/desk/appicon.js', 'js/desk/windows.js', 'js/desk/wallpaper.js',
     'js/desk/desktop.js', 'js/desk/msgapp.js', 'js/desk/telapp.js', 'js/desk/deskapp.js', 'js/desk/desk.css',
-    'js/play/core.js', 'js/play/grade.js', 'js/play/cards.js', 'js/play/day.js',
-    'js/play/ep7.js', 'js/play/talk.js', 'js/play/auto.js', 'js/play/pc.js', 'js/play/grader.js', 'js/play/ep7grade.js', 'js/gated.js',
-    /* data/rulebook.js 는 배포본에 없다(서버가 토큰 확인 뒤 준다) — 미리 받지 않는다 */
+    'js/backend-url.js', 'js/play/core.js', 'js/play/intro.js', 'js/ncs.js', 'js/ncs_eval.js',
+    'js/play/grade.js', 'js/play/cards.js', 'js/play/day.js',
+    'js/play/ep7.js', 'js/play/talk.js', 'js/play/pc.js', 'js/play/grader.js', 'js/play/ep7grade.js', 'js/gated.js',
+    /* data/rulebook.js·data/story 는 배포본에 없다(서버가 토큰 확인 뒤 준다) — 미리 받지 않는다(57차: 받으면 배포본에서 404) */
     /* PC 를 켜는 순간 벽지가 없으면 폴백 그라디언트가 한 번 번쩍인다 —
        기본(lake) 한 장만 미리 받는다. 나머지 셋은 지금 쓰지 않는다. */
     'assets/wall/lake.webp?v=3'
@@ -109,7 +110,7 @@
     var jobs = [];
     if (mode === 'light') {
       /* 3D 히어로가 캐릭터·소품을 받는 중이다. 코드·데이터만 데운다 */
-      jobs = CODE_FILES.concat(['data/story/' + team + '-ep1.js']);
+      jobs = CODE_FILES.slice();
       return Promise.resolve(jobs);
     }
 
@@ -134,7 +135,7 @@
       var cast = CAST[team] || CAST.cs;
       for (var c = 0; c < cast.length; c++) jobs = jobs.concat(charPaths(cast[c], ANIM_NPC, slimSet, list));
       /* ④ 코드·데이터 */
-      jobs = jobs.concat(CODE_FILES, ['data/story/' + team + '-ep1.js']);
+      jobs = jobs.concat(CODE_FILES);
 
       /* 같은 파일이 두 번 들어가지 않게(팀에 따라 얼굴이 겹칠 수 있다) */
       var seen = {}, uniq = [];

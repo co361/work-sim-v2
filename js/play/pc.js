@@ -87,12 +87,18 @@
 
   /* ── 카드 열기 — 종류마다 다른 창으로 ─────────────────────────────── */
   const _openCard=window.openCard;
+  /* 메신저·전화 카드는 원래 openCard 를 거치지 않는다 — 사수 메모만은 그 카드의 것으로 바꿔 둔다(57차 E2-8:
+     예전에는 직전 메일 카드의 메모가 남아 엉뚱한 안내가 됐다 · B-ga-logi E2) */
+  const hintFor=(id)=>{ try{ if(typeof renderHint==='function') renderHint(id); }catch(e){} };
   window.openCard=function(id){ const c=CARD(id), st=S.cards[id];
     if(c&&st&&st.arrived){
-      if(c.type==='msg'){ if(openPc()){ D2.openApp(D2.MSG); if(window.Msg) Msg.open(msgWho(c)); } return; }
+      /* 메신저 카드는 그 카드가 쌓인 대화를 열고 **그 건을 고른다**(57차 대기열 — 같은 사람의 카드가 여럿이어도 이 건에 답한다).
+         컴퓨터가 안 켜져도(3D 에서 T 로 물어보고 선 채 — talk.js 가 openCard 로 올림) 고른 건은 먼저 바꿔 둔다 — 나중에 켜면 그 건이 대화 아래에 있다 */
+      if(c.type==='msg'){ hintFor(id); const mw=(window.Msg&&Msg.whoOf)?Msg.whoOf(id):null; if(mw&&Msg.pick) Msg.pick(mw,id);
+        if(openPc()){ D2.openApp(D2.MSG); if(window.Msg) Msg.open(mw||msgWho(c),id); } return; }
       /* 전화는 창이 아니라 「그 자리에서 받는 화면」이다 — 벨을 다시 울린다.
          여기서 곧바로 받게 하면 자동 플레이가 doPhone 을 따로 부를 때 대화창이 남는다. */
-      if(c.type==='phone'){ if(typeof phoneRing==='function') phoneRing(id); return; }
+      if(c.type==='phone'){ hintFor(id); if(typeof phoneRing==='function') phoneRing(id); return; }
       if(openPc()) D2.openApp(D2.MAIL);
     }
     return _openCard.apply(this,arguments); };
@@ -187,6 +193,16 @@
           openApp ↔ open 이 서로를 불러 스택이 넘친다(실제로 그랬다). */
     const _openApp=D2.openApp;
     D2.openApp=function(id){ const r=_openApp.apply(this,arguments); if(id===D2.MSG){ try{ Msg.list(); }catch(e){} } return r; };
+    /* 대화 목록에서 줄을 눌러 연 대화도 — 그 대화에 걸린 카드의 사수 메모로(57차 E2-8) */
+    Msg.onOpen(function(who){ try{ const t=(Msg.threads()||[]).find(x=>x.who===who); if(t&&t.pending&&CARD(t.pending)) hintFor(t.pending); }catch(e){} });
+    /* 한 대화 안에서 다른 건을 고르거나 앞 건을 끝내 다음 건으로 넘어가도 — 그 건의 사수 메모로(57차 대기열) */
+    if(Msg.onPick) Msg.onPick(function(who,id){ try{ if(id&&CARD(id)) hintFor(id); }catch(e){} });
+    /* 이어 하기(W-7) — 대화를 이 기기에 남겨 두고(진행 저장 키 옆 ws7.msglog.*, 서버 저장본은 늘리지 않는다), 카드로 다시 쌓는 동안은 덮어쓰지 않다가
+       다 쌓은 뒤 되살린다. 기록의 카드가 다시 쌓은 카드와 다르면(다른 기기·지난 판) 기록은 쓰지 않는다 — msgapp.js restore */
+    if(Msg.store) Msg.store(()=>{ try{ return (typeof LS_KEY==='function'&&S&&S.team)?LS_KEY().replace(/^ws7\.progress\./,'ws7.msglog.'):null; }catch(e){ return null; } },()=>S.ep);
+    const _reh=window.rehydrateBoxes;
+    if(_reh&&Msg.hold&&Msg.restore) window.rehydrateBoxes=function(){ Msg.hold(true); let r; try{ r=_reh.apply(this,arguments); } finally{ Msg.hold(false); }
+      try{ Msg.restore(); }catch(e){ console.warn('메신저 대화 되살리기 실패:',e&&e.message); } return r; };
     Msg.onChange(n=>{
       try{ D2.setBadge(D2.MSG,n); }catch(e){}
       const d=$('pcDot'); if(d){ d.textContent=n>9?'9+':String(n); d.hidden=!n||pcOn(); }

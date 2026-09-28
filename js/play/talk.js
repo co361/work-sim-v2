@@ -349,6 +349,15 @@
         out.push({ id: id, kind: 'sheet', label: `「${cut(c.subj)}」 검산 결과 가져가기`, hint: 'T — 검산 결과 가져가기' }); continue;
       }
       if (flow.includes('work')) continue;
+      /* 57차 E2 — 2일차부터 글 카드는 학생이 컴퓨터에서 고른 처리(가서 전달하기 · 가서 묻기 · 대면 보고)만 T 로 뜬다(cards.js goChoice).
+         흐름마다 할 일이 저절로 떠 있으면 그 목록이 곧 정답(넘길 건 · 물어볼 건 · 보고할 건)이다. 고른 뒤에는 누구에게 가도 뜬다 —
+         맞는 사람을 찾는 것이 학생의 일이다. 머리 위 표시(mark)에는 전달·질문을 띄우지 않는다(예전과 같다) */
+      if (typeof global.commonCard === 'function' && global.commonCard(c)) {
+        if (st.go === 'deliver' && !mark) out.push({ id: id, kind: 'deliver', label: `「${cut(c.subj)}」 전달하기`, hint: 'T — 서류 전달하기' });
+        else if (st.go === 'ask' && !mark) out.push({ id: id, kind: 'ask', label: `「${cut(c.subj)}」 여쭤보기`, hint: 'T — 여쭤보기' });
+        else if (st.go === 'report' && isLead) out.push({ id: id, kind: 'report', label: `「${cut(c.subj)}」 보고드리기`, hint: 'T — 보고드리기' });
+        continue;
+      }
       if (flow.includes('deliver') && !steps.deliver && dl) {
         const right = dl.npc === name;
         if ((mark ? (MARK_TARGETS && right) : (!isLead || right))) out.push({ id: id, kind: 'deliver', label: `「${cut(c.subj)}」 전달하기`, hint: 'T — 서류 전달하기' });
@@ -618,7 +627,14 @@
   }
   function wrapTravel() {
     const orig = global.travel; if (typeof orig !== 'function' || orig.__talk) return;
+    /* 그 팀 사람을 만났으면(present) 그 팀 사규집 편을 연다 — core.js travel 이 하는 일. 이 래퍼는 대화창·3D 방 안 연출 경로에서 core travel 을 거치지 않아
+       PC 창 모드·T 로 마주 선 대화에서 다른 팀에 물어도 편이 안 열렸다(57차 E1 후속 · QA Y-7). 두 번 열어도 괜찮다(rbUnlock 이 본다) */
     const wrapped = async function (mode, opts) {
+      const r = await inner.apply(this, arguments);
+      try { if (r && r.present !== false && opts && opts.teamKey && typeof global.rbUnlock === 'function') global.rbUnlock(opts.teamKey); } catch (e) {}
+      return r;
+    };
+    const inner = async function (mode, opts) {
       opts = opts || {};
       /* T 로 마주 선 사람에게 하는 일 — 그 자리에서 대화로 */
       if (sess && !sess.closed && sess.hold && (opts.who === sess.name || (opts.seat && opts.seat === sess.seat))) {
@@ -725,6 +741,8 @@
        방문객에게 쌓으면 표시가 안 뜨고 말이 갇힌다. 찾아온 손님의 말은 reply(그 자리에서 바로)로 간다. */
     if (!seatByName(name)) { if (typeof msgLine === 'function') msgLine(name, fill(text)); return true; }
     if (sess && !sess.closed && sess.name === name) { sayLine(name, text, { sess }); return true; }
+    /* PC 창 모드(3D 없음)에는 걸어가 T 로 들을 길이 없다 — 곧바로 대화창에 띄운다. 쌓아 두면 「다음 업무까지 넘기기」가 그날 내내 숨었다(57차 E1 후속 · QA Y-6) */
+    if (NO_STAGE) { sayLine(name, text, { sess: null }); return true; }
     const q = (pending[name] = pending[name] || []);
     if (!q.some((x) => x.text === text)) q.push({ text, who: name });
     while (q.length > 6) { const i = q.findIndex((x) => !x.call); if (i < 0) break; q.splice(i, 1); }

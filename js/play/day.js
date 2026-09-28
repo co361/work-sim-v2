@@ -22,9 +22,11 @@ async function loadStoryFromServer(team,ep){ const key=`${team}-ep${ep}`;
    이름이 없을 때: 부르는 말은 「신입 씨」, 메일 인사 「○○○님」은 「담당자님」, 모범 답안 서명 「○○○입니다」는 그대로(서식 칸이다).
    가린 번호(010-○○○○-2231)·가린 이름(김○정)·「○○은행」·「○○mm」 같은 서식 자리는 앞뒤 글자로 걸러 건드리지 않는다. */
 const NAME_B='(^|[^가-힣0-9A-Za-z\\-「○*])';
+/* 「○○씨」(낫표 안에서 부르는 말)는 늘 학생이다 — 씨 규칙만 「 뒤도 바꾼다(57차 E2후속 F6: 7화 아침 카드에서 보고된 미치환은 이 꼴뿐이었다 · 1~6화도 같음) */
+const NAME_B_SSI='(^|[^가-힣0-9A-Za-z\\-○*])';
 const NAME_RX=[
   [new RegExp(NAME_B+'○{2,3}(?=입니)','g'),(nm)=>nm||'○○○'],
-  [new RegExp(NAME_B+'○{2,3}\\s?씨','g'),(nm)=>nm?nm+' 씨':'신입 씨'],
+  [new RegExp(NAME_B_SSI+'○{2,3}\\s?씨','g'),(nm)=>nm?nm+' 씨':'신입 씨'],
   [new RegExp(NAME_B+'○{3}\\s?님','g'),(nm)=>nm?nm+' 님':'담당자님'],
   [new RegExp(NAME_B+'○{3}(?=[,，\\s])','g'),(nm)=>nm||'신입 씨']];
 function fillName(t){ if(typeof t!=='string'||t.indexOf('○')<0) return t; const nm=String((S&&S.name)||'').trim();
@@ -32,17 +34,23 @@ function fillName(t){ if(typeof t!=='string'||t.indexOf('○')<0) return t; cons
 function fillNames(o,depth){ depth=depth||0; if(!o||typeof o!=='object'||depth>14) return o;
   for(const k of Object.keys(o)){ const v=o[k]; if(typeof v==='string'){ if(v.indexOf('○')>=0) o[k]=fillName(v); } else if(v&&typeof v==='object') fillNames(v,depth+1); }
   return o; }
-/* 분기 카드 조건: 전날 저장된 카드 결과와 대조. 전날 결과가 없으면 미등장 */
-function triggerMet(tr,prev){ if(!tr||!prev) return false; if(tr.anyOf) return tr.anyOf.some(t=>triggerMet(Object.assign({card:tr.card},t),prev)); const pc=prev.cards&&prev.cards[tr.card]; if(!pc) return false;
-  if(tr.act!=null&&pc.act!==tr.act) return false; if(tr.choice!=null&&pc.choice!==tr.choice) return false; if(tr.report!=null&&pc.choice!==tr.report) return false;
-  if(tr.forbidHit!=null&&!!pc.forbidHit!==!!tr.forbidHit) return false; if(tr.replyBanHit!=null&&!!pc.replyBanHit!==!!tr.replyBanHit) return false; if(tr.delivered!=null&&!!pc.delivered!==!!tr.delivered) return false;
-  if(tr.partial!=null&&!!pc.partial!==!!tr.partial) return false; return true; }
+/* 분기 카드 조건: 전날 저장된 카드 결과와 대조. 전날 결과가 없으면 미등장.
+   규칙은 grade.js branchTriggerMet 한 벌이다(7일차 아침 카드·서버 7일차 채점과 같은 함수 — 57차 E2, D-fixes §5-4) */
+function triggerMet(tr,prev){ return branchTriggerMet(tr,prev); }
 function prepareDay(){ const prev=P.done[String(S.ep-1)]||null;
+  /* 어제까지 만난 팀의 규정 편은 계속 열려 있다(56차 사규집 잠금) */
+  S.rbOpen=[S.team].concat(((P&&P.rbOpen)||[]).filter(k=>k&&k!==S.team));
   D.cards=D.cards.filter(c=>!c.trigger||triggerMet(c.trigger,prev));
   for(const c of D.cards){ if(c.chain&&c.step>1&&!c.requires){ const first=D.cards.filter(x=>x.chain===c.chain&&x.step<c.step&&x.deliver).sort((a,b)=>a.step-b.step)[0]; if(first) c.requires={card:first.id,delivered:true}; } if(c.alsoReply===true&&!c.deliver&&!c.alsoReplyTo&&c.compose&&c.compose.model){ const m=c.compose.model.match(/^([가-힣]{2,4}) 님/); if(m) c.alsoReplyTo=m[1]; } }
   D.cards.sort((a,b)=>(a.pre?0:1)-(b.pre?0:1)||a.arrive-b.arrive);
   for(const c of D.cards) S.cards[c.id]={arrived:false,status:'wait'};
-  const hasPre=D.cards.some(c=>c.pre); if(hasPre&&D.dialog&&D.dialog.briefing){ const lo=D.cards.find(c=>c.pre&&c.leadOpen); if(lo){ const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장'; D.dialog.briefing.unshift({who:lead,role:'팀장',text:lo.leadOpen.replace(/^\(.*?\)\s*/,''),view:'lead'}); } } }
+  leadOpenBrief(); }
+/* 아침 분기 카드(pre)의 leadOpen — 팀장이 브리핑 첫 대사 앞에서 어제 일을 짚는다. 받은 분기 카드의 것만(trigger 로 걸러진 뒤), 카드 순서대로 한 번씩.
+   57차 E2후속 F10: 7화는 prepareDay 를 거치지 않아(EP7.start 로 바로) 7화 아침 카드의 leadOpen(cs_ep7_branch_refund·edu 2장)이 무시됐다 — 같은 함수를 7화 시작에서도 부른다.
+   (예전 2~6화는 첫 카드 하나만 넣었다 — 두 장이 같이 오면 둘 다 짚는다) */
+function leadOpenBrief(){ if(!D||!D.dialog||!Array.isArray(D.dialog.briefing)) return; const lead=((D.dests||[]).find(x=>x.seat==='lead')||{}).name||'팀장';
+  const lines=[]; for(const c of D.cards) if(c.pre&&c.leadOpen){ const t=String(c.leadOpen).replace(/^\(.*?\)\s*/,'').trim(); if(t&&!lines.includes(t)) lines.push(t); }
+  for(const t of lines.reverse()) D.dialog.briefing.unshift({who:lead,role:'팀장',text:t,view:'lead'}); }
 
 /* ---------- 입장 ---------- */
 async function boot(){ const code=(Q.get('code')||'').trim(); const team=(Q.get('team')||'').toLowerCase(); const ep=+(Q.get('ep')||0);
@@ -54,7 +62,7 @@ async function enterWithCode(code,ep){ code=code.toUpperCase().replace(/\s/g,'')
   if(backendOn()&&typeof window.Backend.check==='function'){ try{ const r=await withTimeout(window.Backend.check(code),9000); if(r&&r.ok){ info=r; } else { homeMsg((r&&r.reason)||'등록되지 않은 코드예요. 다시 확인해 주세요.'); showHome(); return; } }catch(e){ homeMsg('서버에 연결하지 못했어요. 잠시 뒤 다시 시도하거나 데모로 시작하세요.'); showHome(); return; } }
   S.demo=!info; if(info){ S.team=(info.team||'cs').toLowerCase(); S.name=info.name||''; } else { S.team=(Q.get('team')||$('homeTeam').value||'cs').toLowerCase(); }
   try{ localStorage.setItem('ws7.code',code); }catch(e){}
-  P=await loadProgress(); if(info&&info.day&&info.day>P.day) P.day=info.day; if(!S.name) S.name=P.name||'';
+  P=await loadProgress(); if(info&&info.day) P.day=info.day; if(!S.name) S.name=P.name||'';   /* F13: 서버가 센 날(done 의 최댓값+1)을 그대로 — 예전에는 올리기만 해 「오늘 다시」 뒤 다른 기기에서 어긋났다 */
   const day=ep||P.day||1; if(day>7){ showHome(); return; } await startDay(day); }
 function homeMsg(t){ const e=$('homeMsg'); if(e) e.textContent=t||''; }
 async function showHome(){ S.phase='home'; $('loading').classList.add('off'); $('home').classList.add('open'); const sel=$('homeTeam'); if(!sel.options.length) for(const k of TEAM_ORDER){ const o=document.createElement('option'); o.value=k; o.textContent=TEAM_NAMES[k]; sel.appendChild(o); }
@@ -62,9 +70,10 @@ async function showHome(){ S.phase='home'; $('loading').classList.add('off'); $(
   if(S.code){ S.team=(Q.get('team')||S.team); P=await loadProgress(); S.team=P.team||S.team; sel.value=S.team; } else { P=null; }
   renderHomeDays(); }
 function renderHomeDays(){ const box=$('homeDays'); box.innerHTML=''; const day=P?P.day:1; const team=P?(P.team||S.team):($('homeTeam').value||'cs');
-  for(let d=1; d<=7; d++){ const done=P&&P.done&&P.done[String(d)]; const cur=!done&&d===day; const b=document.createElement('button'); b.type='button'; b.className='dayc '+(done?'done':cur?'cur':'lock'); b.innerHTML=`<b>${d}일차</b><span>${escapeHtml(DAY_TITLES[d]||'')}</span><i>${done?'✓ '+(done.ending?('엔딩 '+done.ending):(Object.values(done.ncs||{}).length?Math.round(Object.values(done.ncs).reduce((a,b)=>a+b,0)/Object.values(done.ncs).length)+'점':'끝')):cur?(P&&P.cur&&P.cur.day===d?'이어 하기':'오늘'):'잠김'}</i>`;
+  for(let d=1; d<=7; d++){ const done=P&&P.done&&P.done[String(d)]; const cur=!done&&d===day; const b=document.createElement('button'); b.type='button'; b.className='dayc '+(done?'done':cur?'cur':'lock'); const ws=done&&typeof NcsEval!=='undefined'?NcsEval.dayScore(done):null;   /* 57차 E1(A Y10): 일차 칸 = 업무 점수(카드 평균 — 관리자·CSV 와 같은 NcsEval.dayScore). 예전에는 옛 NCS 축 평균이었다 */
+    b.innerHTML=`<b>${d}일차</b><span>${escapeHtml(DAY_TITLES[d]||'')}</span><i>${done?'✓ '+(done.ending?('엔딩 '+done.ending):(ws!=null?ws+'점':'끝')):cur?(P&&P.cur&&P.cur.day===d?'이어 하기':'오늘'):'잠김'}</i>`;
     b.onclick=()=>{ if(!done&&!cur&&!Q.get('debug')){ toast(`${d-1}일차를 마치면 열려요.`); return; } goDay(team,d); }; box.appendChild(b); } }
-function goDay(team,d){ const u=new URL(location.href); u.searchParams.set('team',team); u.searchParams.set('ep',String(d)); if(S.code) u.searchParams.set('code',S.code); else u.searchParams.delete('code'); location.href=u.toString(); }
+function goDay(team,d){ const u=new URL(location.href); u.searchParams.set('team',team); u.searchParams.set('ep',String(d)); if(S.code) u.searchParams.set('code',S.code); else u.searchParams.delete('code'); u.searchParams.delete('fresh'); location.href=u.toString(); }   /* fresh 는 그 화 한 번만(QA W-13 — 다음 날로 물려주면 그날 새로고침이 처음부터였다) */
 $('homeGo').onclick=async()=>{ const code=$('homeCode').value.trim(); if(code){ $('home').classList.remove('open'); $('loading').classList.remove('off'); await enterWithCode(code,null); } else { const team=$('homeTeam').value||'cs'; S.demo=true; S.code=null; try{ localStorage.removeItem('ws7.code'); }catch(e){} S.team=team; P=await loadProgress(); goDay(team,P.day||1); } };
 $('homeDemo').onclick=async()=>{ const team=$('homeTeam').value||'cs'; S.demo=true; S.code=null; try{ localStorage.removeItem('ws7.code'); }catch(e){} S.team=team; P=await loadProgress(); goDay(team,P.day||1); };
 $('homeTeam').onchange=()=>{ if(!S.code) renderHomeDays(); };
@@ -104,7 +113,13 @@ async function startDay(ep){ S.ep=ep; S.phase='loading'; $('home').classList.rem
   /* 44차: 첫 진입 로딩은 「로딩 중」 대신 조작법 카드로 채운다(js/play/intro.js).
      카드를 다 보거나 건너뛴 뒤에야 Intro.ready() 가 풀린다 — 방 이동·캐릭터 교체 로딩은 그대로다. */
   Intro.start();
-  if(D.kind==='ep7'){ await stageUp(); await Intro.ready(); $('loading').classList.add('off'); window.__playReady=true; return EP7.start(); }   /* 7일차 브리핑 부르기는 ep7.js start 가 한다(모이기는 briefGatherStart 를 같이 쓴다) */
+  if(D.kind==='ep7'){
+    /* 아침에 오는 「어제 그거」 분기 카드는 6일차에 실제로 그 선택을 한 학생에게만 온다.
+       7화는 prepareDay() 를 거치지 않고 EP7.start() 로 바로 가느라 trigger 필터가 걸리지 않아,
+       선택과 무관하게 분기 카드가 전부 떴다(56차). 여기서 한 번 걸러 준다. */
+    D.cards=ep7PreCards(D.cards,P);   /* 6일차 기록으로 거른다 — 서버 7일차 채점과 같은 함수(grade.js · 57차 R1) */
+    leadOpenBrief();                     /* 받은 아침 카드의 팀장 첫마디(leadOpen) — 2~6화 prepareDay 와 같게(F10) */
+    await stageUp(); await Intro.ready(); $('loading').classList.add('off'); window.__playReady=true; return EP7.start(); }   /* 7일차 브리핑 부르기는 ep7.js start 가 한다(모이기는 briefGatherStart 를 같이 쓴다) */
   prepareDay(); renderUnlocks(); initRulebook(); initOrg();
   await stageUp(); await Intro.ready(); $('loading').classList.add('off'); renderClock(); renderCounts(); window.__playReady=true;
   const cur=P.cur; if(cur&&cur.day===ep&&(cur.phase==='work'||cur.phase==='triage')&&Q.get('fresh')!=='1'){ restoreDay(cur); return; }
@@ -161,7 +176,9 @@ function refreshTalkHints(){ const O=office(); if(!O||typeof O.setTalkHint!=='fu
     try{ if(window.Talk&&Talk.hasPending&&Talk.hasPending(name)) tx='T — 이야기 듣기';
       else { const t=(window.Talk&&Talk.tasks)?Talk.tasks(name,{mark:true}):[]; if(t.length) tx=t[0].hint||''; } }catch(e){}
     try{ O.setTalkHint(seat,tx); }catch(e){} } }
-function restoreDay(cur){ Object.assign(S,{t:cur.t,cards:cur.cards,order:cur.order,extra:cur.extra||[],ncs:cur.ncs,trust:cur.trust||{},counts:Object.assign(S.counts,cur.counts||{}),nexts:cur.nexts||[],mistakes:cur.mistakes||[],triage:cur.triage||null,clues:cur.clues||[]}); for(const a of AXES) if(!S.ncs[a]) S.ncs[a]=[];
+function restoreDay(cur){ Object.assign(S,{t:cur.t,cards:cur.cards,order:cur.order,extra:cur.extra||[],trust:cur.trust||{},counts:Object.assign(S.counts,cur.counts||{}),nexts:cur.nexts||[],mistakes:cur.mistakes||[],triage:cur.triage||null,clues:cur.clues||[]});
+  /* 57차 E1 — 역량 증거: 「일부만 기록」 표시를 잇는다. 옛 진행(cur.v 없음 — 증거 없이 끝낸 카드가 있음)을 이어 하면 그날은 part(spec §3-7) */
+  S.evPart=(cur.ev&&cur.ev.part)?1:0; if(cur.v!==2&&Object.values(cur.cards||{}).some(st=>st&&st.status==='done')) S.evPart=1;
   for(const c of D.cards) if(!S.cards[c.id]) S.cards[c.id]={arrived:false,status:'wait'};
   /* 방문객이 소파에 앉아 있던 표시는 3D 가 새로 떴으니 무효다(45차) */
   for(const st of Object.values(S.cards)){ if(st){ delete st.visitorHere; delete st.visitorComing; } }
@@ -214,7 +231,15 @@ $('tabHint').onclick=()=>showTab('hint'); $('tabProg').onclick=()=>showTab('prog
 $('tabRule').onclick=()=>{ if(!(D&&(D.unlock||[]).includes('rulebook'))){ toast('사규집은 2일차에 받아요.'); return; } showTab('rule'); };
 $('tabOrg').onclick=()=>{ if(!(D&&(D.unlock||[]).includes('orgchart'))){ toast('조직도는 4일차에 열려요.'); return; } showTab('org'); };
 let RB_BOOK=null;
-function initRulebook(){ const RB=window.OC&&OC.data&&OC.data.RULEBOOK; const sel=$('rbBook'); sel.innerHTML=''; if(!RB){ $('rbList').textContent='사규집 데이터가 없어요.'; return; } const books=RB.books.slice().sort((a,b)=>(a.key===S.team?-1:b.key===S.team?1:0)); for(const b of books){ const o=document.createElement('option'); o.value=b.key; o.textContent=b.title; sel.appendChild(o); } RB_BOOK=books[0].key; sel.value=RB_BOOK; renderRulebook(); }
+/* 사규집 편 잠금(56차) — 내 팀 편만 전문이 보이고, 다른 팀 편은 조항 번호·제목까지만 보인다.
+   본문은 그 팀 사람을 실제로 만나야 열린다(js/play/core.js travel 래퍼가 rbUnlock 을 부른다).
+   협동판에서는 다른 팀 학생에게 물어야 얻던 것이다 — 1인용에서는 「누구에게 가야 하나」가 그 자리를 대신한다. */
+function rbOpenSet(){ if(!S.rbOpen) S.rbOpen=[S.team]; return S.rbOpen; }
+function rbIsOpen(key){ return key===S.team || rbOpenSet().indexOf(key)>=0; }
+function rbUnlock(key){ if(!key||rbIsOpen(key)) return; rbOpenSet().push(key);
+  const nm=(typeof TEAM_NAMES!=='undefined'&&TEAM_NAMES[key])||key;
+  toast(`${nm} 규정 편이 열렸어요 — 사규집에서 볼 수 있어요`); try{ renderRulebook(); }catch(e){} }
+function initRulebook(){ const RB=window.OC&&OC.data&&OC.data.RULEBOOK; const sel=$('rbBook'); sel.innerHTML=''; if(!RB){ $('rbList').textContent='사규집 데이터가 없어요.'; return; } const books=RB.books.slice().sort((a,b)=>(a.key===S.team?-1:b.key===S.team?1:0)); for(const b of books){ const o=document.createElement('option'); o.value=b.key; o.textContent=b.title+(rbIsOpen(b.key)?'':' 🔒'); sel.appendChild(o); } RB_BOOK=books[0].key; sel.value=RB_BOOK; renderRulebook(); }
 /* 조문 한 덩이를 문장 단위로 끊는다. 마침표 뒤에서 자르되 「3.5」 같은 소수는 붙여 둔다 */
 function ruleLines(body){ const out=[]; let cur=''; const s=String(body||'');
   for(let i=0;i<s.length;i++){ const ch=s[i]; cur+=ch;
@@ -228,38 +253,39 @@ function ruleLine(text){ const p=h('p'); let last=0; let m;
     p.appendChild(h('em',null,m[0])); last=m.index+m[0].length; }
   if(last<text.length) p.appendChild(document.createTextNode(text.slice(last)));
   return p; }
-/* 지금 쓰고 있는 카드가 근거로 삼는 조항 번호 — 있으면 목록 맨 위로 끌어 올린다 */
-function relatedRuleIds(){ try{ if(!S.composing) return []; const c=CARD(S.composing.id||S.composing); if(!c) return [];
-    return (composeSpec(c).ruleFacts||[]).filter(x=>/^[A-Z]{2,4}-\d{2}$/.test(x)); }catch(e){ return []; } }
-function ruleItem(a,hit){ const it=document.createElement('details'); it.className='art'+(hit?' hit':'');
-  const sm=document.createElement('summary'); sm.appendChild(h('b',null,a.id)); sm.appendChild(h('span','t',a.title));
-  const ins=mkBtn('번호 넣기','mini',()=>insertText(a.id));
-  /* 요약줄 안의 단추다 — 누르면 접혔다 펴지는 것부터 막는다 */
-  ins.addEventListener('click',ev=>{ ev.preventDefault(); ev.stopPropagation(); });
-  sm.appendChild(ins); it.appendChild(sm);
-  const bd=h('div','abody'); for(const ln of ruleLines(a.body)) bd.appendChild(ruleLine(ln)); it.appendChild(bd);
-  if(hit) it.open=true;
+/* 57차 E2(D21): 지금 쓰는 카드의 관련 조항을 맨 위로 끌어 올려 펼치던 것(relatedRuleIds)과 「번호 넣기」 단추를 없앴다 —
+   그것이 곧 정답 조항이었다. 규정은 목차(편 고르기)와 검색으로 찾는다 */
+function ruleItem(a,locked){ const it=document.createElement('details'); it.className='art'+(locked?' locked':'');
+  const sm=document.createElement('summary'); sm.appendChild(h('b',null,a.id)); sm.appendChild(h('span','t',a.title)); it.appendChild(sm);
+  const bd=h('div','abody');
+  if(locked){ const nm=(typeof TEAM_NAMES!=='undefined'&&TEAM_NAMES[locked])||locked;
+    bd.appendChild(h('p','lockmsg',`본문은 ${nm}이 가지고 있어요. 그 팀에 가서 물어보면 열려요.`)); }
+  else for(const ln of ruleLines(a.body)) bd.appendChild(ruleLine(ln));
+  it.appendChild(bd);
+  it.addEventListener('toggle',()=>{ if(it.open) rbNote(a.id); });
   return it; }
 function renderRulebook(){ const RB=window.OC&&OC.data&&OC.data.RULEBOOK; if(!RB) return; const q=($('rbSearch').value||'').trim().toLowerCase(); const list=$('rbList'); list.innerHTML='';
-  const rel=q?[]:relatedRuleIds(); const shown=new Set(); let n=0;
-  if(rel.length){ const box=h('div'); let m=0;
-    for(const b of RB.books) for(const a of b.articles){ if(!rel.includes(a.id)||shown.has(a.id)) continue; shown.add(a.id); box.appendChild(ruleItem(a,true)); m++; }
-    if(m){ list.appendChild(h('div','rbCap','지금 쓰는 건과 관련된 조항')); list.appendChild(box); list.appendChild(h('div','rbCap sub','이 편의 조항 전체')); } }
+  let n=0;
   for(const b of RB.books){ if(!q&&b.key!==RB_BOOK) continue;
-    for(const a of b.articles){ if(shown.has(a.id)) continue;
-      if(q&&!(a.id.toLowerCase().includes(q)||a.title.includes(q)||a.body.includes(q))) continue;
-      list.appendChild(ruleItem(a,false)); n++; if(n>=60) break; }
+    for(const a of b.articles){
+      if(q&&!(a.id.toLowerCase().includes(q)||a.title.includes(q)||(rbIsOpen(b.key)&&a.body.includes(q)))) continue;
+      list.appendChild(ruleItem(a,rbIsOpen(b.key)?null:b.key)); n++; if(n>=60) break; }
     if(n>=60) break; }
-  if(!n&&!shown.size) list.appendChild(h('div','empty-msg',q?'찾는 조항이 없어요':'')); }
-$('rbBook').onchange=()=>{ RB_BOOK=$('rbBook').value; $('rbSearch').value=''; renderRulebook(); }; $('rbSearch').addEventListener('input',renderRulebook);
-function insertText(t){ const ta=$('composeText'); if(!S.composing||$('composer').style.display==='none'){ toast('작성기를 연 뒤 넣을 수 있어요'); return; } const s=ta.selectionStart||ta.value.length; ta.value=ta.value.slice(0,s)+(s&&!/\s|\(/.test(ta.value[s-1])?' ':'')+`(${t})`+ta.value.slice(s); ta.dispatchEvent(new Event('input')); ta.focus(); }
+  if(!n) list.appendChild(h('div','empty-msg',q?'찾는 조항이 없어요':'')); }
+/* 사규집을 어떻게 찾았나 — 지금 다루는 카드의 상태에 검색어(?낱말)·열어 본 조항 번호를 남긴다(관리자 참고 · spec §7 E2-9).
+   쓰지 않으면 필드를 만들지 않는다(저장 크기). 같은 것은 한 번만, 카드당 24개까지 */
+function rbCardState(){ const id=(S.composing&&S.composing.id)||S.cur||(typeof HINT_CARD!=='undefined'?HINT_CARD:null); const st=id&&S.cards[id]; return st&&st.arrived&&st.status!=='done'?st:null; }
+function rbNote(x){ if(!x||(S.phase!=='work'&&S.phase!=='triage')) return; const st=rbCardState(); if(!st) return; const rb=st.rb||(st.rb=[]); if(rb.includes(x)||rb.length>=24) return; rb.push(x); }
+let rbTypeTm=null;
+$('rbBook').onchange=()=>{ RB_BOOK=$('rbBook').value; $('rbSearch').value=''; renderRulebook(); };
+$('rbSearch').addEventListener('input',()=>{ renderRulebook(); clearTimeout(rbTypeTm); rbTypeTm=setTimeout(()=>{ const q=($('rbSearch').value||'').trim(); if(q.length>=2) rbNote('?'+q.slice(0,20)); },900); });
 /* 조직도는 **팀 이름 + 사람 셋**이 전부다(50차, 대표 「그걸 찾는 것도 의사결정 연습이다」).
    47차에 내가 붙였던 「지금 이 방 / 오늘 찾아갈 사람」 꼬리표를 뗀다 — 오늘 찾아갈 사람이 사실상 **정답표**여서
    메일을 열기도 전에 누구에게 갈 일인지 다 알게 됐다(타 팀 등장 131건 중 128건이 그날 카드 상대).
    「지금 이 방」도 같은 이유 — 내 팀 사람은 늘 있어 정보가 없고, 타 팀 손님이 뜨면 그게 또 누설이다.
    팀 이름과 사람 셋은 남긴다. 「세금계산서 → 회계팀 → 거기 사람」을 학생이 **스스로** 잇는 근거다. */
 function initOrg(){ const box=$('orgList'); box.innerHTML=''; for(const k of TEAM_ORDER){ const o=ORG[k]; const row=h('div','orgrow'+(k===S.team?' me':'')); row.appendChild(h('b',null,TEAM_NAMES[k]));
-  row.appendChild(h('span',null,`${o.lead} · ${o.senior} · ${o.chief}`)); box.appendChild(row); } }
+  row.appendChild(h('span',null,[o.lead,o.senior,o.chief].concat(o.more||[]).join(' · '))); box.appendChild(row); } }   /* more — 늘 있는 조력자(core.js ORG · F8) */
 function renderProgTab(){ const box=$('tab_prog'); box.innerHTML=''; box.appendChild(h('h4',null,`${S.name?S.name+' · ':''}${S.code||'데모'}`)); const ul=h('div','progdays'); for(let d=1; d<=7; d++){ const done=P&&P.done[String(d)]; const cur=d===S.ep; const e=h('div','pd '+(done?'done':cur?'cur':'lock'),`${d}일차 ${DAY_TITLES[d]||''} ${done?'✓':cur?'(오늘)':''}`); ul.appendChild(e); } box.appendChild(ul);
   const tr=Object.entries(Object.assign({},P&&P.trust||{})); for(const [n,v] of Object.entries(S.trust||{})){ const i=tr.findIndex(x=>x[0]===n); if(i>=0) tr[i][1]+=v; else tr.push([n,v]); } if(tr.length) box.appendChild(h('div','muted','신뢰: '+tr.map(([n,v])=>`${n} ${v>0?'+':''}${v}`).join(', ')));
   const cl=S.clues.length+((P&&P.clues&&Object.values(P.clues).reduce((a,b)=>a+b.length,0))||0); box.appendChild(h('div','muted',`모은 단서 ${cl}개`)); const ft=h('div','paneFoot'); box.appendChild(ft); ft.appendChild(mkBtn('홈으로','',()=>goHome(true))); }
@@ -354,7 +380,8 @@ $('dNext').onclick=()=>{ if(S.phase!=='briefing') return; S.briefI++; showBrief(
 function endBriefing(){ if(briefCall){ briefCall.cancel(); briefCall=null; } ungatherBrief(); briefVisitorOut();   /* 48차: 건너뛰거나 자동 플레이로 왔으면 여기서 내보낸다 */
   $('dialog').classList.remove('open'); const O=office(); if(O&&!S.briefT){ try{ O.hush(); O.view('default'); }catch(e){} } S.phase='work'; S.running=true; lastTick=0; arrivals();
   if(D.triage&&!(S.triage&&S.triage.done)){ startTriage(); return; }
-  const L=D.todoLabels||['답할 것','넘길 것','물어볼 것']; toast(`메일함이 열렸어요. ${L.join(' / ')}을 나눠 보세요.`); saveProgress(); }
+  /* 「답할 것 / 넘길 것 / 물어볼 것을 나눠 보세요」는 1일차 연습 안내로만(57차 E2 — 칸 이름이 처리 방식을 알려 준다) */
+  const L=D.todoLabels||['답할 것','넘길 것','물어볼 것']; toast(Number(S.ep)<=1?`메일함이 열렸어요. ${L.join(' / ')}을 나눠 보세요.`:'메일함이 열렸어요.'); saveProgress(); }
 $('triageGo').onclick=()=>finishTriage();
 
 /* ---------- 09:30 · 마무리 · 디브리프 ---------- */
@@ -383,8 +410,8 @@ $('finishBtn').onclick=()=>{ const lead=(D&&D.dests.find(x=>x.seat==='lead')||{}
 /* 45차: 퇴근 마무리도 **부르기**다. 결과는 먼저 계산해 저장해 두고(finish defer), 팀장 머리 위 표시 + 알림 →
    가서 T → 팀장이 오늘 평가 한마디(debrief lead 줄)를 한 뒤 결과 화면이 열린다.
    자동 플레이·「오늘 그만하기」가 finish() 를 부르면 그 자리에서 결과 화면으로 넘어간다(들은 것으로 친다). */
-function callWrap(why){ if(S.phase==='wrap'||S.phase==='debrief') return; const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장';
-  const res=finish({defer:true}); if(!res) return;
+async function callWrap(why){ if(S.phase==='wrap'||S.phase==='debrief'||S.phase==='finishing') return; const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장';
+  const res=await finish({defer:true}); if(!res||S.phase!=='wrap') return;
   /* 팀장 말투를 맞춘다 — 반말 쓰는 팀장(물류팀 등)이 이 한 줄만 존댓말이면 어색하다. 오늘 그 팀장의 대사에 「~요」가 없으면 반말 */
   const leadSays=((D.dialog&&D.dialog.briefing)||[]).filter(l=>l&&l.who&&(l.who===lead||lead.endsWith(l.who)||l.who.endsWith(lead))).map(l=>l.text).join(' ')+' '+(res.leadLine||'');
   const banmal=leadSays.trim()&&!/요[.?!…]|요\s*$/.test(leadSays);
@@ -396,42 +423,156 @@ function callWrap(why){ if(S.phase==='wrap'||S.phase==='debrief') return; const 
     onHeard:()=>{ wrapCall=null; showDebrief(res); } });
   $('enTitle').textContent=why==='done'?'오늘 할 일을 다 했습니다':'퇴근 시간입니다'; $('enSub').textContent=`${calledBy(lead)} 부르세요 — 가서 T 로 마무리를 들어요.`;
   $('endNotice').classList.add('open'); setTimeout(()=>$('endNotice').classList.remove('open'),2600); } $('moreBtn').onclick=()=>{ $('endbar').classList.remove('open'); toast('더 보고 있어도 됩니다. 다 봤으면 일시정지 메뉴에서 「오늘 그만하기」를 누르세요.'); };
+/* 하루 마감 — 57차 E1: 끝내지 않은 카드의 D12 증거를 서버에 물어야 해서(배포본 · B4) 비동기다. 여러 곳(퇴근·「오늘 그만하기」·자동 플레이·팀장 부르기)이 불러도
+   마감은 한 번만 하고(S.finishP) 모두 같은 결과를 기다린다. 기다리는 동안 단계는 'finishing'(시계·저장·T 대화가 멈춘다).
+   opt.defer — 결과만 만들어 두고 화면은 팀장 부르기(callWrap)가 연다 */
 function finish(opt){ opt=opt||{};
-  if(S.phase==='debrief') return;
-  /* 팀장이 부르는 중(wrap)에 다시 불리면 — 자동 플레이·「오늘 그만하기」 — 들은 것으로 치고 결과 화면으로 */
-  if(S.phase==='wrap'){ if(opt.defer) return S.wrapRes; showDebrief(S.wrapRes); return; }
-  S.phase='debrief'; S.running=false; closeComposer(); $('endbar').classList.remove('open');
+  if(S.finishP) return S.finishP.then(res=>afterFinish(res,opt));
+  if(S.phase==='debrief') return Promise.resolve(null);
+  S.phase='finishing'; S.running=false; closeComposer(); $('endbar').classList.remove('open');
+  S.finishP=doFinish().catch(e=>{ console.error('하루 마감 오류',e); return null; });
+  return S.finishP.then(res=>afterFinish(res,opt)); }
+function afterFinish(res,opt){ if(!res) return res;
+  if(opt.defer){ if(S.phase==='finishing'){ S.phase='wrap'; S.wrapRes=res; } return S.phase==='wrap'?res:null; }
+  if(S.phase!=='debrief') showDebrief(res); return res; }
+/* 끝내지 않은 카드 — 57차 E1(D12 ② · C12 · E2f §8-3):
+   · 단계를 하나라도 했으면 **단계 평균(빠진 단계 0)** — 전달만·보고만·첫 글만(예전 규칙과 같은 값)에 더해, 예전에 0 이던 「전달 전 회신만」·「두 글 카드의 둘째 글만」도 같은 규칙으로(비대칭 해소)
+   · 아무것도 안 했으면 0(미처리) · 둘 다 늦음(ontime 에서 제때가 아님)
+   · 증거: 주 항목 0!(이미 관찰한 것은 그대로) · 단계를 시작했으면 끝까지(follow) 0 · 상대를 찾다 못 찾았으면 route 0 — Score.dayEnd(배포본은 서버) */
+function partialEnd(c,st){ const steps=st.steps||{}; const req=requiredSteps(c); const did=req.filter(k=>steps[k]&&!steps[k].skipped); if(!did.length) return null;
+  const score=Math.round(did.reduce((a,k)=>a+(typeof steps[k].score==='number'?steps[k].score:0),0)/req.length);
+  const replyWho=c.replyTo||msgWho(c)||'요청한 사람'; const alsoWho=(typeof c.alsoReply==='object'&&c.alsoReply.to)||c.alsoReplyTo||'안내할 사람'; const dnpc=(c.deliver&&c.deliver.npc)||'';
+  const has=(k)=>did.includes(k); let act='reply', comment='', branch=null;
+  if(has('work')){ act='work'; comment=`검산은 맞았지만 ${dnpc||'팀장'}에게 가져가지 않았어요.`; }
+  else if(has('deliver')){ act='deliver'; comment=`전달은 했지만 ${replyWho}에게 어디로 넘어갔는지 알리지 않았어요.`; branch='noReply'; }
+  else if(has('report')){ act='report'; comment=`보고는 했지만 ${replyWho}에게 회신하지 않았어요.`; }
+  else if(has('reply')&&req.includes('deliver')){ act=steps.reply.key||'reply'; comment=`회신은 보냈지만 ${dnpc||'맡을 사람'}에게 전달하지 않았어요.`; }
+  else if(has('reply')&&req.includes('report')){ act=steps.reply.key||'reply'; comment=`회신은 보냈지만 ${c.npc||(c.report&&c.report.npc)||leadOfDay()}에게 보고하지 않았어요.`; }
+  else if(has('reply')){ act=steps.reply.key||'reply'; comment=`${alsoWho}에게 보낼 안내 회신이 빠졌어요.`; }   /* 행동 이름은 그 글의 키로 — 상신만 하고 끝난 두 글 카드는 「상신」(rec 2차) */
+  else if(has('reply2')){ act='reply'; comment=`회신은 보냈지만 ${confirmTo(c)}에게 올리지 않았어요.`; }
+  return {act,score,comment,branch}; }
+async function doFinish(){
+  const pending={};
+  if(!Grader.local()) await Grader.settle();   /* 57차 E1 후속(B2) — 날아가는 카드 채점이 다 붙은 뒤에 마감한다(봉인이 갈라지지 않게) */
   for(const c of D.cards.concat(S.extra)){ const st=S.cards[c.id]; if(!st||st.status==='done') continue;
     if(!st.arrived){ st.status='skipped'; st.act='none'; st.score=null; continue; }
-    const steps=st.steps||{};
+    st.dayEnd=1;   /* 하루 끝에 닫힌 카드(57차 E1 후속 2) — 디브리프 추가 대사 조건 done 이 「학생이 끝낸 카드」와 가른다. 저장하지 않는다(cardRecord 밖) */
     if(c.followup){ st.status='done'; st.act='none'; st.score=null; continue; }
     if(c.scored===false&&c.mode==='story'&&!c.alsoReply){ runBranch(c.id,'none'); st.status='done'; st.score=null; st.act='none'; continue; }
-    if(c.unscored||c.axis==='self'){ runBranch(c.id,'blank'); st.status='done'; st.score=null; st.act='none'; S.ncs['4'].push(0); continue; }
-    if(steps.deliver&&!steps.reply&&flowOf(c).includes('reply')){ st.late=true; record(c.id,{act:'deliver',score:50,comment:'전달은 했지만 고객에게 어디로 넘어갔는지 알리지 않았어요.'}); runBranch(c.id,'noReply'); continue; }
-    if(steps.report&&!steps.reply){ record(c.id,{act:'report',score:Math.round((steps.report.score||0)/2),comment:'보고는 했지만 고객 회신이 없었어요.'}); continue; }
-    if(steps.reply&&flowOf(c).includes('reply2')&&!steps.reply2){ record(c.id,{act:'reply',score:Math.round((steps.reply.score||0)/2),comment:'안내 회신이 빠졌어요.'}); continue; }
-    if(steps.work&&!steps.deliver){ record(c.id,{act:'work',score:50,comment:'검산은 맞았지만 팀장에게 가져가지 않았어요.'}); continue; }
-    st.status='done'; st.act='none'; st.score=0; st.comment='처리하지 못했어요.'; st.late=true; if(c.scored!==false){ for(const a of (c.ncs||[])) if(a!=='5'&&a!=='9') S.ncs[a].push(0); S.ncs['5'].push(0); } if(c.clue&&(D.branches[c.id]||{}).other&&D.branches[c.id].other.clueGap) st.clueGap=true; }
+    if(c.unscored||c.axis==='self'){ runBranch(c.id,'blank'); st.status='done'; st.score=null; st.act='none'; evLocal(c.id,'note',0); continue; }
+    const steps=st.steps||{};
+    pending[c.id]={have:(typeof Ev!=='undefined')?Ev.parse(st.ev).map(e=>e.i):[],started:Object.keys(steps).length>0||!!st.ask,tries:st.tries||0};
+    if(!Grader.local()) pending[c.id].sl=sealIn(c.id);   /* 57차 E1 후속(B2) — 서버가 이 카드 봉인을 이어서 서명한다 */
+    /* 코멘트는 그 카드의 받는 사람 기준(57차 E2후속 F5) */
+    const pe=partialEnd(c,st);
+    if(pe){ st.late=true; record(c.id,{act:pe.act,score:pe.score,comment:pe.comment}); if(pe.branch) runBranch(c.id,pe.branch); continue; }
+    st.status='done'; st.act='none'; st.score=0; st.comment='처리하지 못했어요.'; st.late=true; if(c.clue&&(D.branches[c.id]||{}).other&&D.branches[c.id].other.clueGap) st.clueGap=true; }
+  /* D12 ② 증거 — 배포본 브라우저는 주 항목을 모른다(공개본 ncs2 는 route·follow 만) → 서버 Score.dayEnd(로컬은 같은 함수를 바로) */
+  if(Object.keys(pending).length){ try{ const r=await Grader.run('dayEnd',null,{cards:pending}); if(r&&r.evv&&r.cards){ for(const [id,list] of Object.entries(r.cards)){ addEv(id,list); if(r.sl&&r.sl[id]) takeSeal(id,{sl:r.sl[id]}); } } else if(!Grader.local()) S.evPart=1; }catch(e){ console.warn('하루 끝 증거 실패:',e&&e.message); S.evPart=1; } }
   /* 디브리프 추가 대사(예: 조력자가 먼저 연락 — 신뢰 조건)와 그 단서 */
   for(const ex of ((D.dialog.debrief||{}).extra||[])){ if(!extraCondMet(ex)) continue; if(ex.clue&&!S.clues.some(k=>k.card===(ex.clue.card||'extra'))) S.clues.push({caseId:ex.clue.caseId,day:S.ep,card:ex.clue.card||'extra',note:ex.clue.note,value:ex.clue.value||null,label:ex.clue.day||null}); }
-  const res=buildResult(); P.done[String(S.ep)]=res; P.day=Math.max(P.day||1,S.ep+1); P.cur=null; for(const [n,v] of Object.entries(S.trust)) P.trust[n]=(P.trust[n]||0)+v; for(const k of S.clues){ (P.clues[k.caseId]=P.clues[k.caseId]||[]); if(!P.clues[k.caseId].some(x=>x.card===k.card&&x.day===k.day)) P.clues[k.caseId].push(k); } P.unlocked=uniq((P.unlocked||[]).concat(D.unlock||[]));
+  const res=buildResult(); res.ncs2=dayNcs2();
+  P.done[String(S.ep)]=storedDay(res); P.day=Math.max(P.day||1,S.ep+1); P.cur=null;
+  P.rbOpen=Array.from(new Set(((P.rbOpen)||[]).concat(S.rbOpen||[]))).filter(k=>k&&k!==S.team);   /* 오늘 열린 규정 편을 내일로 넘긴다 */ for(const [n,v] of Object.entries(S.trust)) P.trust[n]=(P.trust[n]||0)+v; for(const k of S.clues){ (P.clues[k.caseId]=P.clues[k.caseId]||[]); if(!P.clues[k.caseId].some(x=>x.card===k.card&&x.day===k.day)) P.clues[k.caseId].push(storedClue(k)); } P.unlocked=uniq((P.unlocked||[]).concat(D.unlock||[]));
   saveProgress(true);
-  if(opt.defer){ S.phase='wrap'; S.wrapRes=res; return res; }
-  showDebrief(res); }
+  return res; }
+/* 하루 집계 증거(57차 E1 · spec §2-2 ontime·own·triage) — 브라우저가 만든다(공개본 화 ncs2 에 요소가 있다) · 6화 분류는 서버가 낸 것
+   · 제때(ontime) = 채점 카드 중 제때 끝낸 비율(보류도 처리) — 「오늘 그만하기」로 끝낸 날은 안 온 채점 카드도 분모(D12 ③)
+   · 직접 처리(own) = 정답이 회신인 회신형 카드 가운데 회신으로 끝낸 비율 — 그런 카드가 2장 이상인 날만(D3) */
+function dayNcs2(){ const o={v:1,day:''}; if(typeof Ev==='undefined'||!Ev.on()){ return null; } const items=(D.ncs2&&Array.isArray(D.ncs2.items))?D.ncs2.items:[]; const out=[];
+  const scored=D.cards.concat(S.extra).filter(c=>!c.followup&&c.scored!==false&&!c.unscored&&c.axis!=='self');
+  const arrived=scored.filter(c=>S.cards[c.id]&&S.cards[c.id].arrived);
+  for(const it of items){
+    if(it.ov==='ontime'){ const den=S.quit?scored.length:arrived.length; if(!den) continue; const ok=arrived.filter(c=>{ const st=S.cards[c.id]; return st.status==='done'&&st.act!=='none'&&!st.late; }).length; out.push(Ev.item(null,it,Ev.band(ok/den,'rate'))); }
+    else if(it.ov==='own'){ const L=arrived.filter(c=>c.best==='reply'&&flowOf(c)[0]==='reply'); if(L.length<2) continue; const ok=L.filter(c=>{ const st=S.cards[c.id]; return st.status==='done'&&st.act==='reply'&&!st.off; }).length; out.push(Ev.item(null,it,Ev.band(ok/L.length,'rate'))); }
+    else if(it.ov==='triage'&&S.triage&&S.triage.ev) out.push(...Ev.parse(S.triage.ev)); }
+  o.day=Ev.str(out.filter(Boolean)); if(S.evPart) o.part=1; if(S.quit) o.quit=1; return o; }
 function showDebrief(res){ if(wrapCall){ wrapCall.cancel(); wrapCall=null; } if(window.Talk&&Talk.isOpen()) Talk.close();   /* 결과 화면 밑에 남은 대화창·줄 선 대사를 걷는다 */
   S.phase='debrief'; $('endNotice').classList.remove('open'); renderDebrief(res); $('debrief').classList.add('open'); }
-function extraCondMet(ex){ if(!ex.cond) return true; const who=ex.cond.npc||ex.who; if(ex.cond.trustMin!=null&&trustOf(who)<ex.cond.trustMin) return false; return true; }
-function ncsAvg(){ const out={}; for(const a of AXES){ const v=S.ncs[a]; if(v&&v.length) out[a]=Math.round(v.reduce((x,y)=>x+y,0)/v.length); } return out; }
+/* 디브리프 추가 대사의 조건 — 신뢰(trustMin · npc)에 더해 57차 E1 후속 2(done-cs 14): **그날 그 카드를 실제로 어떻게 처리했나**(cond.card …).
+   예전에는 신뢰만 봐서 「주차 건 잘 끝났어요」가 그 건을 전달하지 않아도 나왔다(1~3일차·대화 인사로 쌓인 신뢰). 카드 조건의 낱말은 다음 날 분기 trigger(branchTriggerMet)와 같고
+   오늘 카드 기록(cardRecord — 저장본과 같은 모양)으로 판정한다: act(키 또는 목록) · choice · report · forbidHit · replyBanHit · delivered · partial · miss · anyMiss.
+   더해서 done(그날 학생이 끝냈다 — 하루 끝 자동 마감·미처리가 아님) · asked(맞는 상대에게 물었다) · got(직접 묻기에서 들은 조각 key 전부) · workOk(결과값이 맞았다) · scoreMin(카드 점수 하한).
+   카드 여럿은 allOf:[{card,…},…](전부) · anyOf:[{card?,…},…](하나라도 — card 를 물려받는다). 모든 조건이 맞아야 대사가 나온다(대사에 달린 단서도 같이) */
+const CARD_COND_KEYS=['act','choice','report','forbidHit','replyBanHit','delivered','partial','miss','anyMiss','done','asked','got','workOk','scoreMin'];
+function extraCondMet(ex){ const cd=ex&&ex.cond; if(!cd) return true; const who=cd.npc||ex.who; if(cd.trustMin!=null&&trustOf(who)<cd.trustMin) return false; return cardCondMet(cd,null); }
+function cardCondMet(cd,inherit){ const id=cd.card||inherit;
+  if(Array.isArray(cd.allOf)&&!cd.allOf.every(x=>cardCondMet(x||{},id))) return false;
+  if(Array.isArray(cd.anyOf)&&!cd.anyOf.some(x=>cardCondMet(x||{},id))) return false;
+  if(!CARD_COND_KEYS.some(k=>cd[k]!=null)) return true;
+  const st=id&&S.cards[id]; if(!st) return false; const rec=cardRecord(st);
+  if(cd.act!=null&&![].concat(cd.act).includes(rec.act)) return false;
+  if(cd.done!=null&&(st.status==='done'&&rec.act!=='none'&&!st.dayEnd)!==!!cd.done) return false;
+  if(cd.asked!=null&&!!st.ask!==!!cd.asked) return false;
+  if(cd.got!=null){ const g=(st.ask&&st.ask.got)||[]; if(![].concat(cd.got).every(k=>g.includes(k))) return false; }
+  if(cd.workOk!=null&&(rec.workOk===true)!==!!cd.workOk) return false;
+  if(cd.scoreMin!=null&&!(typeof rec.score==='number'&&rec.score>=+cd.scoreMin)) return false;
+  const tr={card:id}; for(const k of ['choice','report','forbidHit','replyBanHit','delivered','partial','miss','anyMiss']) if(cd[k]!=null) tr[k]=cd[k];
+  return branchTriggerMet(tr,{cards:{[id]:rec}}); }
 function metricValue(rule){ const m=(rule&&rule.metric)||'done'; const c=S.counts; if(m==='cite') return c.cite; if(m==='calc') return c.calc; if(m==='rightNpc') return c.rightNpc; if(m==='rejectRight') return c.reject; if(m==='deadline') return c.promise; return c.done; }
 function leadLevel(rule){ const v=metricValue(rule); const hi=(rule&&rule.hi)!=null?rule.hi:11, mid=(rule&&rule.mid)!=null?rule.mid:8; if(rule&&rule.metric==='deadline'){ if(v===0&&S.counts.done>=Math.max(1,Math.min(8,Math.round(D.cards.filter(c=>!c.pre&&c.scored!==false).length*0.7)))) return 'hi'; if(v>=1) return 'mid'; return 'low'; } if(rule&&rule.metric==='rightNpc'){ return v>=hi?'hi':v>=mid?'mid':'low'; } return v>=hi?'hi':v>=mid?'mid':'low'; }
-function buildResult(){ const cards={}; const scoredIds=[]; for(const c of D.cards.concat(S.extra)){ const s=S.cards[c.id]; if(!s) continue; cards[c.id]={act:s.act,score:s.score,at:s.doneAt!=null?s.doneAt:null,late:!!s.late,branch:s.branch||null,choice:s.choice||null,forbidHit:!!s.forbidHit,replyBanHit:!!s.replyBanHit,partial:!!s.partial,delivered:!!s.delivered,workOk:s.workOk==null?null:!!s.workOk,text:s.text||null,text2:s.text2||null,answer:s.answer||null,status:s.status,source:s.source||null}; if(c.scored!==false&&!c.followup&&s.arrived&&!c.unscored&&c.axis!=='self') scoredIds.push(c.id); }
+/* 저장용 카드 기록 — 57차 E1(spec D28 · §3-6): **값이 있는 필드만** 싣는다(false·null·빈 문자열을 쓰지 않는다 — 7일 저장본이 GAS 상한 45,000자에 닿았다).
+   읽는 쪽은 없는 필드를 기본값으로 본다: 분기 trigger(branchTriggerMet)는 !! 로, 7화 과거 위반(pastHit)은 값이 있는 조건만 쓴다.
+   status 는 도착하지 않은 카드('skipped')만 적는다(끝낸 카드는 늘 done) · AI 첨삭은 ai:1 · 빠진 필수 값은 miss(AI 첨삭이어도 — trigger 용) ·
+   쓴 글(text·text2)·고른 행동(act·choice)·결과값(answer)은 그대로 둔다 — 저장본만으로 자소서용 기록을 다시 읽는다(U8) */
+function cardRecord(s){ const o={act:s.act||'none'};
+  if(typeof s.score==='number') o.score=s.score;
+  if(s.doneAt!=null) o.at=Math.round(s.doneAt*100)/100;
+  if(s.late) o.late=true; if(s.branch) o.branch=s.branch; if(s.choice) o.choice=s.choice;
+  for(const k of ['forbidHit','replyBanHit','partial','delivered']) if(s[k]) o[k]=true;
+  if(s.workOk!=null) o.workOk=!!s.workOk;
+  if(Array.isArray(s.miss)&&s.miss.length) o.miss=s.miss.slice();
+  if(s.text) o.text=s.text; if(s.text2) o.text2=s.text2; if(s.answer) o.answer=s.answer;
+  if(s.status==='skipped') o.status='skipped';
+  if(s.source==='AI 첨삭') o.ai=1; if(typeof s.aiq==='number') o.aiq=s.aiq;
+  /* 57차 E2 — 사수 메모를 열어 봄(hint) · 사규집 검색어·열어 본 조항(rb) · 정답이 아닌 처리로 끝냄(off — D12 판정용) */
+  if(s.hint) o.hint=1; if(s.rb&&s.rb.length) o.rb=s.rb.slice(); if(s.off) o.off=1;
+  if(s.ev) o.ev=s.ev;
+  /* 57차 E1 후속(B2) — 서버 서명(sg)과 봉인된 단계 점수(ss). 저장 때 서버가 ev·점수를 이것으로 대조한다(docs/ncs57/E1-api.md §5) */
+  if(s.sl&&s.sl.g){ o.sg=s.sl.g; if(s.sl.s) o.ss=s.sl.s; }
+  return o; }
+/* 0 이 아닌 셈만(저장 크기) */
+function nonzero(o){ const out={}; for(const [k,v] of Object.entries(o||{})) if(v) out[k]=v; return out; }
+/* 저장할 하루 기록 — 화면(디브리프)에만 쓰는 파생값(팀장 한마디·실수 대사·예고·단서 목록·빈 단서·끝나지 않은 건·그날 신뢰)은 빼고,
+   화 데이터로 다시 만들 수 없는 것(카드 기록·셈·분류 결과·역량 증거)만 남긴다. 단서는 P.clues 에 한 벌(7화 채점이 그것을 읽는다) */
+function storedDay(r){ const o={at:r.at,level:r.level,counts:nonzero(r.counts),cards:r.cards};
+  if(r.mistake) o.mistake=r.mistake; if(r.triage) o.triage=r.triage; if(r.ncs2) o.ncs2=r.ncs2; return o; }
+/* P.clues 에 넣는 단서 한 줄 — caseId 는 키라 빼고, 값이 없는 칸은 쓰지 않는다(7화 EP7Grade 는 card·label·note·value 만 읽는다) */
+function storedClue(k){ const o={day:k.day,card:k.card,note:k.note}; if(k.value!=null) o.value=k.value; if(k.label) o.label=k.label; return o; }
+function buildResult(){ const cards={}; const scoredIds=[]; for(const c of D.cards.concat(S.extra)){ const s=S.cards[c.id]; if(!s) continue; cards[c.id]=cardRecord(s);
+    if(c.scored!==false&&!c.followup&&s.arrived&&!c.unscored&&c.axis!=='self') scoredIds.push(c.id); }
   const mainIds=scoredIds.filter(id=>!(CARD(id)||{}).pre);   /* 전날 분기로 끼어든 카드는 「처리 n/전체」 셈에서 뺀다 */
   const done=mainIds.filter(id=>S.cards[id].status==='done'&&S.cards[id].act!=='none').length; S.counts.done=done;
   let mistake=null; const pri=scoredIds.filter(id=>S.mistakes.includes(id)); const pool=(pri.length?pri:scoredIds).slice().sort((a,b)=>(S.cards[a].score??0)-(S.cards[b].score??0)); if(pool.length&&(S.cards[pool[0]].score??0)<100) mistake=pool[0];
-  const deb=D.dialog.debrief||{}; const level=leadLevel(deb.leadRule); const lead=(deb.lead&&deb.lead[level])||'';
-  let mline=''; if(mistake){ const s=S.cards[mistake]; const ml=deb.mistakeLines&&deb.mistakeLines[mistake]; if(ml&&(typeof ml==='string')) mline=ml; else if(ml&&ml.text&&(!s.branch||!ml.when||true)) mline=ml.text; else { const c=CARD(mistake); mline=s.comment||(c.act&&c.act[s.act]?c.act[s.act][1]:''); } }
-  const skipped=D.cards.filter(c=>S.cards[c.id]&&S.cards[c.id].status==='skipped').map(c=>c.subj);
-  return {team:S.team,ep:S.ep,day:D.day,at:new Date().toISOString(),cards,ncs:ncsAvg(),trust:Object.assign({},S.trust),clues:S.clues.slice(),mistake,mistakeLine:mline,leadLine:lead,level,counts:Object.assign({},S.counts,{done,all:mainIds.length}),nexts:S.nexts.slice(),triage:S.triage?{score:S.triage.score,hit:S.triage.hit,total:S.triage.total}:null,skipped,clueGaps:D.cards.filter(c=>S.cards[c.id]&&S.cards[c.id].clueGap).map(c=>c.subj)}; }
+  const deb=D.dialog.debrief||{}; const level=leadLevel(deb.leadRule); let lead=(deb.lead&&deb.lead[level])||'';
+  /* 「오늘 그만하기」로 끝낸 날 — 셈 기준 한마디(「사규집 열어 봤어요?」 등)는 한 일이 적어서 낮게 나온 것이라 맞지 않는다(57차 E1 후속 · QA Y-4⑥). 팀장 말투에 맞춘 중립 한마디 */
+  if(S.quit){ const nm=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장'; const says=((D.dialog&&D.dialog.briefing)||[]).filter(l=>l&&l.who&&(l.who===nm||nm.endsWith(l.who)||l.who.endsWith(nm))).map(l=>l.text).join(' ')+' '+Object.values(deb.lead||{}).join(' ');
+    const banmal=says.trim()&&!/요[.?!…]|요\s*$/.test(says); lead=banmal?'오늘은 여기까지네. 못 끝낸 건은 내일 아침에 이어서 보자.':'오늘은 여기까지네요. 못 끝낸 건은 내일 아침에 이어서 봐요.'; }
+  let mline=''; if(mistake){ const s=S.cards[mistake]; const ml=deb.mistakeLines&&deb.mistakeLines[mistake]; if(ml&&(typeof ml==='string')) mline=ml; else if(ml&&ml.text&&mistakeWhenMet(ml,CARD(mistake),s,mistake)) mline=ml.text; else { const c=CARD(mistake); mline=s.comment||(c.act&&c.act[s.act]?c.act[s.act][1]:''); } }
+  /* 「끝나지 않은 건」 = 도착했는데 손대지 못한 건만(제목) · 오지 않은 업무는 수만(57차 E1 후속 · QA W-2 — 예전에는 안 온 카드 제목을 「끝나지 않은 건」으로 다 보여
+     「오늘 다시」 전에 그날 카드 목록이 미리 드러났다) */
+  const skipped=D.cards.concat(S.extra).filter(c=>{ const st=S.cards[c.id]; return st&&st.status==='done'&&st.act==='none'&&!c.followup&&c.scored!==false&&!c.unscored&&c.axis!=='self'; }).map(c=>c.subj);
+  const notArrived=D.cards.filter(c=>S.cards[c.id]&&S.cards[c.id].status==='skipped'&&!c.followup&&c.scored!==false).length;
+  return {team:S.team,ep:S.ep,day:D.day,at:new Date().toISOString(),cards,trust:Object.assign({},S.trust),clues:S.clues.slice(),mistake,mistakeLine:mline,leadLine:lead,level,counts:Object.assign({},S.counts,{done,all:mainIds.length}),nexts:S.nexts.slice(),triage:S.triage?Object.assign({score:S.triage.score,hit:S.triage.hit,total:S.triage.total},S.triage.sg?{sg:S.triage.sg}:{}):null,skipped,notArrived,clueGaps:D.cards.filter(c=>S.cards[c.id]&&S.cards[c.id].clueGap).map(c=>c.subj)}; }
+/* 디브리프 「오늘의 실수」 대사의 조건(when) — 57차 E2후속 F9. 예전에는 조건을 보지 않아(`||true`) 그 카드에서 다른 실수를 했거나
+   형식에서만 깎였어도 그 대사가 떴다. 데이터의 when 은 사람 말이다(「ac30 에서 거래처에 "면제해 드리겠다"고 썼다면」 · 「카드 8을 메일로 상신했다면」 ·
+   「전화에서 ㉠을 골랐다면」 · 「by13 을 받았다면(reply·hold)」 · 「○○ 건이 오늘 가장 낮은 점수일 때」). 읽을 수 있는 꼴만 읽는다:
+     ① 「가장 낮은 점수일 때」 → 늘(그 카드가 뽑힌 이유) ② 「(reply·hold)」처럼 행동 키가 적혀 있으면 그 행동 ③ 「메일로 상신」 → 메일로 상신
+     ④ 「㉠을 골랐다면」 → 가장 나쁜 선택지(데이터에서 ㉠ 은 늘 최저점 10~20 — 배포본은 선택지 점수를 몰라 받은 점수 30 이하로 본다)
+     ⑤ 결재 카드의 「"이상 없음"·"확인했습니다"로 넘겼다」「승인했다」 → 승인 ⑥ 따옴표 속 말 → 쓴 글·고른 선택지에 그 말이 있거나 금지 표현을 밟음
+     ⑦ 그 밖 → 그 카드에서 틀린 처리가 있었나(흐름 밖 처리·금지 표현·빠진 값·틀린 결과값·실수 분기·틀린 상대·정답 아닌 보고 선택).
+   맞지 않으면 대사 대신 그 카드의 코멘트(학생이 실제로 한 것에 맞는 말)를 쓴다. 손대지 않은 카드는 「처리하지 못했어요」 쪽 */
+function mistakeWhenMet(ml,c,s,id){ const w=String((ml&&ml.when)||'').trim(); if(!w||!c||!s) return true;
+  if(/가장 낮은 점수일 때/.test(w)) return true;
+  if(!s.act||s.act==='none') return false;
+  const acts=(w.match(/\(([a-z]+(?:\s*[·,]\s*[a-z]+)*)\)/)||[])[1]; if(acts) return acts.split(/\s*[·,]\s*/).includes(s.act);
+  if(/메일로 상신/.test(w)) return s.choice==='mailConfirm';
+  if(/[㉠㉡㉢㉣]/.test(w)) return s.score!=null&&s.score<=30;
+  if(flowOf(c).includes('approval')&&/"(이상 없음|확인했습니다)"|승인했/.test(w)) return s.act==='approve';
+  const q=[...w.matchAll(/"([^"]+)"/g)].map(m=>m[1].replace(/\s/g,'')).filter(x=>x.length>=2);
+  if(q.length){ const pool=Object.assign({},c.choices||{},(c.report&&c.report.choices)||{},(c.deliver&&c.deliver.choices)||{});
+    const said=String((s.text||'')+(s.text2||'')+(s.choice&&pool[s.choice]?pool[s.choice]:'')).replace(/\s/g,''); if(q.some(x=>said.includes(x))) return true; return !!(s.forbidHit||s.replyBanHit); }
+  return !!(s.off||s.forbidHit||s.replyBanHit||s.partial||s.workOk===false||s.choice==='mailConfirm'||s.act==='timeout'||(S.mistakes||[]).includes(id)||s.reportBest===false||(s.tries>0)||(s.act==='approve'&&c.best&&c.best!=='approve')||(s.act==='hold'&&c.best&&c.best!=='hold')); }
 /* 누가 한 말인지 색으로 가른다 — 흰 상자만 늘어놓으면 벽으로 읽힌다(대표 확정 스펙 §4) */
 function roleHue(who){ const v=npcInfo(who); const r=(v&&v.role)||'';
   if(/팀장/.test(who+r)) return ROLE_HUE['팀장'];
@@ -444,7 +585,7 @@ function sayRow(host,who,text,cls){ if(!text) return; const d=h('div','say'); d.
 function renderDebrief(r){ const w=$('dbWrap'); w.innerHTML=''; const say=(who,text,cls)=>sayRow(w,who,text,cls);
   w.appendChild(h('h1',null,`${D.teamName} ${D.ep}일차 「${D.title}」 끝`)); w.appendChild(h('div','sub',`${fmtClock(D.minutes)} 퇴근 준비. 팀장이 다가옵니다.`));
   const grid=h('div','grid'); w.appendChild(grid);
-  const box1=h('div','box'); box1.style.setProperty('--bc',BOX_HUE.summary); box1.appendChild(h('h3',null,'오늘 요약')); const kpi=h('div','kpi'); const items=[['처리',`${r.counts.done}/${r.counts.all}`],['넘김',r.counts.pass],['물어봄',r.counts.ask]]; if(r.counts.cite) items.push(['조항 인용',r.counts.cite]); if(r.counts.calcAll) items.push(['계산 정확',`${r.counts.calc}/${r.counts.calcAll}`]); if(r.counts.rightNpc||r.counts.wrongNpc) items.push(['맞는 상대',`${r.counts.rightNpc}/${r.counts.rightNpc+r.counts.wrongNpc}`]); if(r.counts.rejectAll) items.push(['거절·상신',`${r.counts.reject}/${r.counts.rejectAll}`]); if(r.triage) items.push(['"지금" 칸',`${r.triage.hit}/${r.triage.total}`]); if(r.counts.follow) items.push(['재문의',r.counts.follow]); if(r.counts.askNeed) items.push(['직접 물어 얻은 답',`${r.counts.askHit||0}/${r.counts.askNeed}`]);
+  const box1=h('div','box'); box1.style.setProperty('--bc',BOX_HUE.summary); box1.appendChild(h('h3',null,'오늘 요약')); const kpi=h('div','kpi'); const items=[['처리',`${r.counts.done}/${r.counts.all}`],['넘김',r.counts.pass],['물어봄',r.counts.ask]]; if(r.counts.cite) items.push(['조항 인용',r.counts.cite]); if(r.counts.calcAll) items.push(['계산 정확',`${r.counts.calc}/${r.counts.calcAll}`]); if(r.counts.rightNpc||r.counts.wrongNpc) items.push(['맞는 상대',`${r.counts.rightNpc}/${r.counts.rightNpc+r.counts.wrongNpc}`]); if(r.counts.rejectAll) items.push(['거절·상신',`${r.counts.reject}/${r.counts.rejectAll}`]); if(r.triage) items.push(['분류 맞음',`${r.triage.hit}/${r.triage.total}`]); if(r.counts.follow) items.push(['재문의',r.counts.follow]); if(r.counts.askNeed) items.push(['직접 물어 얻은 답',`${r.counts.askHit||0}/${r.counts.askNeed}`]);
   /* 라벨을 숫자 위에 둔다 — 아래에 두면 「13/13 2 1」이 무엇을 센 것인지 읽히지 않는다 */
   for(const [n,v] of items){ const d=h('div'); d.appendChild(h('small',null,n)); d.appendChild(h('b',null,String(v))); kpi.appendChild(d); } box1.appendChild(kpi);
   /* 제목 · 행동 · 점수 세 열. 점수만 따로 떼어야 오른쪽에서 자릿수가 맞는다 */
@@ -459,16 +600,18 @@ function renderDebrief(r){ const w=$('dbWrap'); w.innerHTML=''; const say=(who,t
     tbl.appendChild(chip);
     const v=h('span','v',scored?String(s.score):'');
     if(scored) v.classList.add(s.score===0?'zero':s.score>=80?'hi':s.score<60?'lo':'mid'); tbl.appendChild(v); }
-  box1.appendChild(tbl); if(r.skipped.length) box1.appendChild(bnote('끝나지 않은 건',r.skipped.join(', '))); grid.appendChild(box1);
-  const box2=h('div','box'); box2.style.setProperty('--bc',BOX_HUE.ncs); box2.appendChild(h('h3',null,'오늘 켜진 역량 (NCS)')); box2.appendChild(ncsBars(r.ncs)); const tr=Object.entries(r.trust);
+  box1.appendChild(tbl); if(r.skipped.length) box1.appendChild(bnote('끝나지 않은 건',r.skipped.join(', ')));
+  if(r.notArrived) box1.appendChild(bnote('오지 않은 업무',`${r.notArrived}건${S.quit?'(중간에 끝내 받지 못했어요)':''}`)); grid.appendChild(box1);
+  const box2=h('div','box'); box2.style.setProperty('--bc',BOX_HUE.ncs); box2.appendChild(ncsHead('오늘 드러난 역량','NCS 직업공통능력')); ncsDaily(box2); const tr=Object.entries(r.trust);
   if(tr.length) box2.appendChild(bnote('신뢰',tr.map(([n,v])=>`${n} ${v>0?'+':''}${v}`).join(', ')));
   if(r.clues.length) box2.appendChild(bnote('오늘 모은 단서',r.clues.map(k=>k.note).join(' / ')));
   if(r.clueGaps.length) box2.appendChild(bnote('빈 단서',r.clueGaps.join(', ')+' — 7일차 취합표가 빕니다',true)); grid.appendChild(box2);
   const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장'; say(lead,r.leadLine);
   const mbox=h('div','box'); mbox.style.setProperty('--bc',BOX_HUE.mistake); mbox.appendChild(h('h3',null,'오늘의 실수 1')); if(r.mistake){ const c=CARD(r.mistake); mbox.appendChild(h('div',null,c.subj)); const ml=(D.dialog.debrief.mistakeLines||{})[r.mistake]; const who=(ml&&ml.who)||(D.dests.find(x=>x.seat==='senior')||{}).name||'사수'; const l=h('div','muted',`${who}: ${r.mistakeLine}`); mbox.appendChild(l); } else mbox.appendChild(h('div',null,'눈에 띄는 실수가 없었어요. 드문 일이에요.')); w.appendChild(mbox);
   const senior=(D.dests.find(x=>x.seat==='senior')||{}).name||'사수'; say(senior,D.dialog.debrief.senior);
-  for(const ex of (D.dialog.debrief.extra||[])){ if(extraCondMet(ex)) say(ex.who,ex.text,ex.msg?'msg':''); }
-  const peer=Object.entries(D.npcs).find(([n,v])=>v.role==='동기'); say(peerName(),D.dialog.debrief.peer,'msg');
+  const saidEx=new Set(); for(const ex of (D.dialog.debrief.extra||[])){ if(extraCondMet(ex)){ say(ex.who,ex.text,ex.msg?'msg':''); saidEx.add(ex.who+'\n'+ex.text); } }
+  /* 같은 사람이 추가 대사로 방금 한 말은 동기 대사로 다시 하지 않는다(57차 E1 후속 2 — buy 6일차: 단서가 달린 추가 대사와 동기 대사가 같은 말이라 두 번 떴다) */
+  if(!saidEx.has(peerName()+'\n'+D.dialog.debrief.peer)) say(peerName(),D.dialog.debrief.peer,'msg');
   if(r.nexts.length){ const box=h('div','box'); box.style.setProperty('--bc',BOX_HUE.next); box.appendChild(h('h3',null,'내일로 이어지는 것')); const ul=h('ul');
     /* 겹치는 예고를 걷어낸다. 글자가 똑같은 것만 걸러서는 부족했다 — 「물류팀 오대리가 이름을 기억한다 · 다시 가면 "또 오셨네요"」와
        「그 자리에 다시 가면 "또 오셨네요"」처럼 한쪽이 다른 쪽에 통째로 담긴 경우가 남아 같은 말이 두 번 떴다. 짧은 쪽을 버리고 긴 쪽만 남긴다. */
@@ -485,7 +628,7 @@ function renderDebrief(r){ const w=$('dbWrap'); w.innerHTML=''; const say=(who,t
     for(const it of items) ul.appendChild(h('li',null,it.text));
     box.appendChild(ul); w.appendChild(box); }
   if(D.dialog.debrief.nextEp) w.appendChild(h('div','sub next',D.dialog.debrief.nextEp));
-  const ft=h('div','foot'); if(S.ep<7) ft.appendChild(mkBtn(`${S.ep+1}일차로`,'pri',()=>goDay(S.team,S.ep+1))); ft.appendChild(mkBtn('홈으로','',()=>goHome(false))); ft.appendChild(mkBtn('오늘 다시','',()=>{ delete P.done[String(S.ep)]; P.cur=null; saveProgress(true); goDay(S.team,S.ep); })); ft.appendChild(mkBtn('사무실 보기','',()=>$('debrief').classList.remove('open'))); w.appendChild(ft); }
+  const ft=h('div','foot'); if(S.ep<7) ft.appendChild(mkBtn(`${S.ep+1}일차로`,'pri',()=>goDay(S.team,S.ep+1))); ft.appendChild(mkBtn('홈으로','',()=>goHome(false))); ft.appendChild(mkBtn('오늘 다시','',()=>{ delete P.done[String(S.ep)]; P.cur=null; P.day=S.ep; saveProgress(true); goDay(S.team,S.ep); }));   /* F13: 서버도 그날로 낮춘다(ws7ProgNext) — 클라이언트 P.day 를 같게 */ ft.appendChild(mkBtn('사무실 보기','',()=>$('debrief').classList.remove('open'))); w.appendChild(ft); }
 function peerName(){ const m=(D.dialog.briefing||[]).find(l=>l.role==='동기'); if(m) return m.who; const org=ORG[S.team]; return org?({cs:'윤하린',logi:'정수빈',acct:'임도윤',ga:'백하은',rec:'송민재',plan:'안예린',qc:'유하늘',pr:'곽민서',edu:'차은우',buy:'하지원'}[S.team]||'동기'):'동기'; }
 /* 「무엇을 했나」를 한 낱말로 갈라 칩 색을 정한다 */
 function chipKind(st,label){ if(st.act==='none'||label==='미처리'||label==='기록 없음') return 'k-none';
@@ -495,18 +638,33 @@ function chipKind(st,label){ if(st.act==='none'||label==='미처리'||label==='�
   return 'k-done'; }
 /* 막대·목록 아래에 붙는 딸림 줄. 이름표를 굵게 앞세우고 위에 선을 그어 본문과 끊는다 */
 function bnote(label,text,bad){ const d=h('div','bnote'+(bad?' bad':'')); d.appendChild(h('b',null,label)); d.appendChild(document.createTextNode(text)); return d; }
-/* 축마다 고유색. 0점 축은 채움이 없어 색이 안 보이므로 트랙 왼쪽 3px 마커를 늘 남기고
-   행 바탕을 옅게 깐다 — 0 이 열 줄이어도 화면이 비어 보이지 않게(대표 확정 스펙 §1). */
-function ncsBars(ncs){ const box=h('div','ncs'); const fills=[];
-  for(const a of AXES){ if(ncs[a]==null) continue; const v=ncs[a]; const col=NCS_HUE[a]||'#1f4e8c';
-    const row=h('div','ncsRow'+(v<=0?' zero':'')); row.style.setProperty('--c',col);
-    const ax=h('span','ax'); const dot=h('i'); dot.style.background=col; ax.appendChild(dot);
-    ax.appendChild(document.createTextNode(`${CIRC[a]} ${NCS_NAMES[a]}`)); row.appendChild(ax);
-    const b=h('div','b'); b.style.background=col+'1f'; const i=h('i'); b.appendChild(i); row.appendChild(b); fills.push([i,v]);
-    row.appendChild(h('span','v',String(v))); box.appendChild(row); }
-  requestAnimationFrame(()=>{ for(const [i,v] of fills) i.style.width=v+'%'; });
-  return box; }
-
+/* ---------- 57차 E1 — 역량 화면(NCS 직업공통능력 2025.12 · spec §2-10) ----------
+   계산은 js/ncs_eval.js(NcsEval) 한 곳 — 여기서는 그리기만 한다. 영역 7개는 고정 순서·영역마다 고유색(js/ncs.js — 막대·점에만, 글자색으로 쓰지 않는다).
+   0 인 영역도 막대 왼쪽 3px 마커와 옅은 바탕이 남는다(대표 확정 스펙 §1 — 예전 10축 막대와 같은 부품).
+   수준 이름(초보·준비·적응·숙련)은 일일 화면에 내지 않는다 — 하루치 근거로는 얇다(§2-10). 화면 문장에 내부 용어(항목 id·요소 코드·행동 키)를 쓰지 않는다 */
+const ncsReady=()=>typeof NcsEval!=='undefined'&&typeof NCS!=='undefined'&&!!NCS&&!!NCS.areas;
+/* 영역 한 줄 — v(0~100)가 있으면 막대, 없으면 그 자리에 짧은 안내(note). extra = 뒤에 붙는 칸(7일 화면의 수준·포괄도) */
+function areaRow(a,v,note,extra){ const row=h('div','ncsRow'+(extra?' wk':'')+(v==null?' nob':'')+(v===0?' zero':'')); row.style.setProperty('--c',a.hue);
+  const ax=h('span','ax'); const dot=h('i'); dot.style.background=a.hue; ax.appendChild(dot); ax.appendChild(document.createTextNode(a.name)); row.appendChild(ax);
+  if(v!=null){ const b=h('div','b'); b.style.background=a.hue+'1f'; const i=h('i'); b.appendChild(i); row.appendChild(b); row.appendChild(h('span','v',String(v)));
+    requestAnimationFrame(()=>{ i.style.width=Math.max(0,Math.min(100,v))+'%'; }); }
+  else { row.appendChild(h('span','nt',note||'')); row.appendChild(h('span','v','')); }
+  for(const e of (extra||[])) row.appendChild(e);
+  return row; }
+/* 제목 앞의 작은 부제(「NCS 직업공통능력」) — 제목 줄을 하나로 두고 부제는 가볍게 */
+function ncsHead(title,sub){ const t=h('h3',null,title); if(sub) t.appendChild(h('small',null,sub)); return t; }
+/* 디브리프 「오늘 드러난 역량」 — 그날 영역 막대(실효 가중 ≥ 2 또는 하루 집계가 있는 영역만) · 잘한 점 1줄 · 다음엔 1줄 · 하위능력 보기(접기) */
+function ncsDaily(box){ if(!ncsReady()) return; const rec=P&&P.done&&P.done[String(S.ep)];
+  if(!rec||!rec.ncs2){ box.appendChild(h('div','muted','이 날은 역량 기록이 없어요.')); return; }
+  const list=NcsEval.fromProgress({team:S.team,done:{[String(S.ep)]:rec}}).list; const dy=NcsEval.daily(list,S.ep,{tips:S.evTip||{},exclude:[rec.mistake].concat(S.mistakes||[]).filter(Boolean)});
+  const wrap=h('div','ncs'); for(const a of dy.areas) wrap.appendChild(areaRow(a,a.show?a.S:null,a.n?`오늘 관찰 ${a.n}건`:'오늘은 관찰 없음')); box.appendChild(wrap);
+  const title=(id)=>{ const c=id&&CARD(id); return c?` (「${c.subj}」)`:''; };
+  if(dy.strong) box.appendChild(bnote('잘한 점',`${NCS.subs[dy.strong.sub].name}: ${dy.strong.text}${title(dy.strong.card)}`));
+  if(dy.weak) box.appendChild(bnote('다음엔',`${NCS.subs[dy.weak.sub].name}: ${dy.weak.tip}${title(dy.weak.card)}`));
+  const subs=Object.keys(dy.subs).sort(); if(subs.length){ const d=document.createElement('details'); d.className='ncsSub'; d.appendChild(h('summary',null,'하위능력 보기'));
+    const ul=h('ul'); for(const c of subs){ const x=dy.subs[c]; ul.appendChild(h('li',null,`${NCS.subs[c].name} 관찰 ${x.n}건 · 잘함 ${x.ok}건`)); } d.appendChild(ul); box.appendChild(d); }
+  if(rec.ncs2.part) box.appendChild(bnote('기록','이 날은 역량 근거가 일부만 기록됐어요(이전 방식으로 한 부분이 있거나 채점 서버가 근거를 보내지 않은 처리가 있었어요). 막대는 기록된 것만으로 그렸어요.',true));
+  if(rec.ncs2.quit) box.appendChild(bnote('기록','오늘은 중간에 끝냈어요. 오지 않은 업무도 제때 처리한 비율에 들어가요.')); }
 /* ---------- 일시정지 · 모바일 ---------- */
 /* 일시정지는 메뉴다 — 「오늘 그만하기」를 이 안에 넣어 눈에 띄지 않게 둔다 */
 function setPaused(on){ S.paused=!!on; $('pause').classList.toggle('on',S.paused); $('pause').textContent=S.paused?'계속하기':'일시정지';
@@ -524,7 +682,7 @@ async function changeAvatar(g){ if(!P||P.avatar===g) return; P.avatar=g; setAvat
   $('loading').classList.remove('off'); await stageUp(); $('loading').classList.add('off'); toast('캐릭터를 바꿨어요.'); }
 $('pmQuit').onclick=()=>{ const left=D?D.cards.concat(S.extra).filter(c=>{ const st=S.cards[c.id]; return st&&st.status!=='done'; }).length:0;
   if(!confirm(`남은 업무 ${left}건은 미처리로 기록됩니다. 그만할까요?`)) return;
-  pauseMenu(false); setPaused(false); finish(); };
+  pauseMenu(false); setPaused(false); S.quit=true; finish(); };
 document.addEventListener('click',(ev)=>{ if($('pauseMenu').hidden) return; if($('pauseWrap').contains(ev.target)) return; pauseMenu(false); setPaused(false); });
 $('inboxHd').onclick=()=>{ if(window.innerWidth<=760) $('inbox').classList.toggle('up'); };
 /* 홈(소개 페이지)으로 나가는 길은 한 곳에서만 만든다 — 화면마다 문구와 동작이
@@ -546,8 +704,18 @@ $('cClose').onclick=closeCard;
 (async()=>{ try{ await (window.__backendReady||Promise.resolve()); }catch(e){} if(window.Backend&&typeof window.Backend.configure==='function'&&Q.get('api')){ try{ window.Backend.configure(Q.get('api')); }catch(e){} }
   if(Q.get('home')==='1'){ const c=(Q.get('code')||'').trim(); if(c){ S.code=c.toUpperCase(); try{ localStorage.setItem('ws7.code',S.code); }catch(e){} } showHome(); } else boot(); })();
 
-/* ---------- 스모크·자동 플레이용 ---------- */
-window.__play={ get ready(){ return !!window.__playReady; }, state:()=>({t:S.t,clock:fmtClock(S.t),phase:S.phase,ended:S.ended,paused:S.paused,ep:S.ep,team:S.team,cards:JSON.parse(JSON.stringify(S.cards)),ncs:ncsAvg(),trust:S.trust,counts:S.counts,nexts:S.nexts,mistakes:S.mistakes,order:S.order,clues:S.clues,triage:S.triage}),
+/* ---------- 스모크·자동 플레이용 ----------
+   조작 API(자동 플레이·카드 처리·시계 넘기기·하루 끝내기)는 로컬(localhost·127.0.0.1·[::1]·파일)에서만, 또는 토큰 모드가 아닐 때 ?qa=1 로만 만든다(57차 E2-15 · A Y6).
+   57차 E2후속(B3): 예전에는 ?qa=1 만 붙이면 어디서든 열렸다 — 배포본(토큰 모드)에서 주소에 qa=1 을 붙여 __play.act·skip 을 쓸 수 있었다.
+   토큰 모드 = core.js Q 와 같은 조건(배포본 WS7_GATED · 주소 ?code= · 이 기기에 저장된 코드로 들어옴(?team= 없음)) — 그때는 ?qa=1 을 보지 않는다.
+   검사 도구(gate_smoke 배포본 흉내)는 127.0.0.1 에서 돌므로 로컬 판정으로 열린다(qa=1 에 기대지 않는다).
+   배포본에는 바탕화면 아이콘 잠금(js/desk/deskapp.js)이 읽는 오늘 열린 도구 목록만 남긴다 — 화 데이터 자체도 내주지 않는다 */
+const QA_API=(()=>{ try{ const hn=location.hostname; if(location.protocol==='file:'||hn==='localhost'||hn==='127.0.0.1'||hn==='[::1]'||hn==='') return true;
+  const q=new URLSearchParams(location.search); if(q.get('qa')!=='1') return false;
+  let token=!!window.WS7_GATED||!!(q.get('code')||'').trim(); if(!token){ try{ token=!!localStorage.getItem('ws7.code')&&!q.get('team'); }catch(e){} }
+  return !token; }catch(e){ return false; } })();
+if(!QA_API) window.__play={ get ready(){ return !!window.__playReady; }, data:()=>D?{unlock:(D.unlock||[]).slice(),kind:D.kind}:null };   /* 하루를 불러오기 전에는 null — 예전 __play.data() 와 같게(deskapp 이 그때는 잠그지 않는다) */
+else window.__play={ qa:true, get ready(){ return !!window.__playReady; }, state:()=>({t:S.t,clock:fmtClock(S.t),phase:S.phase,ended:S.ended,paused:S.paused,ep:S.ep,team:S.team,cards:JSON.parse(JSON.stringify(S.cards)),ev:Object.fromEntries(Object.entries(S.cards).filter(([,x])=>x&&x.ev).map(([k,x])=>[k,x.ev])),trust:S.trust,counts:S.counts,nexts:S.nexts,mistakes:S.mistakes,order:S.order,clues:S.clues,triage:S.triage}),
   skip:(min)=>{ if(S.phase==='briefing') endBriefing(); advance(+min||0); return fmtClock(S.t); }, skipNext:()=>skipNext(), skipBlock:()=>skipBlock(), skipBriefing:()=>{ if(S.phase==='briefing') endBriefing(); }, open:(id)=>openCard(id), office, finish, data:()=>D, progress:()=>P, save:()=>P&&P.done[String(S.ep)], triage:async(assign)=>{ if(!S.triage) return null; Object.assign(S.triage.assign,assign); await finishTriage(); return S.triage; },
   async act(id,key,p={}){ const c=CARD(id); if(!c) throw new Error('없는 카드: '+id); if(!S.cards[id].arrived) throw new Error('아직 도착 안 함: '+id); openCard(id);
     if(key==='reply'||key==='reply2'||key==='reject'||key==='confirm'){ if(c.mode==='reflect'){ await doPick(id,p.id); return S.cards[id]; } openComposer(id,key==='reply2'?'reply2':'reply',key==='reply2'?'reply':key); $('composeText').value=p.text||''; $('composeText').dispatchEvent(new Event('input')); await sendCompose(id,p.text||'',key==='reply2'?'reply2':'reply',key==='reply2'?'reply':key,p.answer!=null?String(p.answer):null); return S.cards[id]; }
@@ -561,6 +729,5 @@ window.__play={ get ready(){ return !!window.__playReady; }, state:()=>({t:S.t,c
     if(key==='report'){ await doReport(id,p.auto); return S.cards[id]; }
     if(key==='visit'){ await doVisit(id,p.auto); return S.cards[id]; }
     if(key==='pick'){ await doPick(id,p.id); return S.cards[id]; }
-    if(key==='stopShip'){ S.cards[id].stopShip=true; renderCardActs(id); return S.cards[id]; }
     if(key==='lookup'){ S.cards[id].lookup=true; renderCardActs(id); return S.cards[id]; }
     await doButton(id,key); return S.cards[id]; } };

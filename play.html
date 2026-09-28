@@ -245,6 +245,9 @@
   .rbCap{font-size:11.5px;font-weight:700;color:var(--acc-d);letter-spacing:.02em;margin:2px 0 4px}
   .rbCap.sub{color:var(--mute);margin-top:14px}
   .art{border-top:1px solid var(--line);padding:0}
+  .art.locked>summary{opacity:.55}
+  .art.locked>summary b::after{content:' 🔒';font-size:10px}
+  .lockmsg{color:var(--muted);font-style:italic;margin:2px 0 8px}
   .art>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:6px;padding:9px 0;font-size:12.5px;line-height:1.45}
   .art>summary::-webkit-details-marker{display:none}
   .art>summary::before{content:'▸';color:var(--mute);flex:none;font-size:11px;line-height:1.5}
@@ -385,7 +388,7 @@
   @media (max-width:560px){ .avPick{grid-template-columns:1fr} }
   /* ── 디브리프 · 7일차 ──────────────────────────────────────────────
      대표가 가독성을 다섯 번 지적했다. 확정 스펙(2026-09-07):
-       ① NCS 10축에 축마다 고유색 — 장식이 아니라 정보다. 막대·점·띠·칩에만 쓴다.
+       ① NCS 직업공통능력 7영역에 영역마다 고유색(js/ncs.js) — 장식이 아니라 정보다. 막대·점·띠·칩에만 쓴다(57차 E1 — 옛 10축).
        ② 섹션마다 4px 색 머리 + 제목을 14px/800/잉크로(제일 안 보이던 것이 제목이었다).
        ③ 처리 상태를 칩으로 — 회색 「미처리」는 안 읽힌다.
        ④ 대사를 화자별로 — 팀장·사수·동기가 전부 흰 상자라 벽으로 읽혔다.
@@ -443,6 +446,25 @@
     transition:width .4s ease-out}
   @media (prefers-reduced-motion:reduce){ .ncsRow .b i{transition:none} }
   .ncsRow .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700}
+  /* 57차 E1 — 역량 화면(NCS 직업공통능력 2025.12). 부품은 위 막대 그대로, 빈 영역·7일 수준·포괄도 칸만 더한다 */
+  .box h3 small{font-size:12px;font-weight:600;color:var(--mute);letter-spacing:0}
+  .ncsRow .nt{font-size:13px;color:var(--mute);line-height:16px}
+  .ncsRow.wk{grid-template-columns:minmax(112px,auto) 1fr 2.4em 3.4em 2.4em}
+  .ncsRow .lv{justify-self:start;font-size:12.5px;font-weight:800;color:var(--ink);border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .ncsRow .lv.none{visibility:hidden}
+  .ncsRow .cov{font-size:12.5px;color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}
+  .box details.ncsSub{background:none;border:0;border-top:1px solid var(--line);border-radius:0;padding:10px 0 0;margin:12px 0 0}
+  .box details.ncsSub summary{cursor:pointer;font-weight:700;font-size:13.5px;color:var(--acc)}
+  .box details.ncsSub ul{margin:8px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink)}
+  .ncsTblWrap{overflow-x:auto;margin-top:8px}
+  table.ncsTbl{font-size:12.5px;min-width:620px}
+  table.ncsTbl td.v,table.ncsTbl td.dc{text-align:center;font-variant-numeric:tabular-nums}
+  table.ncsTbl td.nm,table.ncsTbl td.lvc{white-space:nowrap} table.ncsTbl td.ref{min-width:150px}
+  table.ncsTbl tr.grp td{background:var(--panel2);font-weight:800;border-left:3px solid var(--c,var(--acc))}
+  table.ncsTbl tr.off td{color:var(--mute)}
+  table.ncsTbl .tag{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:var(--mute);border:1px solid var(--line2);border-radius:999px;padding:0 6px}
+  .muted.gray{font-size:13px;margin-top:8px}
+  .muted.stmt{font-size:12px;margin-top:14px;line-height:1.55}
   /* 막대 아래 딸림 줄(신뢰 · 오늘 모은 단서)은 본문과 선으로 끊는다 */
   .bnote{margin-top:12px;padding-top:11px;border-top:1px solid var(--line);font-size:13.5px;
     color:var(--mute);line-height:1.6}
@@ -467,7 +489,7 @@
   .stepbody textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;resize:vertical}
   .precard .from{font-size:12px;color:var(--mute)} .precard .subj{font-weight:700;margin:2px 0 6px} .precard .body,#ep7 pre.body{white-space:pre-wrap;font:inherit;background:var(--soft);border-radius:10px;padding:10px;margin:0 0 8px} .precard .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px} .precard .res{color:var(--ok);font-size:13px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
-  .irow{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px} .irow label{flex:1;min-width:120px} .irow input{width:120px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff} .irow .unit{color:var(--mute);font-size:12px;width:40px} .irow .mark{width:20px}
+  .irow{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px} .irow.wide input{flex:2;width:auto;min-width:0} .irow label{flex:1;min-width:120px} .irow input{width:120px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff} .irow .unit{color:var(--mute);font-size:12px;width:40px} .irow .mark{width:20px}
   .lbl{display:block;font-weight:700;margin:10px 0 2px}
   .rfield{margin:10px 0}
   .qbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0} .qbox .q{font-weight:700;margin-bottom:4px} .qbox .opt{display:block;padding:4px 0;font-size:13px}
@@ -491,6 +513,7 @@
     .kpi b{font-size:19px}
     .ctbl{grid-template-columns:minmax(0,1fr) auto 2.4em;font-size:14.5px;gap:0 9px}
     .ncsRow{grid-template-columns:minmax(88px,auto) 1fr 2.3em;gap:9px;font-size:13.5px;padding:5px 6px}
+    .ncsRow.wk{grid-template-columns:minmax(84px,auto) 1fr 2.2em 3.2em 2.2em;gap:6px}
     #debrief h1,#ep7 h1{font-size:24px}
     .say .who{width:auto;flex-direction:column;align-items:flex-start;gap:3px;font-size:12px}
     .say{gap:9px}
@@ -561,6 +584,21 @@
   .msgFoot .btns{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   .msgFoot .len{margin-left:auto;font-size:11.5px;color:var(--mute)}
   .msgEmpty{padding:34px 16px;color:var(--mute);font-size:13px;text-align:center;line-height:1.7}
+  /* 57차 대화별 대기열 — 한 대화에 카드가 둘 이상이면 아래 칸 맨 위에 「남은 일 N건」과 건마다 단추(도착 시각 · 제목).
+     고른 건 = 테두리(어느 건에 답하는지만 — 처리 단추 강조가 아니다) · 줄 선 새 건 = 빨간 점 · 다른 건 말풍선은 눌러서 고른다 */
+  .msgPick{display:flex;flex-wrap:wrap;gap:5px 6px;align-items:center}
+  .msgPick .lb{font-size:12px;font-weight:700;color:var(--mute);margin-right:2px}
+  .msgPick .ch{display:inline-flex;align-items:center;gap:5px;max-width:100%;border:1px solid var(--line2);background:#fff;
+    border-radius:999px;padding:2px 9px;font-size:12px;line-height:1.5;color:var(--ink);cursor:pointer}
+  .msgPick .ch:hover{background:var(--soft)}
+  .msgPick .ch .tm{flex:none;color:var(--mute);font-variant-numeric:tabular-nums}
+  .msgPick .ch .sj{min-width:0;max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .win.maxed .msgPick .ch .sj{max-width:220px}
+  .msgPick .ch.on{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+  .msgPick .ch.new::after{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:var(--bad)}
+  .msgRow.pick .bub{border-color:var(--acc-line);box-shadow:inset 3px 0 0 var(--acc)}
+  .msgRow.can{cursor:pointer}
+  .msgRow.can:hover .bub{background:var(--soft)}
   /* ── 전화 메모 앱 ── */
   .telApp{height:100%;overflow:auto;background:#fff;font-size:13px}
   .telApp .msgHd{border-bottom:1px solid var(--line)}
@@ -680,7 +718,7 @@
   <div id="composer" style="display:none">
     <div class="row"><span>받는 사람 <b id="cpTo"></b></span><span>제목 <b id="cpSubj"></b></span><span class="mode" id="cpMode">규칙 채점</span></div>
     <textarea id="composeText" placeholder="고객이 무엇을 원하는지 한 줄로 먼저 적고, 답장을 써 보세요."></textarea>
-    <div id="cpWork"><span>결과값</span><input id="cpWorkIn" type="text" autocomplete="off" placeholder="예: 39일, 62,000원"></div>
+    <div id="cpWork"><span>결과값</span><input id="cpWorkIn" type="text" autocomplete="off" placeholder="결과값 — 숫자와 단위를 함께(일·원·건·%)"></div>
     <div class="foot"><button class="btn pri" id="composeSend" type="button">보내기</button><button class="btn" id="composeCancel" type="button">취소</button><span class="cnt2" id="cpLen">0자</span></div>
   </div>
   <div id="cResult" class="result" style="display:none"></div>
@@ -737,19 +775,20 @@ window.__backendReady=fetch('js/backend.js',{method:'HEAD'}).then(r=>{ if(!r.ok)
 <script src="js/desk/windows.js?v=20260907g"></script>
 <script src="js/desk/wallpaper.js?v=20260907g"></script>
 <script src="js/desk/desktop.js?v=20260907g"></script>
-<script src="js/desk/msgapp.js?v=20260907g"></script>
+<script src="js/desk/msgapp.js?v=20260927f"></script>
 <script src="js/desk/telapp.js?v=20260907g"></script>
 <script src="js/desk/deskapp.js?v=20260907g"></script>
-<script src="js/play/core.js?v=20260919a"></script>
+<script src="js/play/core.js?v=20260923e1c"></script>
 <script src="js/play/intro.js?v=20260913e"></script>
-<script src="js/play/grade.js?v=20260921a"></script>
-<script src="js/play/grader.js?v=20260921a"></script>
-<script src="js/play/cards.js?v=20260921a"></script>
-<script src="js/play/day.js?v=20260921a"></script>
-<script src="js/play/ep7grade.js?v=20260921a"></script>
-<script src="js/play/ep7.js?v=20260921a"></script>
-<script src="js/play/talk.js?v=20260919a"></script>
-<script src="js/play/auto.js?v=20260921a"></script>
-<script src="js/play/pc.js?v=20260913e"></script>
+<script src="js/ncs.js?v=20260923e1"></script>
+<script src="js/ncs_eval.js?v=20260923e1c"></script>
+<script src="js/play/grade.js?v=20260927f"></script>
+<script src="js/play/grader.js?v=20260923e1b"></script>
+<script src="js/play/cards.js?v=20260927f"></script>
+<script src="js/play/day.js?v=20260927f"></script>
+<script src="js/play/ep7grade.js?v=20260923e1c"></script>
+<script src="js/play/ep7.js?v=20260923e1c"></script>
+<script src="js/play/talk.js?v=20260923e1c"></script>
+<script src="js/play/pc.js?v=20260927f"></script>
 </body>
 </html>
