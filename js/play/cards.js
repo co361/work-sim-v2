@@ -103,7 +103,9 @@ function renderInbox(){ const list=$('list'); if(!list) return; list.innerHTML='
   if(typeof renderPhoneBar==='function') renderPhoneBar();
   if(!ids.length){ list.appendChild(h('div','empty-msg','아직 도착한 메일이 없어요')); return; }
   for(const id of ids){ const c=CARD(id), st=S.cards[id]; if(!c) continue; const b=document.createElement('button'); b.type='button'; b.className='mail '+(st.status==='new'?'new':'')+(st.status==='done'?' done':'')+(S.cur===id?' cur':'')+(c.pre?' pre':''); b.onclick=()=>openCard(id);
-    const r1=h('div','r1'); const u=h('span','u u'+Math.min(4,c.urgent||1)); const f=h('span','from',(c.type==='visit'?'🚪 ':c.npcArrives?'👋 ':c.type==='approval'?'📋 ':c.type==='sheet'?'📊 ':c.type==='comment'?'🗨 ':'')+c.from); const at=h('span','at',fmtClock(st.arrivedAt||0)); r1.append(u,f,at);
+    const r1=h('div','r1'); const u=h('span','u u'+Math.min(4,c.urgent||1)); const f=h('span','from',c.from);
+    /* 2026-09-29 — 종류 그림 문자(🚪·👋·📋·📊·🗨)를 뺐다. 뜻이 맞는 승인 그림은 표(📊 → 10번 sheet) 하나뿐이다 */
+    if(c.type==='sheet'){ const A=window.OC&&OC.ui&&OC.ui.appicon; if(A&&A.inline) f.insertAdjacentHTML('afterbegin',A.inline('sheet')); } const at=h('span','at',fmtClock(st.arrivedAt||0)); r1.append(u,f,at);
     const sj=h('div','sj',c.subj); b.append(r1,sj);
     if(st.status==='done'){ const sc=h('div','sc'+(st.score==null?'':st.score>=80?' hi':st.score<50?' lo':'')); sc.textContent=st.score==null?'답장함':`${actLabel(st.act)} · ${st.score}점`; b.appendChild(sc); }
     /* 남은 단계 이름(「전달·회신 남음」)은 흐름을 알려 주므로 1일차에만 */
@@ -712,7 +714,10 @@ async function answerPhone(id){ const c=CARD(id), st=S.cards[id];
   renderPhoneBar(); if(window.Tel) Tel.refresh(); }
 { const tk=$('phoneTake'); if(tk) tk.onclick=()=>{ const id=phoneQ[0]; if(id) answerPhone(id); };
   const lt=$('phoneLater'); if(lt) lt.onclick=()=>{ const id=phoneQ.shift(); renderPhoneBar();
-    if(id){ toast('전화 메모에 남겼어요. 컴퓨터에서 다시 걸 수 있어요.','☎',3800,'cust'); if(window.Tel) Tel.refresh(); } }; }
+    if(id){ toast('전화 메모에 남겼어요. 컴퓨터에서 다시 걸 수 있어요.','',3800,'cust');
+      /* 알림 머리 = 승인 그림 15번(통화 · 2026-09-29) — 옛 ☎ 자리. toast(core.js)는 글자 머리만 받으므로 방금 뜬 알림에 붙인다 */
+      { const A=window.OC&&OC.ui&&OC.ui.appicon, bx=$('toasts'), t=bx&&bx.lastElementChild; if(A&&A.inline&&t) t.insertAdjacentHTML('afterbegin',A.inline('talk')); }
+      if(window.Tel) Tel.refresh(); } }; }
 
 /* 체인: 우리 스텝을 전달하면 후속 스텝(조력자가 찾아오는 카드)이 게임시간 몇 분 뒤 도착한다 */
 function scheduleChain(c){ if(!c.chain) return; for(const n of D.cards.concat(S.extra)){ if(n.chain===c.chain&&n.step>c.step&&n.requires&&n.requires.card===c.id){ const st=S.cards[n.id]; st.readyAt=Math.max(n.arrive,S.t+(n.delayMin!=null?n.delayMin:5)); } } }
@@ -750,7 +755,7 @@ function runBranch(id,key,opt={}){ const all=(D.branches||{})[id]||{}; let br=al
 /* 57차 E1(C11): 분류 목록은 화 데이터 triage.cards 가운데 도착한 것만 — 예전에는 09:00 에 온 분기 카드(pre)까지 넣어 「지금」으로 셌다(md: 「triage 대상 아님」) */
 function startTriage(){ const T=D.triage; const ids=uniq(T.cards||[]).filter(i=>S.cards[i]&&S.cards[i].arrived&&!(CARD(i)||{}).pre); S.triage={ids,assign:{},done:false}; S.phase='triage'; S.running=false; renderTriage(); $('triage').classList.add('open'); }
 function renderTriage(){ const box=$('triageList'); box.innerHTML=''; const B=[['now','지금'],['morning','오전 중'],['today','오늘 중']];
-  for(const id of S.triage.ids){ const c=CARD(id); const row=h('div','trow'); row.appendChild(h('div','tsj',(c.type==='phone'?'☎ ':'')+c.from+' — '+c.subj)); const g=h('div','tbtns'); for(const [k,l] of B){ const b=mkBtn(l,S.triage.assign[id]===k?'on':'',()=>{ S.triage.assign[id]=k; renderTriage(); }); g.appendChild(b); } row.appendChild(g); box.appendChild(row); }
+  for(const id of S.triage.ids){ const c=CARD(id); const row=h('div','trow'); const tsj=h('div','tsj',c.from+' — '+c.subj); if(c.type==='phone'){ const A=window.OC&&OC.ui&&OC.ui.appicon; if(A&&A.inline) tsj.insertAdjacentHTML('afterbegin',A.inline('talk')); } row.appendChild(tsj);   /* ☎ → 승인 그림 15번(2026-09-29) */ const g=h('div','tbtns'); for(const [k,l] of B){ const b=mkBtn(l,S.triage.assign[id]===k?'on':'',()=>{ S.triage.assign[id]=k; renderTriage(); }); g.appendChild(b); } row.appendChild(g); box.appendChild(row); }
   $('triageGo').disabled=Object.keys(S.triage.assign).length<S.triage.ids.length; }
 async function finishTriage(){ if(!S.triage||S.triage.done) return; const A=S.triage.assign; let r; try{ r=await Grader.run('triage',null,{ids:S.triage.ids,assign:A}); }catch(e){ toast('채점 서버에 연결하지 못했어요. 잠시 뒤 다시 시도해 주세요.'); return; } const hit=r.hit, total=r.total, sc=r.score;
   S.triage.done=true; S.triage.score=sc; S.triage.hit=hit; S.triage.total=total; if(r.sl&&typeof r.sl.g==='string') S.triage.sg=r.sl.g;   /* 57차 E1 후속(B2) — 서버 서명 */

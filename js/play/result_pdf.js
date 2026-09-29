@@ -96,15 +96,21 @@ var ResultPdf = (function () {
         areas: Rw.areas.map(function (a) { var on = a.status === 'level'; return { name: a.name, S: on ? a.S : null, levelName: on ? (a.levelName || '') : '' }; }),
         subs: [] };
       Rw.areas.forEach(function (a) { a.subs.forEach(function (c) { var X = Rw.subs[c]; var on = X.status === 'level';
-        m.ncs.subs.push({ code: c, area: a.name, name: X.name, S: on ? X.S : null, levelName: on ? (X.levelName || '') : '' }); }); });
+        m.ncs.subs.push({ code: c, area: a.name, name: X.name, S: on ? X.S : null, levelName: on ? (X.levelName || '') : '', status: X.status, n: X.status === 'x' ? 0 : (X.n || 0), ok: X.ok || 0 }); }); });
 
       /* 강점 · 보완점 — 판정은 화면과 같은 NcsEval 강점 2·보완 2(새 규칙 없음). 근거 = 그 학생의 증거에서 고른 실제 업무 1~2줄.
          강점 = 화면이 짚은 대표 카드 + 자소서용 기록(essay)이 고른 잘한 근거 카드 · 보완 = 화면이 짚은 카드 + 같은 하위능력에서 낮았던 다른 카드.
          조언(tip)은 싣지 않는다 · 수준이 나지 않은 하위능력(관찰 적음)은 보완점에 넣지 않는다 */
       var evOf = function (d, card, sub, good) { return st.evidence.filter(function (e) { return e.d === d && e.card === card && e.sub === sub && (good ? e.s >= 2 : e.s <= 1); }); };
-      var goodFact = function (d, card, ov, sub) { var e = evOf(d, card, sub, true)[0]; var k = ov || (e && e.ov); var meta = k && N.ov[k]; return fact(d, card, k, meta ? (meta.good || meta.label) : ''); };
-      var badFact = function (d, card, ov, sub) { var e = evOf(d, card, sub, false)[0]; var k = ov || (e && e.ov); var meta = k && N.ov[k]; var what = meta && meta.label ? '「' + meta.label + '」 미흡' : '미흡';
-        return card ? fact(d, card, k, what) : d + '일차 ' + what; };
+      /* 근거 업무 한 줄(60차 2차) = 일차 · 업무 제목 · 내 처리 · 그 업무 점수(사실만). 카드가 없는 하루 집계·7일차 칸은 「6일차 제때 처리」처럼 그 항목 이름 */
+      var evRow = function (d, card, ov) {
+        if (card) { var c = essayCard[d + ':' + card]; var t = c ? cardTitle(c.title, card, '') : ''; var act = c ? (c.handled ? (c.actLabel || ACT_DEFAULT[c.act] || '') : '처리 못 함') : '';
+          var sc = c && typeof c.score === 'number' ? c.score : null;
+          return { d: d, title: t ? '「' + t + '」' : '업무', act: act, score: sc, text: [d + '일차 ' + (t ? '「' + t + '」' : '업무'), act, sc != null ? '업무 점수 ' + sc : ''].filter(Boolean).join(' · ') }; }
+        var meta = ov && N.ov[ov]; var L = (meta && meta.label) || '업무'; return { d: d, title: L, act: '', score: null, text: d + '일차 ' + L }; };
+      var goodFact = function (d, card, ov, sub) { var e = evOf(d, card, sub, true)[0]; return evRow(d, card, ov || (e && e.ov)); };
+      var badFact = function (d, card, ov, sub) { var e = evOf(d, card, sub, false)[0]; return evRow(d, card, ov || (e && e.ov)); };
+      var ph = function (ov, sub, k) { try { return E.phrase ? E.phrase(ov, sub, k, { NCS: N }) : ''; } catch (err) { return ''; } };
       var subCards = {}; ((es.ncs && es.ncs.subs) || []).forEach(function (s) { subCards[s.code] = s.cards || []; });
       var strengths = Rw.strengths.map(function (x) {
         var facts = []; var seen = {}; var bst = Rw.subs[x.sub].best;
@@ -112,7 +118,8 @@ var ResultPdf = (function () {
         (subCards[x.sub] || []).forEach(function (c) {
           if (facts.length >= 2) return; var ev = st.evidence.filter(function (e) { return e.d === c.d && e.card === c.card && e.sub === x.sub && e.ovLabel === c.what; })[0];
           var key = c.d + ':' + (c.card || (ev && ev.ov)); if (seen[key]) return; seen[key] = 1; facts.push(goodFact(c.d, c.card, ev && ev.ov, x.sub)); });
-        return { sub: x.sub, name: x.name, area: areaName[x.sub] || '', levelName: Rw.subs[x.sub].levelName || '', S: x.S, facts: facts };
+        return { sub: x.sub, name: x.name, area: areaName[x.sub] || '', levelName: Rw.subs[x.sub].levelName || '', S: x.S, see: ph(null, x.sub, 'see'), say: (bst && E.native && E.native(bst.ov, x.sub, { NCS: N })) ? ph(bst.ov, x.sub, 'good') : '',   /* 결과 문장은 그 하위능력 항목의 구체 문장일 때만 — 평가 기준과 겹치지 않게 */
+          ev: facts, facts: facts.map(function (f) { return f.text; }) };
       });
       var gaps = [];
       Rw.gaps.forEach(function (x) {
@@ -121,14 +128,16 @@ var ResultPdf = (function () {
         if (x.d) { facts.push(badFact(x.d, x.card, wst && wst.ov, x.sub)); seen[x.d + ':' + x.card] = 1; }
         st.evidence.filter(function (e) { return e.sub === x.sub && e.s <= 1 && e.m !== 'r'; }).forEach(function (e) {
           if (facts.length >= 2) return; var key = e.d + ':' + e.card; if (seen[key] || (!e.card && seen[e.d + ':null'])) return; seen[key] = 1; facts.push(badFact(e.d, e.card, e.ov, x.sub)); });
-        gaps.push({ sub: x.sub, name: x.name, area: areaName[x.sub] || '', levelName: Rw.subs[x.sub].levelName || '', S: x.S, facts: facts });
+        gaps.push({ sub: x.sub, name: x.name, area: areaName[x.sub] || '', levelName: Rw.subs[x.sub].levelName || '', S: x.S, see: ph(null, x.sub, 'see'), say: '',
+          ev: facts, facts: facts.map(function (f) { return f.text; }) });
       });
       m.sw = { strengths: strengths, gaps: gaps };
     } else {
       m.ncs = { legacy: true };
     }
 
-    /* 일차별 기록 */
+    /* 일차별 기록 — 카드마다 증거가 잡힌 하위능력 이름(기록형 제외, 하위능력 번호 순) */
+    var cardSubs = {}; (st.evidence || []).forEach(function (e) { if (!e.card || e.m === 'r' || !e.sub) return; var k = e.d + ':' + e.card; (cardSubs[k] = cardSubs[k] || {})[e.sub] = e.subName || ((N.subs[e.sub] || {}).name) || e.sub; });
     es.days.forEach(function (day) {
       var story = storyOf(stories, team, day.d); var rec = done[String(day.d)];
       var cards = day.cards.map(function (c) {
@@ -139,12 +148,18 @@ var ResultPdf = (function () {
         if (c.text2) texts.push({ label: '둘째 글', text: c.text2 });
         if (c.answer) texts.push({ label: '내 답', text: c.answer });
         return { title: cardTitle(c.title, c.id, c.typeLabel || '업무'), type: c.typeLabel || '', from: fill(c.from || ''), branch: !!c.branch,
-          act: act, choice: choice, score: c.score, late: !!c.late, texts: texts };
+          subs: Object.keys(cardSubs[day.d + ':' + c.id] || {}).sort().map(function (k) { return cardSubs[day.d + ':' + c.id][k]; }),
+          act: act, kind: c.handled ? (ACT_DEFAULT[c.act] || (c.actLabel && c.actLabel.length <= 8 ? c.actLabel : '') || '응답 고르기') : '처리 못 함', choice: choice, score: c.score, late: !!c.late, texts: texts };
       });
       var lead = day.d < 7 ? shortLine(leadLine(story, rec, fill)) : '';
       m.days.push({ d: day.d, title: day.title || DAY_TITLE[day.d] || '', work: day.work, stateLabel: day.state && day.state !== 'ok' ? day.stateLabel : '',
         leadName: leadName(story), lead: lead, cards: cards });
     });
+
+    /* 직무 경험 요약(60차 2차) — 7일 동안 받은 업무를 종류(메일·전화·결재…)별 · 내 처리(회신·전달·상신…)별로 건수와 평균 점수(점수 난 것만 평균) */
+    var tally = function (key) { var o = {}, order = []; m.days.forEach(function (d) { d.cards.forEach(function (c) { var k = key(c) || '기타'; if (!o[k]) { o[k] = { label: k, n: 0, sum: 0, sn: 0 }; order.push(k); } o[k].n++; if (typeof c.score === 'number') { o[k].sum += c.score; o[k].sn++; } }); });
+      return order.map(function (k) { var x = o[k]; return { label: x.label, n: x.n, avg: x.sn ? Math.round(x.sum / x.sn) : null }; }).sort(function (a, b) { return b.n - a.n; }); };
+    m.exp = { total: m.days.reduce(function (a, d) { return a + d.cards.length; }, 0), byType: tally(function (c) { return c.type; }), byAct: tally(function (c) { return c.kind; }) };
 
     /* 7일차 — 보고서·결정·발표·회고 + 결과(엔딩 이름·보고서 점수·취합/계산 칸·규정 위반). 좋은 예·칸별 채점 문장·놓친 단서는 싣지 않는다 */
     var r7 = done['7'];
@@ -163,80 +178,94 @@ var ResultPdf = (function () {
   }
 
   /* ── 쪽에 들어갈 덩이(PDF·인쇄 공통) ────────────────────────────────── */
-  /* t: title · h(절) · h3(항목) · note(표 설명 한 줄) · kv(두 칸 표) · table(cols·rows — row.group 은 가로 한 줄) · list · text(제목 + 원문) */
+  /* t: title · h(절) · h3(항목) · note(표 설명 한 줄) · kv(두 칸 표) · table(cols·rows — row.group 은 가로 한 줄 · col.align c/r) · list · text(제목 + 원문)
+     60차 3차: 7일 결과 화면과 같은 순서 — 요약 → NCS 7영역 → 강점 → 보완점 → 하위능력 → 직무 경험 요약 → 일차별 업무 기록 → 7일차 보고 → 내가 쓴 글.
+     점수는 모두 0~100(보고서 칸만 「n/2」, 보고서 합계 「n/10」) */
   function blocks(m) {
     var B = [];
     var dash = function (v) { return v == null || v === '' ? '-' : String(v); };
+    var e = m.ep7;
     B.push({ t: 'title', text: GAME + ' 7일 직무 체험 결과' });
+    /* 강점·보완점 한 건 — 하위능력(영역) · 수준 점수 / 평가 기준 · 결과(사실) / 근거 업무(일차 · 제목 · 내 처리 · 업무 점수) */
+    var swItem = function (x) { B.push({ t: 'h3', text: x.name + (x.area ? '(' + x.area + ')' : '') + ' · ' + x.levelName + ' ' + x.S });
+      var kv = []; if (x.see) kv.push(['평가 기준', x.see]); if (x.say) kv.push(['결과', x.say]); if (kv.length) B.push({ t: 'kv', rows: kv });
+      if (x.facts.length) B.push({ t: 'list', items: x.facts }); };
+    var swShort = function (L) { return L.map(function (x) { return x.name + '(' + x.levelName + ' ' + x.S + ')'; }).join(', '); };
 
-    B.push({ t: 'h', text: '기본 정보' });
+    B.push({ t: 'h', text: '요약' });
     var per = m.period.from ? (m.period.from === m.period.to ? m.period.from : m.period.from + ' ~ ' + m.period.to) : '-';
-    B.push({ t: 'kv', rows: [['이름', m.name || '-'], ['팀(직무)', m.teamName || '-'], ['기간', per + (m.daysDone.length ? ' (' + m.daysDone.length + '일 완료)' : '')], ['게임', GAME + ' · ' + ORG]] });
+    var sum = [['이름', m.name || '-'], ['팀(직무)', m.teamName || '-'], ['기간', per + (m.daysDone.length ? ' (' + m.daysDone.length + '일 완료)' : '')]];
+    if (e && e.ending) sum.push(['엔딩', e.ending + (e.endingName ? ' ' + e.endingName : '')]);
+    if (e) sum.push(['7일차 보고서', dash(e.total) + '/' + e.of]);
+    if (m.work && m.work.avg != null) sum.push(['업무 점수 평균', String(m.work.avg)]);
+    if (m.sw && m.sw.strengths.length) sum.push(['강점', swShort(m.sw.strengths)]);
+    if (m.sw && m.sw.gaps.length) sum.push(['보완점', swShort(m.sw.gaps)]);
+    sum.push(['게임', GAME + ' · ' + ORG]);
+    B.push({ t: 'kv', rows: sum });
 
-    B.push({ t: 'h', text: 'NCS 직업공통능력 점수' });
+    B.push({ t: 'h', text: 'NCS 직업공통능력' });
     if (m.ncs.legacy) B.push({ t: 'note', text: '이전 방식 기록이라 NCS 점수 표 없음' });
     else {
-      B.push({ t: 'note', text: '기준 NCS 직업공통능력(' + String(m.ncs.std || '').replace('직업공통능력 ', '') + ') · 점수 0~100 · 수준 ' + m.ncs.levels.join(' < ') });
-      B.push({ t: 'h3', text: '영역' });
-      B.push({ t: 'table', cols: [{ label: '영역', w: 3 }, { label: '점수', w: 1, align: 'c' }, { label: '수준', w: 1, align: 'c' }],
-        rows: m.ncs.areas.map(function (a) { return { cells: [a.name, dash(a.S), dash(a.levelName)] }; }) });
-      B.push({ t: 'h3', text: '하위능력' });
-      var prev = null;
-      B.push({ t: 'table', cols: [{ label: '영역', w: 1.6 }, { label: '하위능력', w: 1.9 }, { label: '점수', w: 0.75, align: 'c' }, { label: '수준', w: 0.75, align: 'c' }],
-        rows: m.ncs.subs.map(function (s) { var first = s.area !== prev; prev = s.area; return { cells: [first ? s.area : '', s.name, dash(s.S), dash(s.levelName)], top: first }; }) });
+      B.push({ t: 'note', text: String(m.ncs.std || '').replace('직업공통능력 ', '') + ' 기준 · 점수 0~100 · 수준 ' + m.ncs.levels.join(' < ') });
+      var ar = m.ncs.areas.map(function (a, i) { return { a: a, i: i }; }).sort(function (x, y) { return (y.a.S != null) - (x.a.S != null) || (y.a.S || 0) - (x.a.S || 0) || x.i - y.i; });
+      B.push({ t: 'table', cols: [{ label: '영역', w: 3 }, { label: '점수', w: 1, align: 'r' }, { label: '수준', w: 1, align: 'c' }],
+        rows: ar.map(function (x) { return { cells: [x.a.name, dash(x.a.S), dash(x.a.levelName)] }; }) });
+      if (m.sw.strengths.length) { B.push({ t: 'h', text: '강점' }); m.sw.strengths.forEach(swItem); }
+      if (m.sw.gaps.length) { B.push({ t: 'h', text: '보완점' }); m.sw.gaps.forEach(swItem); }
+      /* 하위능력 21 — 관찰이 있는 것은 줄마다, 관찰이 없는 것(다루지 않는 것 포함)은 한 줄로 묶어 「-」 */
+      B.push({ t: 'h', text: '하위능력 21개' });
+      var seen = m.ncs.subs.filter(function (s) { return s.S != null || s.n; }); var none = m.ncs.subs.filter(function (s) { return !(s.S != null || s.n); });
+      var prev = null; var sr = seen.map(function (s) { var first = s.area !== prev; prev = s.area; return { cells: [first ? s.area : '', s.name, dash(s.S), dash(s.levelName), dash(s.n), dash(s.n ? s.ok : null)], top: first }; });
+      if (none.length) sr.push({ cells: ['', none.map(function (s) { return s.name; }).join(', '), '-', '-', '-', '-'], top: true });
+      B.push({ t: 'table', cols: [{ label: '영역', w: 1.5 }, { label: '하위능력', w: 2 }, { label: '점수', w: 0.6, align: 'r' }, { label: '수준', w: 0.6, align: 'c' }, { label: '관찰', w: 0.6, align: 'r' }, { label: '잘함', w: 0.6, align: 'r' }], rows: sr });
+    }
 
-      if (m.sw.strengths.length) {
-        B.push({ t: 'h', text: '강점' });
-        m.sw.strengths.forEach(function (x) { B.push({ t: 'h3', text: x.name + (x.area ? '(' + x.area + ')' : '') + ' · ' + x.levelName + ' ' + x.S }); if (x.facts.length) B.push({ t: 'list', items: x.facts }); });
-      }
-      if (m.sw.gaps.length) {
-        B.push({ t: 'h', text: '보완점' });
-        m.sw.gaps.forEach(function (x) { B.push({ t: 'h3', text: x.name + (x.area ? '(' + x.area + ')' : '') + ' · ' + x.levelName + ' ' + x.S }); if (x.facts.length) B.push({ t: 'list', items: x.facts }); });
-      }
+    if (m.exp && m.exp.total) {
+      B.push({ t: 'h', text: '직무 경험 요약' });
+      B.push({ t: 'note', text: m.teamName + ' 7일 동안 받은 업무 ' + m.exp.total + '건' });
+      var expRows = function (L) { return L.map(function (x) { return { cells: [x.label, String(x.n), dash(x.avg)] }; }); };
+      B.push({ t: 'table', cols: [{ label: '업무 종류', w: 3 }, { label: '건수', w: 1, align: 'r' }, { label: '평균 점수', w: 1, align: 'r' }], rows: expRows(m.exp.byType) });
+      B.push({ t: 'table', cols: [{ label: '내 처리', w: 3 }, { label: '건수', w: 1, align: 'r' }, { label: '평균 점수', w: 1, align: 'r' }], rows: expRows(m.exp.byAct) });
     }
 
     var days = m.days.filter(function (d) { return d.cards.length; });
     if (days.length) {
       B.push({ t: 'h', text: '일차별 업무 기록' });
-      var rows = [];
+      if (m.work && m.work.avg != null) B.push({ t: 'note', text: '업무 점수 평균 ' + m.work.avg + ' · 업무마다 점수 0~100' });
       days.forEach(function (d) {
-        var g = d.d + '일차 「' + d.title + '」' + (d.work != null ? ' · 업무 점수 ' + d.work : '') + (d.stateLabel ? ' · ' + d.stateLabel : '');
-        rows.push({ group: true, cells: [g], sub: d.lead ? d.leadName + ' 한마디: ' + d.lead : '' });
-        d.cards.forEach(function (c) {
-          var act = c.act + (c.choice ? ' — ' + c.choice : '') + (c.late ? ' (늦음)' : '');
-          rows.push({ cells: [d.d + '일차', c.title + (c.branch ? ' (후속)' : ''), c.from || '-', act, dash(c.score)] });
-        });
+        B.push({ t: 'h3', text: d.d + '일차 「' + d.title + '」' + (d.work != null ? ' · 업무 점수 ' + d.work : '') + (d.stateLabel ? ' · ' + d.stateLabel : '') });
+        if (d.lead) B.push({ t: 'note', text: d.leadName + ': ' + d.lead });
+        B.push({ t: 'table', cols: [{ label: '업무', w: 2.5 }, { label: '요청자', w: 1.05 }, { label: '내 처리', w: 1.6 }, { label: '하위능력', w: 1.6 }, { label: '점수', w: 0.55, align: 'r' }],
+          rows: d.cards.map(function (c) { return { cells: [c.title + (c.branch ? ' (후속)' : ''), c.from || '-', c.act + (c.choice ? ': ' + c.choice : '') + (c.late ? ' (늦음)' : ''), (c.subs || []).join(', ') || '-', dash(c.score)] }; }) });
       });
-      if (m.work && m.work.avg != null) rows.push({ group: true, cells: ['업무 점수 평균 ' + m.work.avg] });
-      B.push({ t: 'table', cols: [{ label: '일차', w: 0.62, align: 'c' }, { label: '업무', w: 2.6 }, { label: '요청자', w: 1.05 }, { label: '내 처리', w: 2.3 }, { label: '점수', w: 0.55, align: 'c' }], rows: rows });
+    }
+
+    if (e) {
+      B.push({ t: 'h', text: '7일차 보고' });
+      var kv = [];
+      if (e.ending) kv.push(['결과', '엔딩 ' + e.ending + (e.endingName ? ' ' + e.endingName : '')]);
+      kv.push(['보고서 점수', dash(e.total) + '/' + e.of]);
+      if (e.tableOk != null) kv.push(['취합표', e.tableOk + (e.tableAll ? '/' + e.tableAll : '') + '칸 맞음']);
+      if (e.calcOk != null) kv.push(['계산', e.calcOk + (e.calcAll ? '/' + e.calcAll : '') + '칸 맞음']);
+      if (e.violations.length) kv.push(['규정 위반', e.violations.join(' / ')]);
+      B.push({ t: 'kv', rows: kv });
+      if (e.report.some(function (f) { return f.score != null; })) B.push({ t: 'table', cols: [{ label: '보고서 칸', w: 4 }, { label: '점수', w: 1, align: 'r' }], rows: e.report.map(function (f) { return { cells: [f.title, f.score != null ? f.score + '/2' : '-'] }; }) });
+      var qs = e.questions.filter(function (q) { return q.q; });
+      if (qs.length) { B.push({ t: 'h3', text: '발표 질문과 내 답' });
+        B.push({ t: 'table', cols: [{ label: '질문', w: 2.6 }, { label: '내 답', w: 2.6 }, { label: '점수', w: 0.55, align: 'r' }], rows: qs.map(function (q) { return { cells: [q.q, q.answer || '-', dash(q.score)] }; }) }); }
+      var dk = e.decision.map(function (f) { return [f.field, f.text]; }); if (e.dropped) dk.push(['버린 안', e.dropped]); if (e.idea) dk.push(['아이디어', e.idea]);
+      if (dk.length) { B.push({ t: 'h3', text: '결정' }); B.push({ t: 'kv', rows: dk }); }
+      if (e.report.some(function (f) { return f.text; })) {
+        B.push({ t: 'h3', text: '보고서 원문' });
+        e.report.forEach(function (f) { if (f.text) B.push({ t: 'text', label: f.title + (f.score != null ? ' · ' + f.score + '/2' : ''), text: f.text }); });
+      }
+      if (e.reflection) { B.push({ t: 'h3', text: '회고' }); B.push({ t: 'text', label: '', text: e.reflection }); }
     }
 
     var wrote = []; m.days.forEach(function (d) { d.cards.forEach(function (c) { c.texts.forEach(function (t) { wrote.push({ d: d.d, title: c.title, label: t.label, text: t.text }); }); }); });
     if (wrote.length) {
       B.push({ t: 'h', text: '내가 쓴 글' });
       wrote.forEach(function (w) { B.push({ t: 'text', label: w.d + '일차 「' + w.title + '」 · ' + w.label, text: w.text }); });
-    }
-
-    if (m.ep7) {
-      var e = m.ep7;
-      B.push({ t: 'h', text: '7일차 보고' });
-      var kv = [];
-      if (e.ending) kv.push(['결과', '엔딩 ' + e.ending + (e.endingName ? ' — ' + e.endingName : '')]);
-      kv.push(['보고서 점수', dash(e.total) + '/' + e.of]);
-      if (e.tableOk != null) kv.push(['취합표', e.tableOk + (e.tableAll ? '/' + e.tableAll : '') + '칸 맞음']);
-      if (e.calcOk != null) kv.push(['계산', e.calcOk + (e.calcAll ? '/' + e.calcAll : '') + '칸 맞음']);
-      if (e.violations.length) kv.push(['규정 위반', e.violations.join(' / ')]);
-      B.push({ t: 'kv', rows: kv });
-      if (e.report.some(function (f) { return f.text; })) {
-        B.push({ t: 'h3', text: '보고서 원문' });
-        e.report.forEach(function (f) { if (f.text) B.push({ t: 'text', label: f.title + (f.score != null ? ' · ' + f.score + '/2' : ''), text: f.text }); });
-      }
-      var dk = e.decision.map(function (f) { return [f.field, f.text]; }); if (e.dropped) dk.push(['버린 안', e.dropped]); if (e.idea) dk.push(['아이디어', e.idea]);
-      if (dk.length) { B.push({ t: 'h3', text: '결정' }); B.push({ t: 'kv', rows: dk }); }
-      var qs = e.questions.filter(function (q) { return q.q; });
-      if (qs.length) { B.push({ t: 'h3', text: '발표 질문과 내 답' });
-        B.push({ t: 'table', cols: [{ label: '질문', w: 2.6 }, { label: '내 답', w: 2.6 }, { label: '점수', w: 0.55, align: 'c' }], rows: qs.map(function (q) { return { cells: [q.q, q.answer || '-', dash(q.score)] }; }) }); }
-      if (e.reflection) { B.push({ t: 'h3', text: '회고' }); B.push({ t: 'text', label: '', text: e.reflection }); }
     }
     B.forEach(function (b) { ['text', 'label'].forEach(function (k) { if (b[k] != null) b[k] = tidy(b[k]); });
       if (b.rows) b.rows.forEach(function (r) { if (Array.isArray(r)) { r[0] = tidy(r[0]); r[1] = tidy(r[1]); } else { r.cells = r.cells.map(tidy); if (r.sub) r.sub = tidy(r.sub); } });
@@ -281,7 +310,7 @@ var ResultPdf = (function () {
     function table(b) {
       var tot = b.cols.reduce(function (a, c) { return a + c.w; }, 0); var ws = b.cols.map(function (c) { return CW * c.w / tot; });
       var PX = 5, PY = 4;
-      var head = function () { var h = LH + 2 * PY; fillRect(X0, y, CW, h, C.head); var x = X0; b.cols.forEach(function (c, i) { put(c.label, c.align === 'c' ? x + ws[i] / 2 : x + PX, y + PY + (LH - FS) / 2, FS - 0.5, { bold: true, align: c.align, color: C.navy }); x += ws[i]; });
+      var head = function () { var h = LH + 2 * PY; fillRect(X0, y, CW, h, C.head); var x = X0; b.cols.forEach(function (c, i) { put(c.label, c.align === 'c' ? x + ws[i] / 2 : c.align === 'r' ? x + ws[i] - PX : x + PX, y + PY + (LH - FS) / 2, FS - 0.5, { bold: true, align: c.align, color: C.navy }); x += ws[i]; });
         hr(X0, X0 + CW, y, C.line, 0.8); y += h; hr(X0, X0 + CW, y, C.line, 0.8); };
       var rowLines = function (r) {
         if (r.group) { var g = wrap(r.cells[0], CW - 2 * PX, FS); var s = r.sub ? wrap(r.sub, CW - 2 * PX - 8, FS - 1) : []; return { g: g, s: s, h: g.length * LH + s.length * (LH - 1.5) + 2 * PY }; }
@@ -293,7 +322,7 @@ var ResultPdf = (function () {
         if (y + L.h + nx > BOT) { newPage(); head(); }
         if (r.group) { fillRect(X0, y, CW, L.h, C.group); var yy = y + PY; L.g.forEach(function (l) { put(l, X0 + PX, yy + (LH - FS) / 2, FS, { bold: true }); yy += LH; });
           L.s.forEach(function (l) { put(l, X0 + PX + 8, yy + (LH - 1.5 - (FS - 1)) / 2, FS - 1, { color: C.muted }); yy += LH - 1.5; }); }
-        else { var x = X0; L.cl.forEach(function (ls, i) { var c = b.cols[i]; var yy = y + PY; ls.forEach(function (l) { put(l, c.align === 'c' ? x + ws[i] / 2 : x + PX, yy + (LH - FS) / 2, FS, { align: c.align }); yy += LH; }); x += ws[i]; }); }
+        else { var x = X0; L.cl.forEach(function (ls, i) { var c = b.cols[i]; var yy = y + PY; ls.forEach(function (l) { put(l, c.align === 'c' ? x + ws[i] / 2 : c.align === 'r' ? x + ws[i] - PX : x + PX, yy + (LH - FS) / 2, FS, { align: c.align }); yy += LH; }); x += ws[i]; }); }
         y += L.h; hr(X0, X0 + CW, y, r.group || (b.rows[ri + 1] && b.rows[ri + 1].top) ? C.line : [232, 236, 241], r.group ? 0.8 : 0.5);
       });
       y += 10;
@@ -354,7 +383,7 @@ var ResultPdf = (function () {
     '.rp-print h2{font-size:13pt;color:#143766;margin:16pt 0 7pt;padding-bottom:3pt;border-bottom:.9pt solid #143766;break-after:avoid}',
     '.rp-print h3{font-size:10.5pt;margin:8pt 0 4pt;break-after:avoid}.rp-print .note{font-size:9pt;color:#5b6675;margin:0 0 6pt}',
     '.rp-print table{width:100%;border-collapse:collapse;margin:0 0 10pt;font-size:9.5pt}.rp-print th{background:#ecf1f7;color:#143766;text-align:left;padding:3pt 5pt;border-top:.8pt solid #d5dce5;border-bottom:.8pt solid #d5dce5}',
-    '.rp-print td{padding:3pt 5pt;border-bottom:.5pt solid #e8ecf1;vertical-align:top}.rp-print .c{text-align:center}.rp-print tr{break-inside:avoid}',
+    '.rp-print td{padding:3pt 5pt;border-bottom:.5pt solid #e8ecf1;vertical-align:top}.rp-print .c{text-align:center}.rp-print .r{text-align:right}.rp-print tr{break-inside:avoid}',
     '.rp-print tr.g td{background:#f6f8fb;font-weight:700;border-bottom:.8pt solid #d5dce5}.rp-print tr.g small{display:block;font-weight:400;color:#5b6675;padding-left:8pt}',
     '.rp-print table.kv th{width:92pt;background:#ecf1f7;border:none;border-bottom:.5pt solid #e8ecf1}.rp-print ul{margin:0 0 8pt;padding-left:16pt}',
     '.rp-print .tx{margin:0 0 10pt}.rp-print .tx b{color:#143766;display:block}.rp-print .tx p{margin:2pt 0 0;padding-left:12pt;border-left:2pt solid #d5dce5;white-space:pre-wrap}',
@@ -371,9 +400,9 @@ var ResultPdf = (function () {
       else if (b.t === 'h3') root.appendChild(el('h3', null, b.text));
       else if (b.t === 'note') root.appendChild(el('p', 'note', b.text));
       else if (b.t === 'kv') { var t = el('table', 'kv'); b.rows.forEach(function (r) { var tr = t.insertRow(); tr.appendChild(el('th', null, r[0])); tr.appendChild(el('td', null, r[1])); }); root.appendChild(t); }
-      else if (b.t === 'table') { var tb = el('table'); tb.style.tableLayout = 'fixed'; var tw = b.cols.reduce(function (a, c) { return a + c.w; }, 0); var cg = el('colgroup'); b.cols.forEach(function (c) { var co = el('col'); co.style.width = (100 * c.w / tw).toFixed(1) + '%'; cg.appendChild(co); }); tb.appendChild(cg); var th = el('thead'); var hr = th.insertRow(); b.cols.forEach(function (c) { var x = el('th', c.align === 'c' ? 'c' : null, c.label); hr.appendChild(x); }); tb.appendChild(th); var bd = el('tbody');
+      else if (b.t === 'table') { var tb = el('table'); tb.style.tableLayout = 'fixed'; var tw = b.cols.reduce(function (a, c) { return a + c.w; }, 0); var cg = el('colgroup'); b.cols.forEach(function (c) { var co = el('col'); co.style.width = (100 * c.w / tw).toFixed(1) + '%'; cg.appendChild(co); }); tb.appendChild(cg); var th = el('thead'); var hr = th.insertRow(); b.cols.forEach(function (c) { var x = el('th', c.align === 'c' ? 'c' : c.align === 'r' ? 'r' : null, c.label); hr.appendChild(x); }); tb.appendChild(th); var bd = el('tbody');
         b.rows.forEach(function (r) { var tr = bd.insertRow(); if (r.group) { tr.className = 'g'; var td = el('td', null, r.cells[0]); td.colSpan = b.cols.length; if (r.sub) td.appendChild(el('small', null, r.sub)); tr.appendChild(td); }
-          else r.cells.forEach(function (v, i) { tr.appendChild(el('td', b.cols[i].align === 'c' ? 'c' : null, v)); }); }); tb.appendChild(bd); root.appendChild(tb); }
+          else r.cells.forEach(function (v, i) { tr.appendChild(el('td', b.cols[i].align === 'c' ? 'c' : b.cols[i].align === 'r' ? 'r' : null, v)); }); }); tb.appendChild(bd); root.appendChild(tb); }
       else if (b.t === 'list') { var ul = el('ul'); b.items.forEach(function (x) { ul.appendChild(el('li', null, x)); }); root.appendChild(ul); }
       else if (b.t === 'text') { var d = el('div', 'tx'); if (b.label) d.appendChild(el('b', null, b.label)); d.appendChild(el('p', null, b.text)); root.appendChild(d); }
     });

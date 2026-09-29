@@ -44,7 +44,7 @@
   function hideHint(){ const el=$('pcHint'); if(el) el.classList.remove('on'); }
 
   const pb=$('pcBtn'); if(pb) pb.onclick=()=>{ if(pcOn()){ closePc(); return; }
-    if(!seated()){ toast('내 자리에 앉아야 컴퓨터를 쓸 수 있어요.','🖥',3600,'cust'); goSeat(); return; }
+    if(!seated()){ toast('내 자리에 앉아야 컴퓨터를 쓸 수 있어요.','',3600,'cust'); goSeat(); return; }
     const had=window.Msg?Msg.unread():0; openPc(); if(had){ D2.openApp(D2.MSG); Msg.open(); } };
   const po=$('pcOff'); if(po) po.onclick=()=>closePc();
   const ph=$('pcHintGo'); if(ph) ph.onclick=()=>{ if(seated()) openPc(); else goSeat(); };
@@ -58,7 +58,7 @@
       if(typeof O[name]==='function'){ try{ Promise.resolve(O[name]()).then(()=>{ D2.setSeated(true); },()=>{}); return; }catch(e){} } }
     if(typeof O.goTo==='function'){ try{ Promise.resolve(O.goTo('me')).then(()=>{ D2.setSeated(true); },()=>{}); return; }catch(e){} }
     try{ O.view('default'); }catch(e){}
-    toast('내 자리로 걸어가서 의자 앞에서 E 를 누르세요.','🪑',4200,'cust'); }
+    toast('내 자리로 걸어가서 의자 앞에서 E 를 누르세요.','',4200,'cust');   /* 🖥·🪑 그림 문자는 뺐다(2026-09-29 — 뜻 맞는 승인 그림 없음) */ }
   const sb=$('seatBtn'); if(sb) sb.onclick=goSeat;
 
   /* ── 앉았는가 ────────────────────────────────────────────────────────
@@ -175,7 +175,8 @@
     const box=$('pcNotis'); if(!box) return false;
     while(box.children.length>=3) box.firstChild.remove();
     const el=h('div','pcNoti');
-    const hd=h('div','hd'); hd.appendChild(document.createTextNode('💬 알림 · ')); hd.appendChild(h('b',null,who));
+    /* 머리 그림 = 승인 그림 2번(메신저 · 2026-09-29) — 옛 💬 자리 */
+    const hd=h('div','hd'); const A=window.OC&&OC.ui&&OC.ui.appicon; if(A&&A.inline) hd.insertAdjacentHTML('beforeend',A.inline('messenger')); hd.appendChild(document.createTextNode('알림 · ')); hd.appendChild(h('b',null,who));
     el.appendChild(hd); el.appendChild(h('div','tx',text));
     box.appendChild(el); setTimeout(()=>el.remove(),ms);
     return true; }

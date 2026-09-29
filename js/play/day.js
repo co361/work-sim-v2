@@ -68,19 +68,19 @@ function homeMsg(t){ const e=$('homeMsg'); if(e) e.textContent=t||''; }
 async function showHome(){ S.phase='home'; $('loading').classList.add('off'); $('home').classList.add('open'); const sel=$('homeTeam'); if(!sel.options.length) for(const k of TEAM_ORDER){ const o=document.createElement('option'); o.value=k; o.textContent=TEAM_NAMES[k]; sel.appendChild(o); }
   $('homeCode').value=S.code||''; $('homeBackend').textContent=hasBackend()?'서버 연결됨 — 코드로 진행이 저장되고, 메일은 AI 첨삭을 받아요':'서버 없음 — 이 기기에만 저장되고, 메일은 규칙 채점으로 봐 드려요';
   if(S.code){ S.team=(Q.get('team')||S.team); P=await loadProgress(); S.team=P.team||S.team; sel.value=S.team; } else { P=null; }
-  renderHomeDays(); }
+  renderHomeDays();paintHomeAvatar(); }
 function renderHomeDays(){ const box=$('homeDays'); box.innerHTML=''; const day=P?P.day:1; const team=P?(P.team||S.team):($('homeTeam').value||'cs');
   for(let d=1; d<=7; d++){ const done=P&&P.done&&P.done[String(d)]; const cur=!done&&d===day; const b=document.createElement('button'); b.type='button'; b.className='dayc '+(done?'done':cur?'cur':'lock'); const ws=done&&typeof NcsEval!=='undefined'?NcsEval.dayScore(done):null;   /* 57차 E1(A Y10): 일차 칸 = 업무 점수(카드 평균 — 관리자·CSV 와 같은 NcsEval.dayScore). 예전에는 옛 NCS 축 평균이었다 */
     b.innerHTML=`<b>${d}일차</b><span>${escapeHtml(DAY_TITLES[d]||'')}</span><i>${done?'✓ '+(done.ending?('엔딩 '+done.ending):(ws!=null?ws+'점':'끝')):cur?(P&&P.cur&&P.cur.day===d?'이어 하기':'오늘'):'잠김'}</i>`;
     b.onclick=()=>{ if(!done&&!cur&&!Q.get('debug')){ toast(`${d-1}일차를 마치면 열려요.`); return; } goDay(team,d); }; box.appendChild(b); }
   /* 7일을 마친 학생 — 내 결과 PDF(js/play/result_pdf.js · 저장본만으로 만든다) */
   const pdf=$('homePdf'); if(pdf){ pdf.innerHTML=''; const fin=!!(P&&P.done&&P.done['7']); pdf.style.display=(fin&&window.ResultPdf)?'':'none'; if(fin&&window.ResultPdf){ pdf.appendChild(ResultPdf.button('pri')); pdf.appendChild(h('span','muted','7일 기록 — NCS 결과 · 강점과 보완할 점 · 날마다 한 일과 쓴 글')); } } }
-function goDay(team,d){ const u=new URL(location.href); u.searchParams.set('team',team); u.searchParams.set('ep',String(d)); if(S.code) u.searchParams.set('code',S.code); else u.searchParams.delete('code'); u.searchParams.delete('fresh'); location.href=u.toString(); }   /* fresh 는 그 화 한 번만(QA W-13 — 다음 날로 물려주면 그날 새로고침이 처음부터였다) */
+function goDay(team,d){ const u=new URL(location.href); u.searchParams.set('team',team); u.searchParams.set('ep',String(d)); if(S.code) u.searchParams.set('code',S.code); else u.searchParams.delete('code'); u.searchParams.delete('fresh'); u.searchParams.delete('home'); location.href=u.toString(); }   /* fresh 는 그 화 한 번만(QA W-13 — 다음 날로 물려주면 그날 새로고침이 처음부터였다) */
 $('homeGo').onclick=async()=>{ const code=$('homeCode').value.trim(); if(code){ $('home').classList.remove('open'); $('loading').classList.remove('off'); await enterWithCode(code,null); } else { const team=$('homeTeam').value||'cs'; S.demo=true; S.code=null; try{ localStorage.removeItem('ws7.code'); }catch(e){} S.team=team; P=await loadProgress(); goDay(team,P.day||1); } };
 $('homeDemo').onclick=async()=>{ const team=$('homeTeam').value||'cs'; S.demo=true; S.code=null; try{ localStorage.removeItem('ws7.code'); }catch(e){} S.team=team; P=await loadProgress(); goDay(team,P.day||1); };
-$('homeTeam').onchange=()=>{ if(!S.code) renderHomeDays(); };
+$('homeTeam').onchange=()=>{if(!S.code)renderHomeDays();paintHomeAvatar();};
 /* 홈 화면에서도 언제든 바꾼다 — 여기서 고른 값은 하루를 열 때 그대로 쓰인다 */
-function paintHomeAvatar(){ const g=avatarPref(); $('homeAvF').setAttribute('aria-pressed',String(g==='f')); $('homeAvM').setAttribute('aria-pressed',String(g==='m'));
+function paintHomeAvatar(){const team=$('homeTeam').value||S.team;for(const [id,g,label] of [['homeAvF','f','여성'],['homeAvM','m','남성']]){const row=typeof WorkSimRoster!=='undefined'&&WorkSimRoster.player(team,g);if(row)$(id).textContent=row.display_name+' · '+label;} const g=avatarPref(); $('homeAvF').setAttribute('aria-pressed',String(g==='f')); $('homeAvM').setAttribute('aria-pressed',String(g==='m'));
   $('homeAvF').classList.toggle('pri',g==='f'); $('homeAvM').classList.toggle('pri',g==='m'); }
 $('homeAvF').onclick=()=>{ setAvatarPref('f'); if(P) P.avatar='f'; paintHomeAvatar(); };
 $('homeAvM').onclick=()=>{ setAvatarPref('m'); if(P) P.avatar='m'; paintHomeAvatar(); };
@@ -95,7 +95,7 @@ function askAvatar(again){
   const put=(id,ch)=>{ const box=$(id); box.innerHTML=''; const src=avatarPic(ch);
     if(src){ const im=document.createElement('img'); im.alt=''; im.onerror=()=>{ if(im.parentNode===box) box.textContent='🙂'; }; im.src=src; box.appendChild(im); }
     else box.textContent='🙂'; };
-  put('avFPic',playerChar('f')); put('avMPic',playerChar('m'));
+  put('avFPic',playerChar('f'));put('avMPic',playerChar('m'));for(const [id,g] of [['avF','f'],['avM','m']]){const row=typeof WorkSimRoster!=='undefined'&&WorkSimRoster.player(S.team,g);if(row)$(id).querySelector('b').textContent=row.display_name;}
   if(!again) $('loading').classList.add('off');
   $('avatar').classList.add('open');
   const keep=$('avKeep'); keep.hidden=!again;
@@ -106,11 +106,13 @@ function askAvatar(again){
 async function startDay(ep){ S.ep=ep; S.phase='loading'; $('home').classList.remove('open'); $('loading').classList.remove('off');
   try{ D=await loadStory(S.team,ep); }catch(e){ $('loadMsg').textContent=e.message; $('loadBack').style.display='inline-block'; return; }
   D=JSON.parse(JSON.stringify(D));            /* 전날 결과에 따라 카드가 빠지므로 사본 */
-  fillNames(D);                               /* 「○○씨」 등 이름 자리 — 모든 출력 경로가 이 사본을 쓴다(45차) */
+  /* Names are filled after final avatar selection below. */                               /* 「○○씨」 등 이름 자리 — 모든 출력 경로가 이 사본을 쓴다(45차) */
   /* 소개 페이지에서 바꾼 것이 있으면 그것을 따르고, 아직 고른 적이 없으면 한 번 묻는다 */
   { const pref=avatarPref();
     if(pref&&pref!==P.avatar){ P.avatar=pref; saveProgress(true); }
     if(!P.avatar){ P.avatar=await askAvatar(); setAvatarPref(P.avatar); saveProgress(true); } }
+  /* 캐릭터 로스터(js/office-story-roster.js)는 아직 배포하지 않는다(2026-09-29 캐릭터·사무실 교체 작업 중) — 파일이 있을 때만 쓴다 */
+  if(typeof adaptStoryToRoster==='function') D=adaptStoryToRoster(D,S.team,P.avatar);fillNames(D);
   document.title=`${D.teamName} ${D.ep}화 「${D.title}」`; $('title').innerHTML=''; $('title').appendChild(document.createTextNode(`${D.teamName} ${D.ep}일차`)); const sm=h('small',null,`「${D.title}」 · ${D.date||''}`); $('title').appendChild(sm);
   /* 44차: 첫 진입 로딩은 「로딩 중」 대신 조작법 카드로 채운다(js/play/intro.js).
      카드를 다 보거나 건너뛴 뒤에야 Intro.ready() 가 풀린다 — 방 이동·캐릭터 교체 로딩은 그대로다. */
@@ -581,57 +583,99 @@ function roleHue(who){ const v=npcInfo(who); const r=(v&&v.role)||'';
   if(/사수|선임/.test(r)) return ROLE_HUE['사수'];
   if(r==='동기'||who===peerName()) return ROLE_HUE['동기'];
   return '#5b6675'; }
-function sayRow(host,who,text,cls){ if(!text) return; const d=h('div','say'); d.style.setProperty('--rc',roleHue(who));
-  const w2=h('div','who'); const av=h('span','av',(who||'?').trim().charAt(0)); w2.appendChild(av); w2.appendChild(h('span',null,who));
-  d.appendChild(w2); d.appendChild(h('div','tx '+(cls||''),fillName(text))); host.appendChild(d); }
-function renderDebrief(r){ const w=$('dbWrap'); w.innerHTML=''; const say=(who,text,cls)=>sayRow(w,who,text,cls);
-  w.appendChild(h('h1',null,`${D.teamName} ${D.ep}일차 「${D.title}」 끝`)); w.appendChild(h('div','sub',`${fmtClock(D.minutes)} 퇴근 준비. 팀장이 다가옵니다.`));
-  const grid=h('div','grid'); w.appendChild(grid);
-  const box1=h('div','box'); box1.style.setProperty('--bc',BOX_HUE.summary); box1.appendChild(h('h3',null,'오늘 요약')); const kpi=h('div','kpi'); const items=[['처리',`${r.counts.done}/${r.counts.all}`],['넘김',r.counts.pass],['물어봄',r.counts.ask]]; if(r.counts.cite) items.push(['조항 인용',r.counts.cite]); if(r.counts.calcAll) items.push(['계산 정확',`${r.counts.calc}/${r.counts.calcAll}`]); if(r.counts.rightNpc||r.counts.wrongNpc) items.push(['맞는 상대',`${r.counts.rightNpc}/${r.counts.rightNpc+r.counts.wrongNpc}`]); if(r.counts.rejectAll) items.push(['거절·상신',`${r.counts.reject}/${r.counts.rejectAll}`]); if(r.triage) items.push(['분류 맞음',`${r.triage.hit}/${r.triage.total}`]); if(r.counts.follow) items.push(['재문의',r.counts.follow]); if(r.counts.askNeed) items.push(['직접 물어 얻은 답',`${r.counts.askHit||0}/${r.counts.askNeed}`]);
-  /* 라벨을 숫자 위에 둔다 — 아래에 두면 「13/13 2 1」이 무엇을 센 것인지 읽히지 않는다 */
-  for(const [n,v] of items){ const d=h('div'); d.appendChild(h('small',null,n)); d.appendChild(h('b',null,String(v))); kpi.appendChild(d); } box1.appendChild(kpi);
-  /* 제목 · 행동 · 점수 세 열. 점수만 따로 떼어야 오른쪽에서 자릿수가 맞는다 */
-  const tbl=h('div','ctbl'); for(const c of D.cards){ const s=S.cards[c.id]; if(!s||c.scored===false&&c.mode==='story'||s.status==='skipped') continue;
-    tbl.appendChild(h('span','n',c.subj));
-    const scored=s.score!=null;
-    /* 상태는 칩으로 — 회색 글자 「미처리」는 화면에서 사라진다(대표 확정 스펙 §3) */
-    let label=scored?actLabel(s.act):(c.unscored||c.axis==='self'?(s.text?'기록함':'기록 없음'):'—');
-    /* 칩 색과 글자가 어긋나면 안 된다 — 늦게 낸 건은 색만 바꾸지 말고 그렇게 적는다 */
+/* ---------- 60차 결과 화면 공용 부품(하루 마무리 · 7일 결과 ep7.js) ----------
+   사용자 「내용도 내용인데 가독성도 너무 안좋고 디자인도 너무 이상해」(2026-09-28). 한 단 읽기 · 상자 대신 간격 · 막대는 회색 + 강조색 하나 ·
+   범례 대신 막대 끝 라벨 · 영역은 점수 순 가로 막대. 모양은 play.html 「60차 결과 화면」 CSS(.rs) */
+/* 글꼴 Pretendard(OFL) — 결과 화면을 열 때만 받는다(jsdelivr · SRI). 못 받으면 시스템 글꼴 그대로 */
+const RS_FONT={href:'https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css',sri:'sha384-uR1wgObmx89ZQ4VVXHdzjbDJZ1PvBK01K+E3GebmaBKdZ87qRJvBWPoPbzWeEd5T'};
+function rsFont(){ try{ if(document.getElementById('rsFont')) return; const l=document.createElement('link'); l.id='rsFont'; l.rel='stylesheet'; l.href=RS_FONT.href; l.integrity=RS_FONT.sri; l.crossOrigin='anonymous'; l.referrerPolicy='no-referrer'; document.head.appendChild(l); }catch(e){} }
+/* 절 하나 — h2(+ 작은 부제). 돌려준 section 에 내용을 붙인다 */
+function rsSec(host,title,sub){ const s=h('section','rsSec'); const t=h('h2',null,title); if(sub) t.appendChild(h('small',null,sub)); s.appendChild(t); host.appendChild(s); return s; }
+/* 가로 막대 — rows: {name, S(0~100|null), level, note(막대 없을 때), mark(강조 라벨)} · mark 가 있는 줄만 강조색, 나머지는 회색 */
+function rsBars(rows,o){ o=o||{}; const wrap=h('div','ncs rsBars'+(o.noLevel?' nolv':''));
+  /* 60차 2차: 이름 · 막대(0 기준선) · 점수(오른쪽 정렬 열) · 수준 · 강조 라벨 — 칸 폭이 정해져 있어 창이 좁아도 숫자가 잘리지 않는다 */
+  for(const r of rows){ const row=h('div','ncsRow'+(r.S==null?' nob':'')+(r.mark?' hi':'')); row.appendChild(h('span','nm',r.name)); const tr=h('div','bw');
+    if(r.S!=null){ const bar=h('i','bar'); bar.style.setProperty('--s',String(Math.max(0,Math.min(100,r.S)))); tr.appendChild(bar); } else tr.appendChild(h('span','nt',r.note||''));
+    row.appendChild(tr); row.appendChild(h('span','sc',r.S!=null?String(r.S):'')); if(!o.noLevel) row.appendChild(h('span','lvl',r.level||'')); row.appendChild(h('span','mk',r.mark||'')); wrap.appendChild(row); }
+  return wrap; }
+/* 점수 순(막대 있는 줄 먼저 · 같으면 원래 순서) */
+const rsRank=(rows)=>rows.map((r,i)=>Object.assign({i},r)).sort((x,y)=>(y.S!=null)-(x.S!=null)||(y.S||0)-(x.S||0)||x.i-y.i);
+/* 이름표 줄 — items: [이름표, 내용(글 또는 노드), 'bad'?] */
+function rsDl(items){ const dl=h('dl','rsDl'); for(const [k,v,cls] of items){ dl.appendChild(h('dt',cls||null,k)); const dd=h('dd',cls||null); if(v instanceof Node) dd.appendChild(v); else dd.textContent=String(v); dl.appendChild(dd); } return dl; }
+/* 「하위능력 이름(굵게) 문장」 + 아래 회색 한 줄(근거 업무) */
+function rsLine(name,text,src){ const f=document.createDocumentFragment(); if(name){ f.appendChild(h('b',null,name)); f.appendChild(document.createTextNode(' ')); } f.appendChild(document.createTextNode(text||'')); if(src) f.appendChild(h('span','src',src)); return f; }
+/* 강점·보완점·잘한 점·다음엔 한 건(60차 2차) — 하위능력(굵게) 영역(회색) · 오른쪽 점수·수준 / 결과 문장 / 평가 기준 / 근거 업무(일차 · 제목 · 내 처리 · 점수 — 점수는 오른쪽 정렬 열)
+   x: {name, area, pre(점수 앞 말), S, level, say, see, ev:[{d, title, act, score}]} */
+function rsItem(x){ const it=h('div','rsItem'); const hd=h('div','hd'); const t=h('h3',null,x.name); if(x.area){ t.appendChild(document.createTextNode(' ')); t.appendChild(h('small',null,x.area)); } hd.appendChild(t);
+  const sc=h('span','sc'); if(x.pre) sc.appendChild(document.createTextNode(x.pre+' ')); if(x.S!=null) sc.appendChild(h('b',null,String(x.S))); if(x.level) sc.appendChild(document.createTextNode(' '+x.level)); hd.appendChild(sc); it.appendChild(hd);
+  if(x.say) it.appendChild(h('p','say',x.say));
+  if(x.see){ const p=h('p','see'); p.appendChild(h('span','k','평가 기준')); p.appendChild(document.createTextNode(x.see)); it.appendChild(p); }
+  if(x.ev&&x.ev.length){ const ev=h('div','rsEv'); const hr=h('div','r hdr'); for(const t of ['','근거 업무','내 처리','업무 점수']) hr.appendChild(h('span',null,t)); ev.appendChild(hr); for(const e of x.ev){ const r=h('div','r'); r.appendChild(h('span','d',`${e.d}일차`)); r.appendChild(h('span','t',e.title||'')); r.appendChild(h('span','a',e.act||'')); r.appendChild(h('span','v',e.score!=null?String(e.score):'-')); ev.appendChild(r); } it.appendChild(ev); }
+  return it; }
+/* 긴 글 한 편 — 이름표(굵게) + 원문(줄바꿈 그대로) */
+function rsText(label,text){ const d=h('div','rsText'); if(label) d.appendChild(h('b',null,label)); d.appendChild(h('p',null,text||'')); return d; }
+/* 표 — cols: [머리 | {t, num, w}] · rows: [칸…] 또는 {cls, cells:[칸…]} (칸 = 글 | {t, cls, span}) */
+function rsTable(cols,rows){ const t=h('table','rsTbl');
+  if(cols.some(c=>c&&c.w)){ t.classList.add('fixed'); const cg=document.createElement('colgroup'); for(const c of cols){ const col=document.createElement('col'); if(c&&c.w) col.style.width=c.w; cg.appendChild(col); } t.appendChild(cg); }   /* 칸 폭(w)을 주면 고정 폭 — 긴 글 칸이 옆 칸을 밀어내지 않게 */
+  const hd=t.createTHead().insertRow();
+  for(const c of cols){ const o=typeof c==='string'?{t:c}:c; hd.appendChild(h('th',o.num?'num':null,o.t)); }
+  const bd=t.createTBody();
+  for(const r of rows){ const R=Array.isArray(r)?{cells:r}:r; const tr=bd.insertRow(); if(R.cls) tr.className=R.cls;
+    R.cells.forEach((c,i)=>{ const o=(c&&typeof c==='object'&&!(c instanceof Node))?c:{t:c}; const col=cols[i]; const num=col&&typeof col==='object'&&col.num;
+      const td=h('td',[num?'num':'',o.cls||''].filter(Boolean).join(' ')||null); if(o.t instanceof Node) td.appendChild(o.t); else td.textContent=o.t==null?'':String(o.t); if(o.span) td.colSpan=o.span; tr.appendChild(td); }); }
+  const w=h('div','rsTblWrap'); w.appendChild(t); return w; }
+/* 접기 — 요약 줄(+ 작은 설명) · 돌려준 .in 에 내용을 붙인다 */
+function rsFold(host,title,small){ const d=document.createElement('details'); d.className='rsFold'; const s=h('summary',null,title); if(small){ s.appendChild(h('small',null,small)); } d.appendChild(s); const inn=h('div','in'); d.appendChild(inn); host.appendChild(d); return inn; }
+/* 대사 한 줄 — 말한 사람 · 말. 메신저로 온 말(cls 'msg')은 이름 아래 「메신저」 */
+function sayRow(host,who,text,cls){ if(!text) return; const d=h('div','rsSay'); const w2=h('div','who',who); if(cls==='msg') w2.appendChild(h('small',null,'메신저'));
+  d.appendChild(w2); d.appendChild(h('div','tx',fillName(text))); host.appendChild(d); }
+/* 하루 마무리(1~6일차) — 제목 → 팀장 한마디 → 오늘 드러난 역량(막대 · 잘한 점 · 다음엔) → 오늘 한 일(숫자 · 업무 표) → 오늘의 실수 → 들은 말 → 내일로 이어지는 것 → 단추 */
+function renderDebrief(r){ rsFont(); const w=$('dbWrap'); w.innerHTML=''; w.className='wrap rs';
+  const hd=h('header','rsHead'); hd.appendChild(h('h1',null,`${D.ep}일차 「${D.title}」 끝`)); hd.appendChild(h('p','rsMeta',`${D.teamName} · ${fmtClock(D.minutes)} 퇴근`)); w.appendChild(hd);
+  const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장'; const t0=h('div','rsTalk'); sayRow(t0,lead,r.leadLine); if(t0.childNodes.length) w.appendChild(t0);
+  const s1=rsSec(w,'오늘 드러난 역량','NCS 직업공통능력'); ncsDaily(s1);
+  const s2=rsSec(w,'오늘 한 일');
+  const items=[['처리',`${r.counts.done}/${r.counts.all}`],['넘김',r.counts.pass],['물어봄',r.counts.ask]]; if(r.counts.cite) items.push(['조항 인용',r.counts.cite]); if(r.counts.calcAll) items.push(['계산 정확',`${r.counts.calc}/${r.counts.calcAll}`]); if(r.counts.rightNpc||r.counts.wrongNpc) items.push(['맞는 상대',`${r.counts.rightNpc}/${r.counts.rightNpc+r.counts.wrongNpc}`]); if(r.counts.rejectAll) items.push(['거절·상신',`${r.counts.reject}/${r.counts.rejectAll}`]); if(r.triage) items.push(['분류 맞음',`${r.triage.hit}/${r.triage.total}`]); if(r.counts.follow) items.push(['재문의',r.counts.follow]); if(r.counts.askNeed) items.push(['직접 물어 얻은 답',`${r.counts.askHit||0}/${r.counts.askNeed}`]);
+  const st=h('div','rsStats'); for(const [n,v] of items){ const d=h('div'); d.appendChild(h('span',null,n)); d.appendChild(h('b',null,String(v))); st.appendChild(d); } s2.appendChild(st);
+  /* 업무 · 처리 · 점수 — 처리는 글자로(못 한 것은 빨강 · 늦은 것은 주황), 점수는 오른쪽 정렬 */
+  const rows=[]; for(const c of D.cards){ const s=S.cards[c.id]; if(!s||c.scored===false&&c.mode==='story'||s.status==='skipped') continue;
+    const scored=s.score!=null; let label=scored?actLabel(s.act):(c.unscored||c.axis==='self'?(s.text?'기록함':'기록 없음'):'-');
     if(scored&&s.late&&s.act!=='none') label+=' · 늦음';
-    const chip=h('span','a '+chipKind(s,label),label); if(!scored&&!(c.unscored||c.axis==='self')) chip.classList.add('plain');
-    tbl.appendChild(chip);
-    const v=h('span','v',scored?String(s.score):'');
-    if(scored) v.classList.add(s.score===0?'zero':s.score>=80?'hi':s.score<60?'lo':'mid'); tbl.appendChild(v); }
-  box1.appendChild(tbl); if(r.skipped.length) box1.appendChild(bnote('끝나지 않은 건',r.skipped.join(', ')));
-  if(r.notArrived) box1.appendChild(bnote('오지 않은 업무',`${r.notArrived}건${S.quit?'(중간에 끝내 받지 못했어요)':''}`)); grid.appendChild(box1);
-  const box2=h('div','box'); box2.style.setProperty('--bc',BOX_HUE.ncs); box2.appendChild(ncsHead('오늘 드러난 역량','NCS 직업공통능력')); ncsDaily(box2); const tr=Object.entries(r.trust);
-  if(tr.length) box2.appendChild(bnote('신뢰',tr.map(([n,v])=>`${n} ${v>0?'+':''}${v}`).join(', ')));
-  if(r.clues.length) box2.appendChild(bnote('오늘 모은 단서',r.clues.map(k=>k.note).join(' / ')));
-  if(r.clueGaps.length) box2.appendChild(bnote('빈 단서',r.clueGaps.join(', ')+' — 7일차 취합표가 빕니다',true)); grid.appendChild(box2);
-  const lead=(D.dests.find(x=>x.seat==='lead')||{}).name||'팀장'; say(lead,r.leadLine);
-  const mbox=h('div','box'); mbox.style.setProperty('--bc',BOX_HUE.mistake); mbox.appendChild(h('h3',null,'오늘의 실수 1')); if(r.mistake){ const c=CARD(r.mistake); mbox.appendChild(h('div',null,c.subj)); const ml=(D.dialog.debrief.mistakeLines||{})[r.mistake]; const who=(ml&&ml.who)||(D.dests.find(x=>x.seat==='senior')||{}).name||'사수'; const l=h('div','muted',`${who}: ${r.mistakeLine}`); mbox.appendChild(l); } else mbox.appendChild(h('div',null,'눈에 띄는 실수가 없었어요. 드문 일이에요.')); w.appendChild(mbox);
-  const senior=(D.dests.find(x=>x.seat==='senior')||{}).name||'사수'; say(senior,D.dialog.debrief.senior);
-  const saidEx=new Set(); for(const ex of (D.dialog.debrief.extra||[])){ if(extraCondMet(ex)){ say(ex.who,ex.text,ex.msg?'msg':''); saidEx.add(ex.who+'\n'+ex.text); } }
+    const k=chipKind(s,label); const stc='st'+(k==='k-none'?' bad':k==='k-late'?' warn':'');
+    const vc=scored?(s.score===0?'bad':s.score<60?'warn':''):''; rows.push([c.subj,{t:label,cls:stc},{t:scored?String(s.score):'',cls:vc}]); }
+  if(rows.length) s2.appendChild(rsTable([{t:'업무',w:'64%'},{t:'처리',w:'24%'},{t:'점수',num:true,w:'12%'}],rows));
+  const nt=[]; if(r.skipped.length) nt.push(['끝나지 않은 건',r.skipped.join(', ')]); if(r.notArrived) nt.push(['오지 않은 업무',`${r.notArrived}건${S.quit?'(중간에 끝내 받지 못했어요)':''}`]); if(nt.length) s2.appendChild(rsDl(nt));
+  const s3=rsSec(w,'오늘의 실수');
+  if(r.mistake){ const c=CARD(r.mistake); s3.appendChild(h('p','rsLeadIn',c.subj)); const ml=(D.dialog.debrief.mistakeLines||{})[r.mistake]; const who=(ml&&ml.who)||(D.dests.find(x=>x.seat==='senior')||{}).name||'사수'; const tk=h('div','rsTalk'); sayRow(tk,who,r.mistakeLine); if(tk.childNodes.length) s3.appendChild(tk); }
+  else s3.appendChild(h('p',null,'눈에 띄는 실수가 없었어요. 드문 일이에요.'));
+  const tk=h('div','rsTalk'); const senior=(D.dests.find(x=>x.seat==='senior')||{}).name||'사수'; sayRow(tk,senior,D.dialog.debrief.senior);
+  const saidEx=new Set(); for(const ex of (D.dialog.debrief.extra||[])){ if(extraCondMet(ex)){ sayRow(tk,ex.who,ex.text,ex.msg?'msg':''); saidEx.add(ex.who+'\n'+ex.text); } }
   /* 같은 사람이 추가 대사로 방금 한 말은 동기 대사로 다시 하지 않는다(57차 E1 후속 2 — buy 6일차: 단서가 달린 추가 대사와 동기 대사가 같은 말이라 두 번 떴다) */
-  if(!saidEx.has(peerName()+'\n'+D.dialog.debrief.peer)) say(peerName(),D.dialog.debrief.peer,'msg');
-  if(r.nexts.length){ const box=h('div','box'); box.style.setProperty('--bc',BOX_HUE.next); box.appendChild(h('h3',null,'내일로 이어지는 것')); const ul=h('ul');
+  if(!saidEx.has(peerName()+'\n'+D.dialog.debrief.peer)) sayRow(tk,peerName(),D.dialog.debrief.peer,'msg');
+  if(tk.childNodes.length) rsSec(w,'오늘 들은 말').appendChild(tk);
+  const nx=[]; if(r.nexts.length){
     /* 겹치는 예고를 걷어낸다. 글자가 똑같은 것만 걸러서는 부족했다 — 「물류팀 오대리가 이름을 기억한다 · 다시 가면 "또 오셨네요"」와
        「그 자리에 다시 가면 "또 오셨네요"」처럼 한쪽이 다른 쪽에 통째로 담긴 경우가 남아 같은 말이 두 번 떴다. 짧은 쪽을 버리고 긴 쪽만 남긴다. */
     const norm=(s)=>String(s||'').replace(/[\s"'"「」·—-]/g,'');
     const named=(s)=>/(팀|님|과장|차장|부장|대리|주임|선임)/.test(s);   /* 사람·팀을 짚었으면 구체적인 줄이다 */
     const tail=(a,b)=>{ let i=0; while(i<a.length&&i<b.length&&a[a.length-1-i]===b[b.length-1-i]) i++; return i; };
-    const items=[]; for(const n of r.nexts){ const k=norm(n.text); if(!k) continue;
+    const its=[]; for(const n of r.nexts){ const k=norm(n.text); if(!k) continue;
       /* ① 한쪽이 다른 쪽에 통째로 담겼거나 ② 결과 문구를 12자 넘게 공유하는데 한쪽만 사람·팀을 짚었으면 같은 예고로 본다 */
-      const dup=items.findIndex(x=> x.k.includes(k)||k.includes(x.k)
+      const dup=its.findIndex(x=> x.k.includes(k)||k.includes(x.k)
         || (tail(x.k,k)>=12 && named(x.text)!==named(n.text)) );
-      if(dup<0){ items.push({k,text:n.text}); continue; }
-      if(named(n.text)&&!named(items[dup].text)) items[dup]={k,text:n.text};
-      else if(named(n.text)===named(items[dup].text)&&k.length>items[dup].k.length) items[dup]={k,text:n.text}; }
-    for(const it of items) ul.appendChild(h('li',null,it.text));
-    box.appendChild(ul); w.appendChild(box); }
-  if(D.dialog.debrief.nextEp) w.appendChild(h('div','sub next',D.dialog.debrief.nextEp));
+      if(dup<0){ its.push({k,text:n.text}); continue; }
+      if(named(n.text)&&!named(its[dup].text)) its[dup]={k,text:n.text};
+      else if(named(n.text)===named(its[dup].text)&&k.length>its[dup].k.length) its[dup]={k,text:n.text}; }
+    for(const it of its) nx.push(it.text); }
+  const tr=Object.entries(r.trust); const dl=[]; if(tr.length) dl.push(['신뢰',tr.map(([n,v])=>`${n} ${v>0?'+':''}${v}`).join(', ')]);
+  if(r.clues.length) dl.push(['모은 단서',r.clues.map(k=>k.note).join(' / ')]);
+  if(r.clueGaps.length) dl.push(['빈 단서',`${r.clueGaps.join(', ')} (7일차 취합표에서 빈 칸이 돼요)`,'bad']);
+  if(nx.length||dl.length||D.dialog.debrief.nextEp){ const s5=rsSec(w,'내일로 이어지는 것');
+    if(nx.length){ const ul=h('ul','rsList'); for(const t of nx) ul.appendChild(h('li',null,t)); s5.appendChild(ul); }
+    if(dl.length) s5.appendChild(rsDl(dl));
+    if(D.dialog.debrief.nextEp) s5.appendChild(h('p','rsNote',D.dialog.debrief.nextEp)); }
   const ft=h('div','foot'); if(S.ep<7) ft.appendChild(mkBtn(`${S.ep+1}일차로`,'pri',()=>goDay(S.team,S.ep+1))); ft.appendChild(mkBtn('홈으로','',()=>goHome(false))); ft.appendChild(mkBtn('오늘 다시','',()=>{ delete P.done[String(S.ep)]; P.cur=null; P.day=S.ep; saveProgress(true); goDay(S.team,S.ep); }));   /* F13: 서버도 그날로 낮춘다(ws7ProgNext) — 클라이언트 P.day 를 같게 */ ft.appendChild(mkBtn('사무실 보기','',()=>$('debrief').classList.remove('open'))); w.appendChild(ft); }
-function peerName(){ const m=(D.dialog.briefing||[]).find(l=>l.role==='동기'); if(m) return m.who; const org=ORG[S.team]; return org?({cs:'윤하린',logi:'정수빈',acct:'임도윤',ga:'백하은',rec:'송민재',plan:'안예린',qc:'유하늘',pr:'곽민서',edu:'차은우',buy:'하지원'}[S.team]||'동기'):'동기'; }
+function peerName(){if(typeof WorkSimRoster!=='undefined'){const self=WorkSimRoster.player(S.team,P?.avatar||avatarPref()||'m');const peer=self&&WorkSimRoster.team(S.team).find(c=>c.player_selectable&&c.model_id!==self.model_id);if(peer)return peer.display_name;} const m=(D.dialog.briefing||[]).find(l=>l.role==='동기'); if(m) return m.who; const org=ORG[S.team]; return org?({cs:'윤하린',logi:'정수빈',acct:'임도윤',ga:'백하은',rec:'송민재',plan:'안예린',qc:'유하늘',pr:'곽민서',edu:'차은우',buy:'하지원'}[S.team]||'동기'):'동기'; }
 /* 「무엇을 했나」를 한 낱말로 갈라 칩 색을 정한다 */
 function chipKind(st,label){ if(st.act==='none'||label==='미처리'||label==='기록 없음') return 'k-none';
   if(st.late) return 'k-late';
@@ -639,34 +683,35 @@ function chipKind(st,label){ if(st.act==='none'||label==='미처리'||label==='�
   if(['ask','confirm'].includes(st.act)) return 'k-ask';
   return 'k-done'; }
 /* 막대·목록 아래에 붙는 딸림 줄. 이름표를 굵게 앞세우고 위에 선을 그어 본문과 끊는다 */
-function bnote(label,text,bad){ const d=h('div','bnote'+(bad?' bad':'')); d.appendChild(h('b',null,label)); d.appendChild(document.createTextNode(text)); return d; }
 /* ---------- 57차 E1 — 역량 화면(NCS 직업공통능력 2025.12 · spec §2-10) ----------
-   계산은 js/ncs_eval.js(NcsEval) 한 곳 — 여기서는 그리기만 한다. 영역 7개는 고정 순서·영역마다 고유색(js/ncs.js — 막대·점에만, 글자색으로 쓰지 않는다).
-   0 인 영역도 막대 왼쪽 3px 마커와 옅은 바탕이 남는다(대표 확정 스펙 §1 — 예전 10축 막대와 같은 부품).
+   계산은 js/ncs_eval.js(NcsEval) 한 곳 — 여기서는 그리기만 한다. 60차: 막대는 점수 순 · 회색 하나 + 「잘한 점」 영역만 강조색(영역 고유색은 쓰지 않는다).
    수준 이름(초보·준비·적응·숙련)은 일일 화면에 내지 않는다 — 하루치 근거로는 얇다(§2-10). 화면 문장에 내부 용어(항목 id·요소 코드·행동 키)를 쓰지 않는다 */
 const ncsReady=()=>typeof NcsEval!=='undefined'&&typeof NCS!=='undefined'&&!!NCS&&!!NCS.areas;
-/* 영역 한 줄 — v(0~100)가 있으면 막대, 없으면 그 자리에 짧은 안내(note). extra = 뒤에 붙는 칸(7일 화면의 수준·포괄도) */
-function areaRow(a,v,note,extra){ const row=h('div','ncsRow'+(extra?' wk':'')+(v==null?' nob':'')+(v===0?' zero':'')); row.style.setProperty('--c',a.hue);
-  const ax=h('span','ax'); const dot=h('i'); dot.style.background=a.hue; ax.appendChild(dot); ax.appendChild(document.createTextNode(a.name)); row.appendChild(ax);
-  if(v!=null){ const b=h('div','b'); b.style.background=a.hue+'1f'; const i=h('i'); b.appendChild(i); row.appendChild(b); row.appendChild(h('span','v',String(v)));
-    requestAnimationFrame(()=>{ i.style.width=Math.max(0,Math.min(100,v))+'%'; }); }
-  else { row.appendChild(h('span','nt',note||'')); row.appendChild(h('span','v','')); }
-  for(const e of (extra||[])) row.appendChild(e);
-  return row; }
-/* 제목 앞의 작은 부제(「NCS 직업공통능력」) — 제목 줄을 하나로 두고 부제는 가볍게 */
-function ncsHead(title,sub){ const t=h('h3',null,title); if(sub) t.appendChild(h('small',null,sub)); return t; }
-/* 디브리프 「오늘 드러난 역량」 — 그날 영역 막대(실효 가중 ≥ 2 또는 하루 집계가 있는 영역만) · 잘한 점 1줄 · 다음엔 1줄 · 하위능력 보기(접기) */
+/* 디브리프 「오늘 드러난 역량」 — 그날 영역 막대(실효 가중 ≥ 2 또는 하루 집계가 있는 영역만) · 잘한 점 1줄 · 다음엔 1줄 · 하위능력 보기(접기)
+   다음엔(60차): 앞선 날에 보인 문장은 되풀이하지 않는다 — NcsEval.dailySeen 이 저장본으로 앞날의 선택을 다시 돌려 키를 넘긴다 */
 function ncsDaily(box){ if(!ncsReady()) return; const rec=P&&P.done&&P.done[String(S.ep)];
-  if(!rec||!rec.ncs2){ box.appendChild(h('div','muted','이 날은 역량 기록이 없어요.')); return; }
-  const list=NcsEval.fromProgress({team:S.team,done:{[String(S.ep)]:rec}}).list; const dy=NcsEval.daily(list,S.ep,{tips:S.evTip||{},exclude:[rec.mistake].concat(S.mistakes||[]).filter(Boolean)});
-  const wrap=h('div','ncs'); for(const a of dy.areas) wrap.appendChild(areaRow(a,a.show?a.S:null,a.n?`오늘 관찰 ${a.n}건`:'오늘은 관찰 없음')); box.appendChild(wrap);
-  const title=(id)=>{ const c=id&&CARD(id); return c?` (「${c.subj}」)`:''; };
-  if(dy.strong) box.appendChild(bnote('잘한 점',`${NCS.subs[dy.strong.sub].name}: ${dy.strong.text}${title(dy.strong.card)}`));
-  if(dy.weak) box.appendChild(bnote('다음엔',`${NCS.subs[dy.weak.sub].name}: ${dy.weak.tip}${title(dy.weak.card)}`));
-  const subs=Object.keys(dy.subs).sort(); if(subs.length){ const d=document.createElement('details'); d.className='ncsSub'; d.appendChild(h('summary',null,'하위능력 보기'));
-    const ul=h('ul'); for(const c of subs){ const x=dy.subs[c]; ul.appendChild(h('li',null,`${NCS.subs[c].name} 관찰 ${x.n}건 · 잘함 ${x.ok}건`)); } d.appendChild(ul); box.appendChild(d); }
-  if(rec.ncs2.part) box.appendChild(bnote('기록','이 날은 역량 근거가 일부만 기록됐어요(이전 방식으로 한 부분이 있거나 채점 서버가 근거를 보내지 않은 처리가 있었어요). 막대는 기록된 것만으로 그렸어요.',true));
-  if(rec.ncs2.quit) box.appendChild(bnote('기록','오늘은 중간에 끝냈어요. 오지 않은 업무도 제때 처리한 비율에 들어가요.')); }
+  if(!rec||!rec.ncs2){ box.appendChild(h('p','rsNote','이 날은 역량 기록이 없어요.')); return; }
+  const list=NcsEval.fromProgress({team:S.team,done:{[String(S.ep)]:rec}}).list;
+  let seen=[]; try{ if(typeof NcsEval.dailySeen==='function') seen=NcsEval.dailySeen(P,S.ep,{team:S.team}); }catch(e){ seen=[]; }
+  const dy=NcsEval.daily(list,S.ep,{tips:S.evTip||{},exclude:[rec.mistake].concat(S.mistakes||[]).filter(Boolean),seen});
+  const strongArea=dy.strong&&NCS.subs[dy.strong.sub]?NCS.subs[dy.strong.sub].area:null;
+  /* 점수가 난 영역만 막대로(60차 후속 — 「오늘 관찰 N건」만 있는 줄은 뺀다. 관찰 건수는 「하위능력 보기」에) */
+  const shown=dy.areas.filter(a=>a.show);
+  if(shown.length) box.appendChild(h('p','rsMeta','영역별 오늘 점수(0~100)'));
+  if(shown.length) box.appendChild(rsBars(rsRank(shown.map(a=>({name:a.name,S:a.S,mark:a.id===strongArea?'잘한 점':''}))),{noLevel:true}));
+  else box.appendChild(h('p','rsNote','오늘은 점수를 낼 만큼 관찰된 영역이 없어요.'));
+  /* 잘한 점·다음엔(60차 2차) — 하위능력(영역) · 오늘 점수 / 결과 문장(하위능력에 맞춘 문장 — NcsEval.phrase) / 평가 기준 / 근거 업무 최대 2(오늘 · 제목 · 내 처리 · 점수).
+     수준 이름은 하루 화면에 내지 않는다(§2-10) */
+  const areaName=(sub)=>{ const A=NCS.areas.find(a=>a.subs.includes(sub)); return A?A.name:''; };
+  const flawed=new Set(list.filter(e=>e.card&&e.s<=1).map(e=>e.card).concat([rec.mistake].concat(S.mistakes||[]).filter(Boolean)));
+  const evCards=(sub,good,first)=>{ const ids=[]; if(first) ids.push(first); for(const e of list) if(e.sub===sub&&e.card&&(good?(e.s>=2&&!flawed.has(e.card)):e.s<=1)&&!ids.includes(e.card)) ids.push(e.card);
+    return ids.slice(0,2).map(id=>{ const c=CARD(id); const st=S.cards[id]||{}; return {d:S.ep,title:c?`「${c.subj}」`:'업무',act:st.act?actLabel(st.act):'',score:typeof st.score==='number'?st.score:null}; }); };
+  const sd=(sub)=>dy.subs[sub]&&dy.subs[sub].S!=null?dy.subs[sub].S:null;
+  if(dy.strong){ const sub=dy.strong.sub; box.appendChild(h('p','rsKick','잘한 점')); box.appendChild(rsItem({name:NCS.subs[sub].name,area:areaName(sub),pre:'오늘 점수',S:sd(sub),say:NcsEval.native&&NcsEval.native(dy.strong.ov,sub)?dy.strong.text:'',see:NCS.subs[sub].see||'',ev:evCards(sub,true,dy.strong.card)})); }
+  if(dy.weak){ const sub=dy.weak.sub; box.appendChild(h('p','rsKick','다음엔')); box.appendChild(rsItem({name:NCS.subs[sub].name,area:areaName(sub),pre:'오늘 점수',S:sd(sub),say:dy.weak.tip,see:NCS.subs[sub].see||'',ev:evCards(sub,false,dy.weak.card)})); }
+  const subs=Object.keys(dy.subs).sort(); if(subs.length){ const inn=rsFold(box,'하위능력 보기'); inn.appendChild(rsTable(['하위능력',{t:'관찰',num:true},{t:'잘함',num:true}],subs.map(c=>[NCS.subs[c].name,String(dy.subs[c].n),String(dy.subs[c].ok)]))); }
+  if(rec.ncs2.part) box.appendChild(h('p','rsNote','이 날은 역량 기록이 일부만 남아, 남은 기록으로 막대를 그렸어요.'));
+  if(rec.ncs2.quit) box.appendChild(h('p','rsNote','중간에 끝낸 날이라 오지 않은 업무도 제때 처리한 비율에 들어가요.')); }
 /* ---------- 일시정지 · 모바일 ---------- */
 /* 일시정지는 메뉴다 — 「오늘 그만하기」를 이 안에 넣어 눈에 띄지 않게 둔다 */
 function setPaused(on){ S.paused=!!on; $('pause').classList.toggle('on',S.paused); $('pause').textContent=S.paused?'계속하기':'일시정지';

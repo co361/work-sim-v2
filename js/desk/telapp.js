@@ -48,7 +48,11 @@
       var done = st.status === 'done';
       var b = el('button', 'telRow' + (done ? ' done' : ''));
       b.type = 'button';
-      b.appendChild(el('span', 'fa', done ? '✓' : '☎'));
+      /* 받은 전화 = 승인 그림 15번(통화 · 2026-09-29) · 응대한 것 = ✓(상태 기호라 그대로) */
+      var fa = el('span', 'fa', done ? '✓' : '');
+      var A = global.OC && global.OC.ui && global.OC.ui.appicon;
+      if (!done) { var im = (A && A.inline) ? A.inline('talk') : ''; if (im) fa.innerHTML = im; else fa.textContent = '☎'; }
+      b.appendChild(fa);
       var mid = el('span', 'mid');
       mid.appendChild(el('b', null, c.from + (c.role ? ' (' + c.role + ')' : '')));
       mid.appendChild(el('span', null, done

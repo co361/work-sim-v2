@@ -237,6 +237,18 @@
   color:var(--t-ink);font-size:var(--t-sm,14.5px);font-weight:650;letter-spacing:-.01em;padding:0 84px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pc .win-tt .win-ctrls{display:flex;gap:8px;align-items:center;z-index:1}
+/* 글자 사이·제목 앞의 작은 그림(2026-09-29 — appicon.inline · co-work-sim app.css 와 같다). 옛 그림 문자(📊·📕·🗑…) 자리다.
+   그림은 몸체 80.5% 캔버스라 상자를 몸체보다 크게 잡고(1.24배) 여백만큼 음수 여백으로 당긴다 —
+   글자와의 간격·줄 높이는 그림 문자 한 글자와 같게 남는다.
+   .oc-ic   본문·버튼·탭·알림 — 몸체 ≈ 1.05em(글자 크기를 따라간다)
+   .oc-ic-h 창 안 제목·섹션 머리 — 몸체 ≈ 22px */
+.oc-ic{display:inline-block;width:1.3em;height:1.3em;vertical-align:-.3em;
+  margin:-.13em .12em -.13em -.13em;pointer-events:none;user-select:none}
+.oc-ic.oc-ic-h{width:28px;height:28px;vertical-align:-7px;margin:-3px 4px -3px -3px}
+/* 창 제목 줄 아이콘(2026-09-29) — co-work-sim app.css 의 같은 절과 같다(windows.js paintTitle). */
+#pc .win-tt .win-title .win-ico{display:inline-block;width:18px;height:18px;vertical-align:-4px;margin-right:7px}
+#pc .win-tt .win-title .win-ico .dock-img{display:block;width:100%;height:100%}
+#pc .win-tt .win-title .win-ico img.oc-pic{transform:scale(1.242)}
 #pc .win-tt .win-x,#pc .win-tt .win-min,#pc .win-tt .win-max{border:0;color:transparent;border-radius:50%;
   width:12px;height:12px;font-size:9px;cursor:pointer;line-height:1;padding:0;
   display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.12);
@@ -328,6 +340,16 @@
   filter:drop-shadow(0 0 1px rgba(60,60,67,.55))
          drop-shadow(0 0 2px rgba(60,60,67,.26))}
 #pc .dock-app svg,#pc #tbWins button svg{display:block}
+/* 🔴 2026-09-29 — 사용자 승인 **입체 아이콘(그림 파일)**. co-work-sim app.css 의 같은 절과 같다.
+   appicon.js 가 그림이 떠 있는 동안만 칸·<img> 에 `oc-pic` 을 붙인다.
+   ① 그림에 몸체 바로 아래 그림자가 이미 있다 — 타일용 CSS 그림자를 끈다(겹치면 흐린 띠).
+      그림이 404 로 벡터로 떨어지면 `oc-pic` 이 빠져 위 벡터용 그림자가 돌아온다.
+   ② 몸체 = 캔버스의 80.5% → 1.242 배로 키워 몸체가 칸(독 40 · 바탕화면 48px)을 채운다.
+      transform 이라 칸·격자·독 높이 계산은 그대로다. */
+#pc .dock-app img.dock-img,#pc #tbWins button img.dock-img{display:block;width:100%;height:100%;pointer-events:none}
+#pc .dock-app.oc-pic,#pc #tbWins button.oc-pic,#pc .dt-icon .ic.tile.oc-pic,#pc .dt-icon.dt-trash.full .ic.oc-pic{filter:none}
+#pc .dock-app .dock-img.oc-pic,#pc #tbWins button .dock-img.oc-pic,#pc .dt-icon .ic.tile img.oc-pic{
+  filter:none;transform:scale(1.242)}
 #pc .tb-right{display:flex;align-items:center;gap:8px;align-self:center;margin-left:2px}
 /* 시계 색의 정본은 theme.css 였다 — `--t-ink` 는 OS 다크모드에서도 뒤집히지 않는다.
    독 바닥이 늘 밝은 유리라 어두운 잉크가 답이다(실측 5.48~16.8:1). */

@@ -104,23 +104,28 @@
       w: 560, h: 620, iconKey: 'messenger', mount: mountMsg },
     { id: TEL, title: '☎ 전화 메모', dockLabel: '전화',
       w: 460, h: 520, iconKey: 'talk', mount: mountTel },
+    /* 🔴 2026-09-29 — 업무 노트는 `note` 다. 사용자 승인 입체 아이콘 24종에 「업무 노트」 뜻의
+       그림이 없어 **종전 벡터(펼친 책)를 그대로** 쓴다(appicon.js VEC_ALIAS note→book 벡터).
+       `book` 키는 이제 뜻 그대로 「사규집(규정집 · 9번 그림)」이다 — co-work-sim 과 같은 뜻. */
     { id: NOTE, title: '📕 업무 노트', dockLabel: '업무 노트',
-      w: 520, h: 640, iconKey: 'book', mount: mountNote }
+      w: 520, h: 640, iconKey: 'note', mount: mountNote }
   ];
 
   /* ── 3. 바탕화면 아이콘 ────────────────────────────────────────────────
      「내 자리에 놓인 자료」 — 업무 노트의 네 탭으로 곧장 들어가는 문이다.
-     타일 키는 전부 appicon.js 에 이미 있는 것만 쓴다(새로 그리지 않는다).
-     🔴 사규집을 `book` 이 아니라 `law` 로 두었다 — `book` 은 독의 「업무 노트」가
-        쓰고 있어서, 같은 그림이 독과 바탕화면에 하나씩 서면 서로 다른 것으로
-        읽힌다. 둘 다 원본에 있는 키다. */
+     타일 키는 전부 appicon.js 에 있는 것만 쓴다(새로 그리지 않는다).
+     🔴 2026-09-29 — 키를 **뜻**으로 고른다(사용자 승인 입체 아이콘 24종 적용).
+        · 사규집 → `book`(9번 규정집 그림). 종전 `law` 는 co-work-sim 에서 「법무·계약」(16번)이라
+          뜻이 어긋난다. 독의 업무 노트는 `note` 로 옮겼다(위 APPS).
+        · 오늘 진행 → `log`(7번 진행 기록 그림).
+        · 조직도(`org`)·사수 메모(`memo`) — 뜻이 맞는 그림이 없어 **종전 벡터 그대로**
+          (appicon.js VEC_ALIAS: org → 옛 data 표 · memo → 옛 doc 쪽지). 가장 가까운 그림을
+          억지로 붙이지 않는다. */
   var FILES = [
-    { name: '사규집',    tile: 'law',  icon: '📕', note: '규정·조항을 찾아본다', tab: 'rule', unlock: 'rulebook' },
-    { name: '조직도',    tile: 'data', icon: '🗂', note: '누구에게 넘길지 본다',  tab: 'org',  unlock: 'orgchart' },
+    { name: '사규집',    tile: 'book', icon: '📕', note: '규정·조항을 찾아본다', tab: 'rule', unlock: 'rulebook' },
+    { name: '조직도',    tile: 'org',  icon: '🗂', note: '누구에게 넘길지 본다',  tab: 'org',  unlock: 'orgchart' },
     { name: '오늘 진행', tile: 'log',  icon: '📋', note: '처리한 것과 남은 것',   tab: 'prog' },
-    /* 말풍선 타일(talk)은 독의 「메신저」가 가져갔다 — 같은 그림이 두 자리에 서면
-       서로 다른 것으로 읽힌다. 사수 메모는 쪽지(doc)로 둔다. */
-    { name: '사수 메모', tile: 'doc',  icon: '📝', note: '사수가 남긴 한 줄',     tab: 'hint' }
+    { name: '사수 메모', tile: 'memo', icon: '📝', note: '사수가 남긴 한 줄',     tab: 'hint' }
   ];
 
   /* ── 권한 단계 ────────────────────────────────────────────────────────
@@ -254,7 +259,7 @@
 
   function openPc(force) {
     if (!force && !isSeated()) {
-      if (typeof global.toast === 'function') global.toast('내 자리에 앉아야 컴퓨터를 쓸 수 있어요.', '🖥', 3600, 'cust');
+      if (typeof global.toast === 'function') global.toast('내 자리에 앉아야 컴퓨터를 쓸 수 있어요.', '', 3600, 'cust');   // 🖥 는 뜻 맞는 그림이 없어 뺐다(2026-09-29)
       return false;
     }
     mount();

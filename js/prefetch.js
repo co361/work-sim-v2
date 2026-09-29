@@ -54,7 +54,13 @@
     /* data/rulebook.js·data/story 는 배포본에 없다(서버가 토큰 확인 뒤 준다) — 미리 받지 않는다(57차: 받으면 배포본에서 404) */
     /* PC 를 켜는 순간 벽지가 없으면 폴백 그라디언트가 한 번 번쩍인다 —
        기본(lake) 한 장만 미리 받는다. 나머지 셋은 지금 쓰지 않는다. */
-    'assets/wall/lake.webp?v=3'
+    'assets/wall/lake.webp?v=3',
+    /* PC 독·바탕화면의 승인 입체 아이콘(2026-09-29) — 이 게임이 실제로 그리는 것만.
+       주소는 appicon.js 가 부르는 것과 **글자까지 같아야** 캐시가 맞는다(?v= = ART_VER). */
+    'assets/appicon/mail.webp?v=3', 'assets/appicon/messenger.webp?v=3', 'assets/appicon/talk.webp?v=3',
+    'assets/appicon/clock.webp?v=3', 'assets/appicon/book.webp?v=3', 'assets/appicon/log.webp?v=3',
+    'assets/appicon/note.webp?v=3', 'assets/appicon/org.webp?v=3', 'assets/appicon/memo.webp?v=3',
+    'assets/appicon/finish.webp?v=3', 'assets/appicon/sheet.webp?v=3'
   ];
 
   var S = {

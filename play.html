@@ -4,7 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>WORK SIM — 7일차 직무 게임</title>
-<link rel="icon" href="data:,">
+<!-- 탭 아이콘 — 사용자 승인 입체 아이콘 24번(2026-09-29). 번호·파일 표는 assets/appicon/icons.json -->
+<link rel="icon" type="image/png" sizes="32x32" href="assets/appicon/favicon-32.png?v=3">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/appicon/favicon-16.png?v=3">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/appicon/favicon-48.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/appicon/favicon-192.png?v=3">
 <style>
   /* 팔레트 — 대표 확정 「화이트·회색·남색」(38차). 크림·금색은 남기지 않는다.
      흰 바탕 위 대비: 잉크 15.7 · 보조 5.8 · 강조 8.3 · 진한강조 11.9 · 초록 6.0 · 빨강 6.5 */
@@ -495,6 +499,160 @@
   .qbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0} .qbox .q{font-weight:700;margin-bottom:4px} .qbox .opt{display:block;padding:4px 0;font-size:13px}
   #ep7 details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:6px 0} #ep7 summary{font-weight:700;cursor:pointer}
   table.week td,table.week th{text-align:center}
+  /* ── 60차 결과 화면(하루 마무리 #debrief · 7일 결과 #ep7.rsPage) ──
+     사용자 「내용도 내용인데 가독성도 너무 안좋고 디자인도 너무 이상해」(2026-09-28). 규칙:
+       · 한 단 읽기 — 본문 17px/1.6(KRDS 16~17 · 1.5~1.6) · 한 줄 한글 40~45자(본문 폭 44em 안팎) · 제목은 h1·h2·h3 세 단계
+       · 상자·테두리 대신 간격(4·8·12·16·24·32·48)과 굵기·크기·색으로 위계 — 선은 표 줄 구분과 접기 위아래에만
+       · 막대는 회색 하나 + 강조색(--acc) 하나 · 범례 없이 막대 끝에 점수·수준을 바로 적는다 · 격자 없음(0 기준선만)
+       · 회색 글자 #5b6675(흰 바탕 5.8:1) 아래로는 쓰지 않는다 · 모서리는 단추(알약)만 둥글다 */
+  #debrief,#ep7.rsPage{background:#fff}
+  :is(#debrief,#ep7) .wrap.rs{--rs-ink:#1b2430;--rs-ink2:#333d4b;--rs-mute:#4d5766;--rs-line:#e3e7ee;--rs-bar:#77818f;
+    max-width:760px;padding:56px 24px 80px;color:var(--rs-ink);font-size:17px;line-height:1.6;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+    word-break:keep-all;overflow-wrap:break-word;-webkit-font-smoothing:antialiased}
+  :is(#debrief,#ep7) .rs h1{font-size:30px;line-height:1.3;font-weight:700;letter-spacing:-.02em;margin:0}
+  :is(#debrief,#ep7) .rs h2{font-size:21px;line-height:1.4;font-weight:700;letter-spacing:-.01em;margin:0 0 16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  :is(#debrief,#ep7) .rs h2 small{font-size:15px;font-weight:500;color:var(--rs-mute);letter-spacing:0}
+  :is(#debrief,#ep7) .rs h3{font-size:18px;line-height:1.45;font-weight:700;margin:0}
+  .rs p{margin:0}
+  .rs .rsHead{margin-bottom:32px}
+  .rs .rsMeta{margin-top:8px;font-size:15px;line-height:1.5;color:var(--rs-mute)}
+  .rs .rsSec{margin-top:48px}
+  .rs .rsNote{margin-top:12px;font-size:15px;line-height:1.55;color:var(--rs-mute)}
+  /* 숫자 줄 — 라벨(작게·회색) 위, 값(크게·굵게) 아래. 판·테두리 없이 간격으로만 */
+  .rs .rsStats{display:flex;flex-wrap:wrap;gap:16px 40px;margin:0 0 8px}
+  .rs .rsStats>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .rs .rsStats span{font-size:14px;line-height:1.4;color:var(--rs-mute)}
+  .rs .rsStats b{font-size:24px;line-height:1.25;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rs .rsStats b small{font-size:17px;font-weight:600;margin-left:6px}
+  /* 막대 — 영역 이름 · (막대 + 끝 라벨). 막대 최대 폭은 라벨 자리(8.5em)를 뺀 만큼 */
+  .rs .rsBars{display:flex;flex-direction:column;gap:0;margin:4px 0 0}
+  .rs .rsBars .ncsRow{display:grid;grid-template-columns:8.2em minmax(0,1fr) 2.4em 2.6em 3.6em;align-items:center;gap:0 10px;min-height:38px;padding:0;border-radius:0;background:none;font-size:16px}
+  .rs .rsBars.nolv .ncsRow{grid-template-columns:8.2em minmax(0,1fr) 2.4em 4.2em}
+  .rs .rsBars .sc{text-align:right;font-size:17px;font-weight:700;color:var(--rs-ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rs .rsBars .lvl{font-size:15px;color:var(--rs-ink2);white-space:nowrap}
+  .rs .rsBars .mk{font-size:15px;font-weight:700;color:var(--acc);white-space:nowrap}
+  .rs .rsBars .nm{color:var(--rs-ink);white-space:nowrap}
+  .rs .rsBars .bw{display:flex;align-items:center;min-width:0;min-height:38px;border-left:1px solid var(--rs-ink2);padding-left:0}
+  .rs .rsBars .bar{display:block;height:18px;width:calc(var(--s,0) * 1%);min-width:2px;background:var(--rs-bar);
+    transform-origin:left center;animation:rsGrow .45s ease-out both}
+  .rs .rsBars .hi .bar{background:var(--acc)}
+  .rs .rsBars .lab{white-space:nowrap;font-size:15px;color:var(--rs-mute);font-variant-numeric:tabular-nums}
+  .rs .rsBars .lab b{font-size:17px;font-weight:700;color:var(--rs-ink);margin-right:4px}
+  .rs .rsBars .lab .mk{margin-left:8px;font-weight:700;color:var(--acc)}
+  .rs .rsBars .nob .nm{color:var(--rs-mute)}
+  .rs .rsBars .nt{padding-left:12px;font-size:15px;color:var(--rs-mute)}
+  @keyframes rsGrow{from{transform:scaleX(0)}to{transform:none}}
+  @media (prefers-reduced-motion:reduce){ .rs .rsBars .bar{animation:none} }
+  /* 이름표 줄(잘한 점 · 다음엔 · 신뢰 …) — 왼쪽 이름표, 오른쪽 내용 */
+  .rs .rsDl{margin:24px 0 0;display:grid;grid-template-columns:6.2em minmax(0,1fr);gap:14px 16px}
+  .rs .rsDl dt{font-size:15px;font-weight:700;line-height:1.75;color:var(--rs-ink2)}
+  .rs .rsDl dd{margin:0}
+  .rs .rsDl dd b{font-weight:700}
+  .rs .rsDl .src{display:block;margin-top:2px;font-size:15px;line-height:1.5;color:var(--rs-mute)}
+  .rs .rsDl .bad{color:var(--bad)}
+  /* 강점 · 보완점 한 건 — 하위능력(굵게) + 영역(회색) · 오른쪽에 점수·수준 · 아래 근거 업무 한 줄 */
+  .rs .rsItem+.rsItem{margin-top:36px}
+  .rs .rsItem .say{margin-top:8px;color:var(--rs-ink)}
+  .rs .rsItem .see{margin-top:6px;font-size:15px;line-height:1.55;color:var(--rs-mute)}
+  .rs .rsItem .see .k{font-weight:700;color:var(--rs-ink2);margin-right:8px}
+  .rs .rsEv{margin-top:12px;display:flex;flex-direction:column;font-size:15px;line-height:1.5;color:var(--rs-ink2)}
+  .rs .rsEv .r{display:grid;grid-template-columns:3.4em minmax(0,1fr) auto 4.6em;gap:0 12px;padding:7px 0;border-top:1px solid var(--rs-line)}
+  .rs .rsEv .r:last-child{border-bottom:1px solid var(--rs-line)}
+  .rs .rsEv .d{color:var(--rs-mute);white-space:nowrap} .rs .rsEv .a{white-space:nowrap;color:var(--rs-mute)}
+  .rs .rsEv .v{text-align:right;font-weight:700;color:var(--rs-ink);font-variant-numeric:tabular-nums}
+  .rs .rsKick{margin-top:28px;margin-bottom:8px;font-size:15px;font-weight:700;color:var(--acc)}
+  .rs .rsTwo{display:grid;grid-template-columns:1fr 1fr;gap:0 32px;margin-top:8px}
+  .rs .rsItem .hd{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
+  .rs .rsItem h3 small{margin-left:10px;font-size:15px;font-weight:500;color:var(--rs-mute)}
+  .rs .rsItem .sc{white-space:nowrap;font-size:15px;color:var(--rs-mute);font-variant-numeric:tabular-nums}
+  .rs .rsItem .sc b{font-size:18px;color:var(--rs-ink);margin-right:4px}
+  .rs .rsItem .fact{margin-top:6px;color:var(--rs-ink2)}
+  /* 표 — 머리줄 아래 선 하나, 줄 사이 옅은 선. 세로선·바탕색 없음 */
+  .rs .rsTbl{width:100%;border-collapse:collapse;font-size:16px;line-height:1.5;margin-top:8px}
+  .rs .rsTbl th{font-size:14px;font-weight:600;color:var(--rs-mute);text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--rs-ink2);white-space:nowrap}
+  .rs .rsTbl td{padding:9px 12px 9px 0;border-top:1px solid var(--rs-line);vertical-align:top;background:none}
+  .rs .rsTbl tr:first-child td{border-top:0}
+  .rs .rsTbl .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rs .rsTbl td:last-child,.rs .rsTbl th:last-child{padding-right:0}
+  .rs .rsTbl th.num{text-align:right}
+  .rs .rsTbl .st{color:var(--rs-ink2);font-size:15px}
+  .rs .rsTbl.fixed{table-layout:fixed}
+  .rs .rsTbl .st.bad,.rs .rsTbl .num.bad{color:var(--bad)}
+  .rs .rsTbl .st.warn,.rs .rsTbl .num.warn{color:var(--warn)}
+  .rs .rsTbl td.num b{font-weight:700}
+  .rs .rsTbl tr.grp td{padding-top:24px;border-top:0;font-weight:700;color:var(--rs-ink)}
+  .rs .rsTbl tr.grp td small{margin-left:10px;font-size:15px;font-weight:500;color:var(--rs-mute)}
+  .rs .rsTbl tr.lead td{border-top:0;padding-top:0;font-size:15px;color:var(--rs-mute)}
+  .rs .rsTbl tr.off td{color:var(--rs-mute)}
+  .rs .rsTblWrap{overflow-x:auto}
+  /* 접기 — 글자 단추처럼. 위아래 선 한 줄씩 */
+  :is(#debrief,#ep7) .rs details.rsFold{background:none;border:0;border-radius:0;border-top:1px solid var(--rs-line);padding:0;margin:0}
+  :is(#debrief,#ep7) .rs details.rsFold:last-of-type{border-bottom:1px solid var(--rs-line)}
+  :is(#debrief,#ep7) .rs .rsSec details.rsFold{margin-top:20px}
+  :is(#debrief,#ep7) .rs details.rsFold>summary{list-style:none;cursor:pointer;padding:16px 0;font-size:17px;font-weight:700;color:var(--acc);display:flex;align-items:center;gap:10px}
+  .rs details.rsFold>summary::-webkit-details-marker{display:none}
+  .rs details.rsFold>summary::before{content:'';width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s;flex:none;margin-left:2px}
+  .rs details.rsFold[open]>summary::before{transform:rotate(45deg)}
+  .rs details.rsFold>summary small{font-size:15px;font-weight:500;color:var(--rs-mute)}
+  .rs details.rsFold>summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .rs details.rsFold>.in{padding:0 0 24px}
+  .rs .rsFolds{margin-top:48px}
+  /* 대사 — 말한 사람(회색 굵게) · 말(본문). 말풍선·아바타 없음 */
+  .rs .rsTalk{display:flex;flex-direction:column;gap:12px}
+  .rs .rsSay{display:grid;grid-template-columns:6.2em minmax(0,1fr);gap:0 16px}
+  .rs .rsSay .who{font-size:15px;font-weight:700;line-height:1.75;color:var(--rs-ink2)}
+  .rs .rsSay .who small{display:block;font-weight:500;color:var(--rs-mute);line-height:1.4}
+  .rs .rsSay .tx{white-space:pre-wrap}
+  .rs .rsHead+.rsTalk{margin-top:-8px}
+  :is(#debrief,#ep7) .rs ul.rsList{margin:0;padding-left:1.2em;line-height:1.6} .rs ul.rsList li+li{margin-top:6px}
+  .rs .rsLeadIn{font-weight:700;margin-bottom:8px}
+  /* 60차 3차 — 7일 결과 목차(넓은 화면) · 요약 · 날 소제목 · 긴 글 */
+  :is(#debrief,#ep7) .rs .rsNav{display:none}
+  @media (min-width:1200px){
+    :is(#debrief,#ep7) .wrap.rs.rsWide{max-width:1100px;display:grid;grid-template-columns:190px minmax(0,760px);gap:0 64px;justify-content:center}
+    :is(#debrief,#ep7) .rs .rsNav{display:block;position:sticky;top:56px;align-self:start;padding-top:6px}
+  }
+  .rs .rsNav ul{list-style:none;margin:0;padding:0;border-left:1px solid var(--rs-line)}
+  .rs .rsNav button{display:block;width:100%;text-align:left;background:none;border:0;border-left:2px solid transparent;margin-left:-1px;padding:7px 0 7px 14px;font-size:15px;line-height:1.4;color:var(--rs-mute);cursor:pointer}
+  .rs .rsNav button:hover{color:var(--rs-ink)}
+  .rs .rsNav button.on{color:var(--rs-ink);font-weight:700;border-left-color:var(--acc)}
+  .rs .rsNav button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .rs .rsSumDl{margin-top:20px}
+  .rs .rsSumDl .ln{display:block} .rs .rsSumDl .ln b{margin-right:6px}
+  :is(#debrief,#ep7) .rs h3.rsDay{margin:32px 0 6px;font-size:17px}
+  .rs h3.rsDay small{margin-left:8px;font-size:15px;font-weight:500;color:var(--rs-mute)}
+  .rs h3.rsDay+.rsNote{margin-top:0;margin-bottom:4px}
+  .rs .rsText{margin-top:18px}
+  .rs .rsText b{display:block;font-size:15px;color:var(--rs-ink2)}
+  .rs .rsText p{margin-top:4px;padding-left:12px;border-left:2px solid var(--rs-line);white-space:pre-wrap;font-size:16px;line-height:1.65}
+  .rs .rsEv .r.hdr{border-top:0;padding:0 0 4px;font-size:13px;font-weight:600;color:var(--rs-mute)}
+  .rs .rsEv .r.hdr span:last-child{text-align:right}
+  .rs .rsTbl tr.none td{font-size:15px}
+  /* 단추 — 게임 단추(알약) 그대로, 크기만 본문에 맞춘다 */
+  :is(#debrief,#ep7) .rs .foot{margin-top:48px;gap:12px}
+  :is(#debrief,#ep7) .rs .btn{font-size:16px;padding:11px 20px;min-height:44px}
+  :is(#debrief,#ep7) .rs .btn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .rs .rsRestart{margin-top:24px;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+  .rs .rsRestart select{font-size:16px;min-height:44px;padding:0 12px;border:1px solid var(--line2);border-radius:999px;background:#fff;color:var(--rs-ink)}
+  .rs .rsRestart .rsNote{flex-basis:100%;margin-top:0}
+  .rs .rsFine{margin-top:40px;font-size:14px;line-height:1.55;color:var(--rs-mute)}
+  .rs .rsFine p+p{margin-top:4px}
+  @media (max-width:760px){
+    :is(#debrief,#ep7) .wrap.rs{padding:32px 16px 56px}
+    :is(#debrief,#ep7) .rs h1{font-size:25px}
+    .rs .rsBars .ncsRow{grid-template-columns:6.4em minmax(0,1fr);gap:0 10px;font-size:15px}
+    .rs .rsDl,.rs .rsSay{grid-template-columns:1fr;gap:2px 0}
+    .rs .rsDl dd{margin-bottom:10px}
+    .rs .rsStats{gap:12px 28px}
+    .rs .rsTbl{font-size:15px}
+    .rs .rsBars .ncsRow{grid-template-columns:6.4em minmax(0,1fr) 2.2em 2.4em 3.2em;gap:0 8px}
+    .rs .rsBars.nolv .ncsRow{grid-template-columns:6.4em minmax(0,1fr) 2.2em 3.8em}
+    .rs .rsTwo{grid-template-columns:1fr}
+    .rs .rsEv .r{grid-template-columns:3em minmax(0,1fr) 4.2em}
+    .rs .rsEv .a{grid-column:2;grid-row:2}
+    .rs .rsEv .r.hdr span:nth-child(3){display:none}
+  }
   /* ── 모바일 ── */
   @media (max-width:760px){
     /* 좁은 화면에서 상단 바가 밀려 「홈으로」가 잘렸다 — 제목을 줄이고 단추를 좁힌다 */
@@ -635,7 +793,7 @@
   #pcBtn .dot[hidden]{display:none}
   #pcBtn.on{background:var(--acc);border-color:var(--acc-d);color:#fff;font-weight:700}
 </style>
-<link rel="stylesheet" href="js/desk/desk.css?v=20260907g">
+<link rel="stylesheet" href="js/desk/desk.css?v=20260929i">
 </head>
 <body>
 <iframe id="stage" title="사무실" allow="autoplay"></iframe>
@@ -744,10 +902,11 @@
   <div class="tkTx" id="tkTx" aria-live="polite"></div>
   <div class="tkOpts" id="tkOpts"></div>
 </div></div>
-<div id="phoneBar"><span class="ring">☎</span><span id="phoneTx">전화가 왔어요</span><button class="btn" id="phoneTake" type="button">받기</button><button class="btn" id="phoneLater" type="button">나중에</button></div>
+<!-- 전화 벨·「오늘 마무리」 그림은 승인 입체 아이콘(15 통화 · 28 업무 마무리, 2026-09-29) — 그림 문자 ☎ 자리 -->
+<div id="phoneBar"><span class="ring"><img class="oc-ic" src="assets/appicon/talk.webp?v=3" alt="" aria-hidden="true" draggable="false"></span><span id="phoneTx">전화가 왔어요</span><button class="btn" id="phoneTake" type="button">받기</button><button class="btn" id="phoneLater" type="button">나중에</button></div>
 <!-- 「오늘 할 일을 다 했습니다」일 때만 뜬다. 퇴근 시각에는 뜨지 않는다 —
      하루를 끝내는 것은 버튼을 누르는 일이 아니라 팀장이 오는 일이다. -->
-<div id="endbar"><span id="endbarTx">오늘 할 일을 다 했습니다.</span><button class="btn pri" id="finishBtn" type="button">오늘 마무리</button><button class="btn" id="moreBtn" type="button">더 볼래요</button></div>
+<div id="endbar"><span id="endbarTx">오늘 할 일을 다 했습니다.</span><button class="btn pri" id="finishBtn" type="button"><img class="oc-ic" src="assets/appicon/finish.webp?v=3" alt="" aria-hidden="true" draggable="false">오늘 마무리</button><button class="btn" id="moreBtn" type="button">더 볼래요</button></div>
 <div id="endNotice"><div class="card"><b id="enTitle">퇴근 시간입니다</b><span id="enSub">팀장이 결과를 보러 옵니다.</span></div></div>
 <div id="triage"><div class="wrap"><h1>동시에 왔어요 — 순서를 정하세요</h1><div class="sub">지금 / 오전 중 / 오늘 중. 처리 순서가 아니라 "어느 칸에 두느냐"를 봅니다. 시한이 있는 것부터.</div><div id="triageList"></div><div class="foot"><button class="btn pri" id="triageGo" type="button" disabled>정했어요</button></div></div></div>
 <div id="avatar"><div class="wrap">
@@ -771,27 +930,28 @@ if(!window.WS7_GATED){ const s=document.createElement('script'); s.src='data/rul
 window.__backendReady=fetch('js/backend.js',{method:'HEAD'}).then(r=>{ if(!r.ok) return null; return new Promise(res=>{ const s=document.createElement('script'); s.src='js/backend.js'; s.onload=()=>{ try{ if(window.BACKEND_URL&&window.Backend&&window.Backend.configure) window.Backend.configure(window.BACKEND_URL); }catch(e){} res(true); }; s.onerror=()=>res(null); document.head.appendChild(s); }); }).catch(()=>null);
 </script>
 <!-- PC 바탕화면 — appicon·windows·desktop·wallpaper 넷은 co-work-sim 원본 그대로다.
-     deskapp.js 만 우리 것이고, 원본이 기대하는 의존을 채우고 앱 둘을 얹는다. -->
-<script src="js/desk/appicon.js?v=20260907g"></script>
-<script src="js/desk/windows.js?v=20260907g"></script>
+     deskapp.js 만 우리 것이고, 원본이 기대하는 의존을 채우고 앱 둘을 얹는다.
+     appicon 의 그림 폴더만 우리 자리(assets/appicon/)로 알려 준다 — 파일은 한 글자도 안 다르다. -->
+<script src="js/desk/appicon.js?v=20260929i" data-art-dir="assets/appicon/"></script>
+<script src="js/desk/windows.js?v=20260929i"></script>
 <script src="js/desk/wallpaper.js?v=20260907g"></script>
-<script src="js/desk/desktop.js?v=20260907g"></script>
-<script src="js/desk/msgapp.js?v=20260927f"></script>
-<script src="js/desk/telapp.js?v=20260907g"></script>
-<script src="js/desk/deskapp.js?v=20260907g"></script>
-<script src="js/play/core.js?v=20260923e1c"></script>
+<script src="js/desk/desktop.js?v=20260929i"></script>
+<script src="js/desk/msgapp.js?v=20260929i"></script>
+<script src="js/desk/telapp.js?v=20260929i"></script>
+<script src="js/desk/deskapp.js?v=20260929i"></script>
+<script src="js/play/core.js?v=20260929-final33"></script>
 <script src="js/play/intro.js?v=20260913e"></script>
-<script src="js/ncs.js?v=20260923e1"></script>
-<script src="js/ncs_eval.js?v=20260923e1c"></script>
+<script src="js/ncs.js?v=20260929c"></script>
+<script src="js/ncs_eval.js?v=20260929c"></script>
 <script src="js/ncs_report.js?v=20260928r"></script>
 <script src="js/play/grade.js?v=20260927f"></script>
 <script src="js/play/grader.js?v=20260923e1b"></script>
-<script src="js/play/cards.js?v=20260927f"></script>
-<script src="js/play/day.js?v=20260928r"></script>
+<script src="js/play/cards.js?v=20260929i"></script>
+<script src="js/play/day.js?v=20260929c"></script>
 <script src="js/play/ep7grade.js?v=20260923e1c"></script>
-<script src="js/play/ep7.js?v=20260928r"></script>
+<script src="js/play/ep7.js?v=20260929c"></script>
 <script src="js/play/talk.js?v=20260923e1c"></script>
-<script src="js/play/pc.js?v=20260927f"></script>
-<script src="js/play/result_pdf.js?v=20260928t"></script>
+<script src="js/play/pc.js?v=20260929i"></script>
+<script src="js/play/result_pdf.js?v=20260929c"></script>
 </body>
 </html>

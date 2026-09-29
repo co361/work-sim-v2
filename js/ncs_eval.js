@@ -6,6 +6,12 @@
    ====================================================================== */
 var NcsEval = (function () {
   'use strict';
+  /* 결과 문장(60차 2차) — 항목(ov) 문장은 그 항목의 기본 요소가 이 하위능력일 때만(native), 아니면 하위능력 문장(NCS.subs[sub].see·good·weak·tip·alt).
+     예: 「필요한 값」 항목이 협업능력(5-1) 증거로 잡혔으면 「필요한 값을 빠짐없이 담았어요」가 아니라 협업능력 문장 */
+  function native(N, ov, sub) { const m = ov && N.ov[ov]; return !!(m && m.el && N.els && N.els[m.el] && N.els[m.el].sub === sub); }
+  function phrase(ov, sub, kind, o) { const N = REG(o); const S = N.subs[sub] || {}; const m = native(N, ov, sub) ? N.ov[ov] : null;
+    if (kind === 'tips') return m ? [m.tip || ''].concat(m.alt || []) : [S.tip || ''].concat(S.alt || []);
+    return (m && m[kind]) || S[kind] || (kind === 'good' ? S.act || '' : ''); }
   function REG(o) { const N = (o && o.NCS) || (typeof NCS !== 'undefined' ? NCS : null); if (!N || !N.ov || !N.subs) throw new Error('NCS 레지스트리(js/ncs.js)가 없습니다'); return N; }
   let ovMap = null;
   /* 저장 문자열 7번째 칸(짧은 이름) → 항목 종류(긴 이름) */
@@ -63,7 +69,7 @@ var NcsEval = (function () {
       const fails = W.filter(e => e.s <= 1); let worst = null;
       if (fails.length) { const byOv = {}; for (const e of fails) { const k = e.ov || '?'; (byOv[k] = byOv[k] || []).push(e); }
         const k = Object.keys(byOv).sort((a, b) => byOv[b].length - byOv[a].length || byOv[b].reduce((s, e) => s + e.w, 0) - byOv[a].reduce((s, e) => s + e.w, 0))[0]; const e = byOv[k][byOv[k].length - 1];
-        worst = { d: e.d, card: e.card, id: e.id, ov: e.ov, s: e.s, tip: (e.ov && N.ov[e.ov] && N.ov[e.ov].tip) || '' }; }
+        worst = { d: e.d, card: e.card, id: e.id, ov: e.ov, s: e.s, tip: phrase(e.ov, code, 'tip', o) }; }
       subs[code] = { code, name: meta.name, area: meta.area, status, S: status === 'ref' ? null : S, Sraw: status === 'ref' ? null : Sraw, level: lv ? lv.n : null, levelName: lv ? lv.name : null,
         w: r1(w), n: W.length, ok: W.filter(e => e.s >= 2).length, zero: W.filter(e => e.x).length, tasks, days, dir: r1(dir), sel: Math.round(sel * 100) / 100, judge: w > 0 && sel >= N.judgeTag,
         ai: w > 0 ? Math.round(100 * W.filter(e => e.ai).reduce((a, e) => a + e.w, 0) / w) / 100 : 0, gate, els, elsK: Object.keys(els).length, byDay,
@@ -76,7 +82,7 @@ var NcsEval = (function () {
     const levelled = Object.keys(subs).filter(c => subs[c].status === 'level');
     /* 강점 2 — 수준 난 하위능력 중 S 상위(S ≥ 65, 같으면 직접 수행 근거가 많은 쪽) · 대표 근거 = 가장 어려운 s=3 직접 수행 */
     const strengths = levelled.map(c => subs[c]).filter(x => x.S >= 65).sort((a, b) => b.S - a.S || b.dir - a.dir).slice(0, 2)
-      .map(x => ({ sub: x.code, name: x.name, S: x.S, text: (x.best && x.best.ov && N.ov[x.best.ov] && N.ov[x.best.ov].good) || N.subs[x.code].act, card: x.best ? x.best.card : null, d: x.best ? x.best.d : null }));
+      .map(x => ({ sub: x.code, name: x.name, S: x.S, text: phrase(x.best && x.best.ov, x.code, 'good', o), card: x.best ? x.best.card : null, d: x.best ? x.best.d : null }));
     /* 보완 2 — S 하위(S < 85) · 가장 자주 실패한 항목 종류의 보완 문장 + 실패한 카드. 모두 85 이상이면 근거가 적은 하위능력을 더 보여 줄 기회 */
     let gaps = levelled.map(c => subs[c]).filter(x => x.S < 85).sort((a, b) => a.S - b.S).slice(0, 2)
       .map(x => ({ sub: x.code, name: x.name, S: x.S, tip: x.worst ? x.worst.tip : N.subs[x.code].act, card: x.worst ? x.worst.card : null, d: x.worst ? x.worst.d : null }));
@@ -113,16 +119,32 @@ var NcsEval = (function () {
     /* 잘한 점의 근거 카드는 그날 흠 없는 카드에서만 — 낮은 항목(s≤1)이 있는 카드·그날 「오늘의 실수」 카드(o.exclude)는 빼고 고른다(57차 E1 후속 · QA Y-4③) */
     const flawed = new Set(W.filter(e => e.card && e.s <= 1).map(e => e.card).concat(o.exclude || []));
     const good = pickKind(W.filter(e => e.s >= 2 && !(e.card && flawed.has(e.card)))); const gk = Object.keys(good).filter(k => good[k].n >= 2 && k !== '?').sort((a, b) => good[b].w - good[a].w)[0];
-    let strong = null; if (gk) { const e = good[gk].list.slice().sort((a, b) => b.cx - a.cx)[0]; strong = { sub: e.sub, ov: gk, text: (N.ov[gk] || {}).good || '', card: e.card }; }
-    const bad = pickKind(W.filter(e => e.s <= 1)); const bk = Object.keys(bad).sort((a, b) => bad[b].w - bad[a].w)[0];
-    let weak = null; if (bk) { const e = bad[bk].list[0]; const tips = o.tips || {}; weak = { sub: e.sub, ov: bk === '?' ? null : bk, tip: (e.card && tips[e.card + '.' + e.id]) || ((N.ov[bk] || {}).tip) || '', card: e.card }; }
+    let strong = null; if (gk) { const e = good[gk].list.slice().sort((a, b) => b.cx - a.cx)[0]; strong = { sub: e.sub, ov: gk, text: phrase(gk, e.sub, 'good', o), card: e.card }; }
+    const bad = pickKind(W.filter(e => e.s <= 1)); const ks = Object.keys(bad).sort((a, b) => bad[b].w - bad[a].w);
+    /* 「다음엔」 문장 고르기(60차) — o.seen = 앞선 날에 이미 보인 문장 키(「종류#번호」 · 0 = 기본 tip, 1~ = alt). 없으면 예전과 같다(가중이 가장 큰 종류의 기본 문장).
+       ① 아직 안 보인 종류의 기본 문장 → ② 가중 순으로 그 종류의 다른 말(alt) → ③ 모두 보였으면 가중이 가장 큰 종류의 기본 문장 */
+    let weak = null; if (ks.length) { const seen = new Set(o.seen || []); const tips = o.tips || {};
+      /* 문장 묶음은 (항목, 하위능력)마다 — 항목 문장이 그 하위능력 것이면 항목 문장들, 아니면 하위능력 문장들(60차 2차). 키도 그 묶음 이름으로 */
+      const ex = (k) => bad[k].list[0]; const grp = (k) => native(N, k, ex(k).sub) ? k : 's' + ex(k).sub; const phr = (k) => phrase(k, ex(k).sub, 'tips', o);
+      let pk = ks.find(k => !seen.has(grp(k) + '#0')); let pi = 0;
+      if (!pk) for (const k of ks) { const i = phr(k).findIndex((t, j) => j > 0 && t && !seen.has(grp(k) + '#' + j)); if (i > 0) { pk = k; pi = i; break; } }
+      if (!pk) pk = ks[0];
+      /* 카드 코칭 문장(evTip)은 그 카드에만 있는 문장일 때 · 항목 공통 문장이 하위능력과 어긋나면 쓰지 않는다 */
+      const e = ex(pk); const ct = pi === 0 && e.card && tips[e.card + '.' + e.id]; const useCt = ct && (native(N, pk, e.sub) || ct !== (N.ov[pk] || {}).tip);
+      weak = { sub: e.sub, ov: pk === '?' ? null : pk, tip: (useCt ? ct : '') || phr(pk)[pi] || '', card: e.card, key: grp(pk) + '#' + pi }; }
     return { d: +d, n: W.length, areas, subs, strong, weak }; }
+  /* 앞선 날(1 ~ d-1)의 「다음엔」 문장 키 — 저장본만으로 날마다 같은 규칙을 차례로 다시 돌린다(저장 칸을 새로 두지 않는다) */
+  function dailySeen(P, d, o) { o = o || {}; const seen = []; const done = (P && P.done) || {};
+    for (let k = 1; k < +d; k++) { const rec = done[String(k)]; if (!rec || !rec.ncs2) continue;
+      const list = fromProgress({ team: (P && P.team) || o.team || '', done: { [String(k)]: rec } }, o).list;
+      const w = daily(list, k, Object.assign({}, o, { seen })).weak; if (w && w.key) seen.push(w.key); }
+    return seen; }
 
   /* ── 업무 점수(카드 평균 — 홈 일차 칸·관리자·CSV 공통, A Y10) ── */
   function dayScore(rec) { if (!rec || !rec.cards) return null; let sum = 0, n = 0; for (const id of Object.keys(rec.cards)) { const s = rec.cards[id] && rec.cards[id].score; if (typeof s === 'number' && isFinite(s)) { sum += s; n++; } } return n ? Math.round(sum / n) : null; }
   function workScores(P) { const days = {}; let sum = 0, n = 0; for (let d = 1; d <= 7; d++) { const r = P && P.done && P.done[String(d)]; const s = r ? dayScore(r) : null; days[d] = s; if (s != null) { sum += s; n++; } } return { days, avg: n ? Math.round(sum / n) : null }; }
 
-  return { parse, format, fromProgress, summary, report, daily, dayScore, workScores, levelOf,
+  return { parse, format, fromProgress, summary, report, daily, dailySeen, phrase, native: (ov, sub, o) => native(REG(o), ov, sub), dayScore, workScores, levelOf,
     get STATEMENT() { return REG().statement; } };
 })();
 if (typeof module !== 'undefined' && module && module.exports) module.exports = NcsEval;

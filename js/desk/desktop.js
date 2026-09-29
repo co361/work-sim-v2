@@ -17,6 +17,7 @@
      openApp(id) -> bool        프로그램적으로 앱 창을 연다(이미 열려 있으면 앞으로)
      setBadge(id, n)            독 아이콘의 「안 읽은 개수」 배지 (0 이면 지운다)
      hasDockApp(winId) -> bool  windows.js 의 작업표시줄 중복 방지가 부른다
+     iconKeyOf(winId) -> key    앱 창의 아이콘 키(독과 같은 값) — windows.js 가 부른다
 
    Reuses (never reimplements) the WM in windows.js:
      openWin(id,title,node,opts) — traffic-lights (.win-x close,
@@ -71,6 +72,15 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
     var k = String(wid || '');
     if (k.indexOf('app-') !== 0) return false;
     return !!apps[k.slice(4)];
+  }
+  /* 이 앱 창의 아이콘 키 — 독 버튼과 **같은 값**(app.iconKey). windows.js 가 최소화한
+     창을 독 오른쪽에 세울 때 묻는다. 창 id 로 짐작한 표(WIN_ICON_KEY)만 보면 게임마다
+     앱 구성이 다를 때 독과 창 칸의 그림이 갈린다(v2 의 `rulebook` 창은 「업무 노트」다). */
+  function iconKeyOf(wid) {
+    var k = String(wid || '');
+    if (k.indexOf('app-') !== 0) return null;
+    var app = apps[k.slice(4)];
+    return app ? (app.iconKey || app.id || null) : null;
   }
 
   /* 🔴 학생별 배경은 `js/wallpaper.js`(`OC.wall`)가 한다 — 여기가 아니다.
@@ -838,7 +848,7 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
     if (f && typeof f.say === 'function') { try { f.say(s, bad); } catch (e) {} }
     if (s.length > NOTIF_ONE_LINE && OC.ui && typeof OC.ui.toast === 'function') {
       try {
-        OC.ui.toast(bad ? '🗑 버리지 않았습니다' : '🗑 휴지통', s, bad ? 't-urgent' : 't-msg');
+        OC.ui.toast(bad ? '버리지 않았습니다' : '휴지통', s, bad ? 't-urgent' : 't-msg');
       } catch (e2) {}
     }
   }
@@ -943,8 +953,8 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
         안내가 남아 있어야 다음 수단을 찾는다. */
   function sayTrashCovered(it) {
     var nm = (it && it.file && it.file.name) || '이 아이콘';
-    trashSay('🗑 휴지통이 창에 가려 있어 버리지 않았습니다 — 「' + nm + '」. ' +
-      '창을 옮기거나, 아이콘을 오른쪽 클릭해 「🗑 휴지통으로 이동」을 쓰세요.', true);
+    trashSay('휴지통이 창에 가려 있어 버리지 않았습니다 — 「' + nm + '」. ' +
+      '창을 옮기거나, 아이콘을 오른쪽 클릭해 「휴지통으로 이동」을 쓰세요.', true);
   }
   function markTrashHover(on, okToDrop) {
     if (!trashIt || !trashIt.el) return;
@@ -1165,19 +1175,20 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
     if (it) {
       items.push({ label: '열기', fn: function () { try { it.file.open(); } catch (e) {} } });
       if (canTrash(it)) {
-        items.push({ label: '🗑 휴지통으로 이동', fn: function () { trashItem(it); } });
+        /* 메뉴 줄은 글자만(windows.js showCtxMenu 는 textContent) — 옛 그림 문자는 뺐다(2026-09-29). */
+        items.push({ label: '휴지통으로 이동', fn: function () { trashItem(it); } });
       } else if (trashIt && it !== trashIt) {
         /* 못 버리는 것도 **왜 안 되는지** 알려 주는 자리를 남긴다. 메뉴에서
            항목이 아예 안 보이면 학생은 자기 화면이 고장난 줄 안다. */
-        items.push({ label: '🗑 휴지통으로 이동 — 안 됨', fn: function () { trashItem(it); } });
+        items.push({ label: '휴지통으로 이동 — 안 됨', fn: function () { trashItem(it); } });
       }
       items.push('-');
     }
     if (trashIt) {
-      items.push({ label: '🗑 휴지통 열기',
+      items.push({ label: '휴지통 열기',
         fn: function () { try { trashIt.file.open(); } catch (e) {} } });
     }
-    items.push({ label: '🧹 아이콘 정렬하기', fn: function () { arrangeIcons(); } });
+    items.push({ label: '아이콘 정렬하기', fn: function () { arrangeIcons(); } });
     return items;
   }
   function onCtxMenu(e) {
@@ -1289,9 +1300,15 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
            `.tile` 은 그림 문자와 다른 그림자를 쓴다(app.css) — 타일은 자기 바탕이
            있어 한 겹이면 되고, 그림 문자는 바탕이 없어 두 겹이 필요하다. */
         var A = OC.ui && OC.ui.appicon;
-        if (f.tile && A && A.has(f.tile)) {
+        /* 🗑 휴지통은 **빈 것(17번)과 찬 것(20번)** 그림이 따로 있다(2026-09-29 승인 24종).
+           부른 쪽은 여전히 tile:'trash' + count 만 준다 — 찬 그림을 고르는 일은 여기서 한다
+           (빈/찬 판정의 정본이 아래 배지·`full` 클래스와 같은 count 한 값이어야 한다). */
+        var tk = f.tile;
+        if (f.role === 'trash' && tk === 'trash' && Math.floor(Number(f.count) || 0) > 0 &&
+            A && A.has('trashFull')) tk = 'trashFull';
+        if (tk && A && A.has(tk)) {
           ic.className = 'ic tile';
-          A.paint(ic, f.tile, f.icon || '📄');
+          A.paint(ic, tk, f.icon || '📄');
         } else {
           ic.textContent = f.icon || '📄';
         }
@@ -1326,10 +1343,9 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
           nm.addEventListener('dblclick', function (ev) { ev.stopPropagation(); ev.preventDefault(); startRename(nm, f); });
         }
         d.appendChild(nm);
-        /* 🗑 **빈 상태와 찬 상태가 구분돼야 한다**(맥이 그렇다). 그림은 한 벌뿐이라
-           (ui/appicon.js 는 다른 사람 몫이고 키가 하나다) 개수 배지와 클래스로
-           가른다. 배지는 눈으로, note→title/aria-label 은 스크린리더로 같은 것을
-           말한다 — 색만으로 상태를 말하지 않는다. */
+        /* 🗑 **빈 상태와 찬 상태가 구분돼야 한다**(맥이 그렇다). 그림(위 trashFull)에
+           더해 개수 배지와 클래스로도 가른다. 배지는 눈으로, note→title/aria-label 은
+           스크린리더로 같은 것을 말한다 — 그림·색만으로 상태를 말하지 않는다. */
         if (f.role === 'trash') {
           d.classList.add('dt-trash');
           /* 브라우저 기본 끌기(그림 끌림)를 막는 일은 아래 `wireDrag` 의 dragstart 가
@@ -1433,6 +1449,7 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
     openApp: openApp,
     setBadge: setBadge,
     hasDockApp: hasDockApp,
+    iconKeyOf: iconKeyOf,
     /* 「정렬하기」 — 옮겨 둔 자리를 전부 잊고 처음 배치로 되돌린다.
        상단 「보기」 메뉴(ui/shell.js)와 바탕화면 우클릭 메뉴가 같은 이 문을 쓴다.
        아이콘을 창 뒤로 밀어 넣고 못 찾는 사고의 유일한 탈출구다. */

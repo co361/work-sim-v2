@@ -122,12 +122,11 @@
     box.textContent = emoji(who, v);
     return box;
   }
-  function emoji(who, v) {
-    var r = (v && v.role) || '';
-    if (/팀장|부장|대표/.test(who + r)) return '🧑‍💼';
-    if (/고객|님$/.test(who)) return '🙋';
-    if (/사수|선임|대리|주임|과장|사원/.test(who + r)) return '🧑‍💻';
-    return '💬';
+  /* 얼굴 그림이 없을 때의 자리표시 — 2026-09-29 그림 문자(🧑‍💼·🙋·🧑‍💻·💬)를 빼고 **이름 첫 글자**로.
+     (사용자: 뜻이 맞는 승인 그림이 없는 그림 문자는 빼고 글자만) */
+  function emoji(who) {
+    var s = String(who || '').replace(/^[\s(（]+/, '');
+    return s ? s.charAt(0) : '·';
   }
 
   function thread(who, team) {

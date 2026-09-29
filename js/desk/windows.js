@@ -215,7 +215,7 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
    * 메일함」은 `default:true` 라 입장하는 순간 열리고 수업 내내 안 닫힌다
    * (desktop.js). 그래서 Tab 트랩이 **영구화**됐다 — QA 실측:
    *     ✕ → – → ⤢ → 받은 메일함 → 처리 완료 → [업무 카드] → 다시 ✕ (60번 눌러도 같다)
-   * 독의 📕 사규집·💬 메신저·📮 코치 피드백, 상단바의 「🏁 업무 마치기」·메뉴,
+   * 독의 📕 사규집·💬 메신저·📮 코치 피드백, 상단바의 「업무 마치기」·메뉴,
    * 바탕화면 파일에 **키보드로는 한 번도 닿지 못했다.** 유일한 탈출구가 「주
    * 화면인 인박스를 닫는 것」이라면 그건 탈출구가 아니다. 「기준을 스스로
    * 찾아보게 한다」가 이 게임 학습 골격의 절반인데, 마우스를 못 쓰는 학생은
@@ -315,7 +315,7 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
     if(key !== 'Tab') return;
     /* 늘 떠 있는 앱 창만 열려 있으면 **가두지 않는다**(위 hasDialogWin 머리말).
        독·상단바·바탕화면으로 Tab 이 나갈 수 있어야 키보드만 쓰는 학생이
-       📕 사규집·📮 코치 피드백·🏁 업무 마치기에 닿는다. */
+       📕 사규집·📮 코치 피드백·업무 마치기에 닿는다. */
     if(!hasDialogWin()) return;
     const list = visibleFocusables();
     if(!list.length) return;                       // 열린 창이 없다 — 바탕 Tab 그대로
@@ -383,7 +383,9 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
     w.setAttribute('aria-label', String(title));
     w.setAttribute('tabindex','-1');
     w.innerHTML = '<div class="win-tt">' + ctrlsHTML() + '<span class="win-title"></span></div><div class="win-bd"></div>';
-    w.querySelector('.win-title').textContent = title;   // XSS 방지: 제목은 textContent 로 주입(setWinTitle 과 동일)
+    /* XSS 방지: 제목 글자는 textContent 로만 넣는다(paintTitle · setWinTitle 과 동일).
+       제목 앞 그림 문자는 독·바탕화면과 같은 그림으로 바뀐다(paintTitle 머리말). */
+    paintTitle(w.querySelector('.win-title'), id, title, { iconKey: opts.iconKey || null });
     w.querySelector('.win-bd').appendChild(node);
     /* 창을 열기 **전에** 어디에 있었는지 적어 둔다 — closeWin 이 그 자리로 돌려준다.
        노드 참조 하나만으로는 부족하다(7차 검수 E) — `prevFocusSel` 머리말 참고. */
@@ -408,7 +410,7 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
     $('winLayer').appendChild(w);
     scaleType(w);   /* 창 크기에 맞춰 글자 크기를 따라 키운다 — 아래 주석 참고 */
     WINS[id] = {el:w, node, title, keep:!!opts.keep, onClose:opts.onClose, min:false, max:false, natural:null,
-                prevFocus, prevFocusSel, prevFocusRoot};
+                prevFocus, prevFocusSel, prevFocusRoot, iconKey: opts.iconKey || null};
     const tt = w.querySelector('.win-tt');
     tt.addEventListener('mousedown', e=>{
       if(e.target.closest('.win-ctrls')) return;
@@ -568,8 +570,14 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
     updateMaxBtn(id);
       retype(id);
   }
+  /* 창이 아닌 **전체 화면 페이지**(2026-09-29 — 개인 성과 리포트가 창 대신 화면 전체를 쓴다)도
+     같은 id 로 닫히게 한다. 부르는 쪽(main.js 「업무 마치기」·report.js 자동 열기·검사)은
+     `closeWin('report-personal')` 한 줄 그대로다 — 닫는 문을 둘로 늘리지 않는다. */
+  const PAGES = {};
+  function registerPage(id, closer){ if(typeof closer === 'function') PAGES[id] = closer; else delete PAGES[id]; }
   function closeWin(id){
-    const wi = WINS[id]; if(!wi) return;
+    const wi = WINS[id];
+    if(!wi){ const pc = PAGES[id]; if(pc){ delete PAGES[id]; try{ pc(); }catch(e){} } return; }
     /* 🔴 글자 스케일 관찰자를 끊는다. 안 끊으면 창을 여닫을 때마다 ResizeObserver 가
        쌓여, 3시간 수업에서 죽은 노드를 붙든 관찰자가 계속 늘어난다. */
     if(wi.el && wi.el._typeRO){ try{ wi.el._typeRO.disconnect(); }catch(e){} wi.el._typeRO = null; }
@@ -624,12 +632,82 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
   const WIN_ICON_KEY = {
     inbox: 'mail', coach: 'coach', messenger: 'messenger', rulebook: 'book'
   };
-  function iconKeyOf(id){
+  /* 앱이 아닌 창 중 **승인 아이콘에 그 뜻의 그림이 있는 것**만(2026-09-29).
+     [창 id 또는 접두사(-로 끝남), 키]. 표에 없는 창은 그림 없이 글자만 선다(paintTitle).
+     부르는 쪽이 더 정확히 알면 openWin 의 opts.iconKey · setWinIcon 으로 덮는다
+     (팀 자료의 비용/데이터 · 휴지통의 빈/찬 것 — main.js). */
+  const WIN_ICON_PREFIX = [
+    ['help', 'help'],                  // 22 ❓ 사용법 (ui/shell.js)
+    ['handoff-', 'handoff'],           // 21 📤 업무 전달 (ui/handoff.js)
+    ['present-view', 'present'],       // 23 📣 발표 보기 (ui/present.js)
+    ['present-host', 'present'],       // 23 🎤 결과 보고회 (ui/present-host.js)
+    ['inbox-mail-', 'mail'],           //  1 📮 받은 메일 (ui/inbox.js)
+    ['inbox-task-', 'mail'],           //  1 📨·🔁 업무 처리 = 메일 회신 (ui/inbox.js)
+    ['inbox-sheet-', 'sheet'],         // 10 업무 카드의 실무 시트 (ui/inbox.js)
+    ['desk-sheet', 'sheet'],           // 10 바탕화면 「표 계산」 새 표 (main.js)
+    ['deskdoc', 'doc'],                // 11 바탕화면 「문서」 새 문서 (main.js)
+    ['teamdoc-', 'data'],              // 13 팀 자료 — 비용 자료는 main.js 가 setWinIcon('cost')
+    ['file-', 'docFile'],              // 19 옛 문서 창 (ui/doc.js)
+    ['desk-trash', 'trash']            // 17 휴지통 — 찬 것이면 main.js 가 setWinIcon('trashFull')
+  ];
+  /* 제목이 그림 문자로 시작하면 떼고 글자만 돌려준다. */
+  function labelOf(title){
+    const s = String(title == null ? '' : title);
+    const ico = iconOf(s);
+    return (ico !== '🪟' && s.indexOf(ico) === 0) ? s.slice(ico.length).trim() : s;
+  }
+  function iconKeyOf(id, title){
     const k = String(id || '');
-    if (k.indexOf('app-') === 0) return WIN_ICON_KEY[k.slice(4)] || null;
+    if (k.indexOf('app-') === 0) {
+      /* 독이 그 앱에 쓴 키가 먼저다(desktop.js) — 독 버튼과 창 칸이 같은 그림이어야 한다. */
+      const D = OC.ui.desktop;
+      const own = (D && typeof D.iconKeyOf === 'function') ? D.iconKeyOf(k) : null;
+      return own || WIN_ICON_KEY[k.slice(4)] || null;
+    }
+    /* 내가 저장한 파일(vfs-) — 표면 18번, 문서면 19번. 제목의 그림 문자가 종류를 말한다(ui/sheet.js 📊 · ui/doc.js 📄). */
+    if (k.indexOf('vfs-') === 0) return /^📊/.test(String(title || '').trim()) ? 'sheetFile' : 'docFile';
+    /* 자료 조각(frag-) — 바탕화면 아이콘과 **같은 규칙**(appicon.fragKey)으로 고른다. */
+    if (k.indexOf('frag-') === 0) {
+      const A = OC.ui.appicon;
+      return (A && typeof A.fragKey === 'function') ? A.fragKey(labelOf(title)) : 'frag';
+    }
+    for (const [p, key] of WIN_ICON_PREFIX) {
+      if (p.slice(-1) === '-' ? k.indexOf(p) === 0 : k === p) return key;
+    }
     // 관제 앱은 main.js 가 답한다 — 표를 두 곳에 두지 않는다.
     return (OC.app && typeof OC.app.dockIconKeyFor === 'function')
       ? OC.app.dockIconKeyFor(k) : null;
+  }
+
+  /* ---- 창 제목 표시줄 아이콘 (2026-09-29 · 사용자 요청) -----------------------
+     「📥 메일함」·「❓ 사용법」처럼 제목 앞에 그림 문자가 서 있었다. 독·바탕화면이 승인 입체
+     아이콘으로 바뀌면서 **같은 창이 독에서는 그림, 제목 줄에서는 그림 문자**가 됐다.
+     → 제목 줄도 독과 **같은 키**(iconKeyOf · opts.iconKey)의 그림을 18px 로 세운다.
+       뜻이 맞는 그림이 없는 창은 그림 문자를 떼고 글자만 둔다(한 줄에 두 언어를 섞지 않는다).
+     🔴 창의 제목 **문자열**(wi.title · aria-label · 독 말풍선)은 그대로다 — 그림 문자를 떼는 것은
+        화면에 그리는 이 한 곳뿐이다(부르는 쪽·검사는 제목 글자를 그대로 쓴다).
+     🔴 글자는 textContent(텍스트 노드)로만 넣는다 — 제목에는 학생이 지은 파일 이름이 들어온다. */
+  function paintTitle(t, id, title, wi){
+    if(!t) return;
+    const s = String(title == null ? '' : title);
+    t.textContent = '';
+    const A = OC.ui.appicon;
+    const key = (wi && wi.iconKey) || iconKeyOf(id, s);
+    if (key && A && typeof A.has === 'function' && A.has(key)) {
+      const ic = document.createElement('span');
+      ic.className = 'win-ico';
+      ic.setAttribute('aria-hidden', 'true');
+      if (A.paint(ic, key, '')) t.appendChild(ic);
+    }
+    t.appendChild(document.createTextNode(labelOf(s) || s));
+  }
+  /* 부르는 쪽이 창 아이콘을 바꾼다 — 휴지통이 찼다/비었다 같은 상태가 바뀔 때. */
+  function setWinIcon(id, key){
+    const wi = WINS[id]; if(!wi) return;
+    if (wi.iconKey === (key || null)) return;
+    wi.iconKey = key || null;
+    paintTitle(wi.el.querySelector('.win-title'), id, wi.title, wi);
+    refreshTaskbar();
   }
 
   function refreshTaskbar(active){
@@ -666,7 +744,7 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
          학생·관제·열린 창이 **같은 한 곳**(OC.ui.appicon)을 거친다.
          표에 없는 창(빈 표·새 문서·결과 보고서 등)은 종전대로 그림 문자다. */
       const A = OC.ui.appicon;
-      const key = iconKeyOf(id);
+      const key = wi.iconKey || iconKeyOf(id, title);
       if (A && typeof A.paint === 'function' && key) A.paint(b, key, ico);
       else b.textContent = ico;
       // 말풍선에는 아이콘을 빼고 이름만. 아이콘은 바로 아래에 이미 보인다.
@@ -686,7 +764,7 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
   function setWinTitle(id, title){
     const wi = WINS[id]; if(!wi) return;
     wi.title = title;
-    const t = wi.el.querySelector('.win-title'); if(t) t.textContent = title;
+    paintTitle(wi.el.querySelector('.win-title'), id, title, wi);
     // 대화상자 이름도 같이 바꾼다 — 안 바꾸면 스크린리더가 옛 제목을 계속 읽는다.
     wi.el.setAttribute('aria-label', String(title));
     refreshTaskbar();
@@ -718,7 +796,9 @@ window.OC = window.OC || {}; OC.ui = OC.ui || {};
   OC.ui.focusWin = focusWin;
   OC.ui.minimizeWin = minimizeWin;
   OC.ui.closeWin = closeWin;
+  OC.ui.registerPage = registerPage;
   OC.ui.refreshTaskbar = refreshTaskbar;
+  OC.ui.setWinIcon = setWinIcon;
   OC.ui.showCtxMenu = showCtxMenu;
   OC.ui.setWinTitle = setWinTitle;
   /* 🔴 `toggleMax` · `hideCtxMenu` 는 여기서 내리지 않는다(2026-08-17 6차 검수).
