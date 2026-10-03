@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>강사 발급 · Work Sim</title>
+  <style>
+    :root{color-scheme:light;--ink:#172337;--muted:#596579;--line:#d5dce5;--paper:#fff;--wash:#f4f6f9;--accent:#203d65}
+    *{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}button,input,select{font:inherit}button,a,input,select{touch-action:manipulation}main{max-width:940px;margin:0 auto;padding:36px 24px 60px}header{margin-bottom:28px}.brand{color:var(--muted);margin:0 0 8px;font-size:14px}h1{font-size:30px;line-height:1.3;margin:0 0 10px;letter-spacing:-.6px}h2{font-size:21px;margin:0 0 20px}p{margin:0 0 14px}.hint{color:var(--muted);font-size:14px}.panel{background:var(--paper);padding:28px;border:1px solid var(--line);border-radius:12px;margin-bottom:20px}[hidden]{display:none!important}label{display:block;font-weight:600;margin-bottom:6px}input[type=email],input[type=password],input[type=number],select{width:100%;min-height:48px;border:1px solid #8794a7;border-radius:6px;background:var(--paper);color:var(--ink);padding:10px 12px}input:disabled,select:disabled{background:var(--wash);color:var(--muted)}.fields{display:grid;grid-template-columns:1fr 1fr;gap:18px}.field{margin-bottom:18px}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}button{min-height:46px;padding:10px 18px;border:1px solid var(--accent);border-radius:6px;color:#fff;background:var(--accent);cursor:pointer;white-space:nowrap;font-weight:600}button.secondary{color:var(--accent);background:var(--paper)}button:disabled{cursor:default;opacity:.55}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #376da9;outline-offset:3px}.notice{min-height:26px;margin:0 0 18px;color:var(--muted)}.notice.error{color:#a02323}.account{display:flex;gap:16px;justify-content:space-between;align-items:center;margin-bottom:20px}.account p{margin:0;overflow-wrap:anywhere}.wallet{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:20px 0 24px;margin-bottom:20px;border-bottom:1px solid var(--line)}.wallet dt{font-size:14px;color:var(--muted)}.wallet dd{margin:4px 0 0;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}fieldset{border:0;padding:0;margin:0 0 20px}legend{font-weight:600;margin-bottom:10px}.mode{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;cursor:pointer}.mode input{margin:6px 0 0;width:18px;height:18px;accent-color:var(--accent)}.mode strong{display:block}.mode span{font-size:14px;font-weight:400;color:var(--muted)}.total{font-size:18px;font-weight:600;margin:0 0 18px}table{width:100%;min-width:440px;border-collapse:collapse;font-size:14px}th{text-align:left;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:10px 8px}td{padding:12px 8px;vertical-align:top;border-bottom:1px solid #edf0f4}.code{font-family:ui-monospace,SFMono-Regular,monospace;white-space:nowrap}.table-wrap{overflow-x:auto}.empty{padding:24px 0;color:var(--muted)}a{color:var(--accent)}footer{font-size:14px;color:var(--muted)}@media(max-width:640px){main{padding:24px 16px 40px}.panel{padding:20px 16px}.fields{grid-template-columns:1fr;gap:0}h1{font-size:26px}.wallet{gap:12px}.wallet dd{font-size:21px}.account{align-items:flex-start}.account .secondary{padding:8px 12px}}
+  </style>
+</head>
+<body>
+<main>
+  <header><p class="brand">Work Sim · 강사</p><h1>개인 업무 입장권 발급</h1><p class="hint">강사 계정으로 로그인하고, 채점 방식과 참여 인원을 선택하세요.</p></header>
+  <p id="notice" class="notice" role="status" aria-live="polite">발급 서비스 연결을 확인하고 있습니다.</p>
+  <section id="loginPanel" class="panel" aria-labelledby="loginTitle">
+    <h2 id="loginTitle">강사 로그인</h2>
+    <form id="loginForm">
+      <div class="field"><label for="email">이메일</label><input id="email" name="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="password">비밀번호</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+      <div class="actions"><button id="emailLogin" type="submit">로그인</button><button id="googleLogin" class="secondary" type="button">Google로 로그인</button></div>
+    </form>
+    <p class="hint" style="margin-top:18px">기존 에듀메이커스 강사 계정을 사용합니다. Work Sim v2 이용 승인이 필요합니다.</p>
+  </section>
+  <div id="teacherPanel" hidden>
+    <div class="account"><p id="accountName"></p><button id="logout" class="secondary" type="button">로그아웃</button></div>
+    <section class="panel" aria-labelledby="issueTitle">
+      <h2 id="issueTitle">참여자 입장권 만들기</h2>
+      <p class="hint">크레딧 잔액</p><dl class="wallet"><div><dt>사용 가능</dt><dd id="balance">확인 중</dd></div><div><dt>예약 중</dt><dd id="reserved">확인 중</dd></div><div><dt>사용 완료</dt><dd id="spent">확인 중</dd></div></dl>
+      <form id="issueForm">
+        <fieldset id="issueFields">
+          <legend>채점 방식</legend>
+          <label class="mode"><input type="radio" name="gradingMode" value="standard" checked><div><strong>일반 채점 · 1명당 1크레딧</strong><span>게임의 업무 점수와 NCS 역량 결과를 확인합니다.</span></div></label>
+          <label class="mode"><input type="radio" name="gradingMode" value="local-ai"><div><strong>관리자 AI 후평가 · 1명당 1.5크레딧</strong><span>로컬 관리자 Codex가 답안을 검토하고, 확인한 평가를 학생에게 게시합니다.</span></div></label>
+          <div class="fields"><div class="field"><label for="team">업무 팀</label><select id="team" name="team"><option value="cs">고객상담</option><option value="logi">물류</option><option value="acct">회계</option><option value="ga">총무</option><option value="rec">인사</option><option value="plan">기획</option><option value="qc">품질관리</option><option value="pr">홍보</option><option value="edu">교육</option><option value="buy">구매</option></select></div><div class="field"><label for="count">참여 인원</label><input id="count" name="count" type="number" min="1" max="300" step="1" value="1" required></div></div>
+        </fieldset>
+        <p id="issueTotal" class="total">1명 · 총 1크레딧 예약</p>
+        <p class="hint">발급하면 크레딧을 예약합니다. 일반은 7일차 완료, AI는 관리자의 채점 시작 시 사용을 확정합니다. 같은 토큰의 재채점에는 추가 비용이 없습니다.</p>
+        <div class="actions"><button id="issueButton" type="submit" disabled>입장권 발급</button><button id="retryButton" class="secondary" type="button" hidden>같은 요청 다시 확인</button><button id="refreshButton" class="secondary" type="button">잔액·발급 내역 새로고침</button></div>
+      </form>
+    </section>
+    <section class="panel" aria-labelledby="codesTitle"><h2 id="codesTitle">내가 발급한 입장권</h2><p id="codesEmpty" class="empty">발급 내역을 확인하고 있습니다.</p><div id="codesTable" class="table-wrap" hidden><table><thead><tr><th scope="col">개인 토큰</th><th scope="col">업무 팀</th><th scope="col">채점 방식</th><th scope="col">상태</th></tr></thead><tbody id="codesBody"></tbody></table></div></section>
+  </div>
+  <footer><a href="index.html">Work Sim으로 돌아가기</a></footer>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="js/backend-url.js"></script>
+<script src="js/teacher.js"></script>
+</body>
+</html>

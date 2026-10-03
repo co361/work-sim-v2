@@ -171,7 +171,8 @@ window.EP7=(function(){
     const fine=h('div','rsFine'); const R0=body._R;
     if(R0){ if(R0.legacy.length) fine.appendChild(h('p',null,`이전 방식으로 기록된 날(역량 표에 없음): ${R0.legacy.join('·')}일차`)); if(R0.part.length) fine.appendChild(h('p',null,`역량 기록이 일부 빠진 날: ${R0.part.join('·')}일차`)); if(R0.quit.length) fine.appendChild(h('p',null,`중간에 끝낸 날: ${R0.quit.join('·')}일차`)); }
     if(typeof NcsEval!=='undefined'&&NcsEval.STATEMENT) fine.appendChild(h('p',null,NcsEval.STATEMENT)); if(fine.childNodes.length) body.appendChild(fine);
-    rsNav(nav,secs); }
+    rsNav(nav,secs);
+    if(window.StudentAIReview) StudentAIReview.mount(body,()=>({code:S.code,name:S.name,demo:S.demo}),ft); }
   /* 왼쪽 목차 — 누르면 그 섹션으로, 지금 보는 섹션은 굵게(넓은 화면에서만 보인다 · play.html .rsNav) */
   function rsNav(nav,secs){ if(!nav) return; const ul=h('ul'); const items=[];
     for(const [el,label] of secs){ const li=h('li'); const b=h('button',null,label); b.type='button'; b.onclick=()=>{ const red=matchMedia('(prefers-reduced-motion: reduce)').matches; el.scrollIntoView({behavior:red?'auto':'smooth',block:'start'}); }; li.appendChild(b); ul.appendChild(li); items.push([el,b]); }

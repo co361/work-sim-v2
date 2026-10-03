@@ -408,7 +408,7 @@ async function doPhone(id,k,keepAfter){ const c=CARD(id); const st=S.cards[id]; 
   if(after&&!keepAfter){ if(window.Talk&&Talk.say) Talk.say(after.who,after.text,{role:'전화',sess:null}); else toast(after.text,after.who,5000,'cust'); }
   return after||null; }
 async function doPick(id,pick){ const c=CARD(id); const pc=CARD(pick); let r; try{ r=await Grader.run('pick',c,{pick}); }catch(e){ return gradeFail(id,e); } takeEv(id,r); S.cards[id].text=`"${pc.subj}" 건이요.`; record(id,{act:'reply',score:r.ok?100:60,comment:r.comment||'',text:S.cards[id].text}); runBranch(id,r.ok?'ok':'fallback'); }
-async function doWork(id,ans){ const c=CARD(id), st=S.cards[id]; if(st.status==='done'||(st.steps&&st.steps.work)) return; let w; try{ w=await Grader.run('work',c,{ans,st:{workTries:st.workTries||0}}); }catch(e){ return gradeFail(id,e); } const shown=workText(c,ans); st.answer=shown; S.counts.calcAll++; if(w.bestComment) st.bestComment=w.bestComment;
+async function doWork(id,ans){ const c=CARD(id), st=S.cards[id]; if(st.status==='done'||(st.steps&&st.steps.work)) return; let w; try{ w=await Grader.run('work',c,{ans,st:{workTries:st.workTries||0}}); }catch(e){ return gradeFail(id,e); } const shown=workText(c,ans); st.workInput=JSON.parse(JSON.stringify(ans)); st.answer=shown; S.counts.calcAll++; if(w.bestComment) st.bestComment=w.bestComment;
   /* 증거(work)는 끝났을 때만 온다 — 맞음·함정·세 번째 오답(앞선 오답 수는 st.workTries — 배포본은 서버가 센 값과 큰 쪽) */
   if(w.ok||w.trap||(st.workTries||0)>=2) takeEv(id,w);
   if(w.ok){ S.counts.calc++; st.workOk=true; toast('검산 결과가 맞아요.'); markStep(id,'work',{answer:shown,score:100}); return; }
