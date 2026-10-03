@@ -60,6 +60,7 @@
 <div id="log"></div>
 <script type="module">
 import * as THREE from 'three';
+import {createLegacyRunPosture} from './js/office-run-posture-legacy.js?v=20261003legacy1';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
@@ -2832,6 +2833,7 @@ function restoreArmSkinNormals50(){
      mixer 를 돌리기 **전에** 모든 뼈 회전을 앞 프레임의 「애니메이션만 먹은 자세」로 되돌리고, 돌린 **뒤** 그 자세를 다시 떠 둔다 */
   let BONE_BASE=null;
   function update(dt,cam){ if(!model.visible) return;
+    RUN_POSTURE?.restore();
     if(BONE_BASE){ const B=BONE_BASE.b, Q=BONE_BASE.q; for(let i=0;i<B.length;i++) B[i].quaternion.copy(Q[i]); }
     mixer.update(dt);
     if(!BONE_BASE){ const B=Object.values(bones); BONE_BASE={b:B,q:B.map(b=>b.quaternion.clone())}; } else { const B=BONE_BASE.b, Q=BONE_BASE.q; for(let i=0;i<B.length;i++) Q[i].copy(B[i].quaternion); }
@@ -2860,6 +2862,7 @@ function restoreArmSkinNormals50(){
     if(C.ai&&(mode==='type'||mode==='sit'||mode==='idle')) fidget();
     applyLook(dt);
     if(TWG.ok) twistGuard();   /* 46차 28: 골반·가슴·머리 수평 각 한계(시선·클립·의자 돌리기 무엇이든) — 손 IK 보다 먼저 */
+    RUN_POSTURE?.update();
     if(CK.k>0&&CK.seated&&(C.seat||freeSit))lapHands51(CK.k);
     if(mode==='type'&&!trans&&anyRunning()) typeHands(); seatTurnValidate();   /* 46차: 타자 손은 척추가 다 돈 뒤에 */
     if(face){ const fwd=new THREE.Vector3(0,0,1).applyQuaternion(model.getWorldQuaternion(new THREE.Quaternion())); const hp3=new THREE.Vector3(); head.getWorldPosition(hp3); const toCam=cam.position.clone().sub(hp3).normalize(); const facing=fwd.dot(toCam); const onTop=facing>0.1;
@@ -2898,7 +2901,9 @@ function restoreArmSkinNormals50(){
       if(hi>=0&&ri>=0) rest.tracks[ri]=low.tracks[hi].clone(); actions.sitRest=mixer.clipAction(rest); } }
   /* ---- 배치 API ---- */
   model.userData.base=SIT_LIFT_BASE;   /* 39차: 서 있을 때의 기준 y (접지 보정에 쓴다) */
+  const RUN_POSTURE=createLegacyRunPosture(THREE,{model,bones,mixer,actions,isFast:()=>C===PLAYER&&CTRL.fast&&mode==='walk'});
   const C={ CH, model, H, bones, head, hips, mixer, actions, P, SIT,
+    get runPosture(){return RUN_POSTURE?.state||null;},
     faceFrame52(){if(!face)return null;face.updateMatrixWorld(true);if(face.isSkinnedMesh)face.skeleton.update();const box=new THREE.Box3(),v=new THREE.Vector3(),a=face.geometry.attributes.position;for(let i=0;i<a.count;i+=Math.max(1,Math.floor(a.count/400))){v.fromBufferAttribute(a,i);if(face.isSkinnedMesh)face.applyBoneTransform(i,v);v.applyMatrix4(face.matrixWorld);box.expandByPoint(v);}return {center:box.getCenter(new THREE.Vector3()),size:box.getSize(new THREE.Vector3())};}, get mode(){ return mode; }, set mode(v){ mode=v; }, play, setFace, update, once, seat:null,
     /* 좌석에 앉히기: 책상 상판 0.42 에 맞춰 seatRaise 를 정하고(그 위치가 IK 목표), 의자 앞선~책상 앞선 0.05 규칙은 좌석 정의(ZF)에서 지킨다 */
     sitAt(seat,anim=false){
