@@ -54,11 +54,11 @@ function leadOpenBrief(){ if(!D||!D.dialog||!Array.isArray(D.dialog.briefing)) r
 
 /* ---------- 입장 ---------- */
 async function boot(){ const code=(Q.get('code')||'').trim(); const team=(Q.get('team')||'').toLowerCase(); const ep=+(Q.get('ep')||0);
-  try{ const saved=localStorage.getItem('ws7.code'); if(!code&&saved&&!team) S.code=saved; }catch(e){}
+  try{ const saved=localStorage.getItem('ws7.code'); if(!code&&saved&&!team){S.code=saved;S.demo=!backendOn();} }catch(e){}
   if(code){ await enterWithCode(code,ep||null); return; }
   if(team&&ep){ S.team=team; S.ep=ep; S.demo=true; S.code=null; P=await loadProgress(); S.name=P.name||''; await startDay(ep); return; }
   showHome(); }
-async function enterWithCode(code,ep){ code=code.toUpperCase().replace(/\s/g,''); S.code=code; let info=null;
+async function enterWithCode(code,ep){ if(window.StudentAIReview) StudentAIReview.unmount(); code=code.toUpperCase().replace(/\s/g,''); S.code=code; let info=null;
   if(backendOn()&&typeof window.Backend.check==='function'){ try{ const r=await withTimeout(window.Backend.check(code),9000); if(r&&r.ok){ info=r; } else { homeMsg((r&&r.reason)||'등록되지 않은 코드예요. 다시 확인해 주세요.'); showHome(); return; } }catch(e){ homeMsg('서버에 연결하지 못했어요. 잠시 뒤 다시 시도하거나 데모로 시작하세요.'); showHome(); return; } }
   S.demo=!info; if(info){ S.team=(info.team||'cs').toLowerCase(); S.name=info.name||''; } else { S.team=(Q.get('team')||$('homeTeam').value||'cs').toLowerCase(); }
   try{ localStorage.setItem('ws7.code',code); }catch(e){}
@@ -74,7 +74,8 @@ function renderHomeDays(){ const box=$('homeDays'); box.innerHTML=''; const day=
     b.innerHTML=`<b>${d}일차</b><span>${escapeHtml(DAY_TITLES[d]||'')}</span><i>${done?'✓ '+(done.ending?('엔딩 '+done.ending):(ws!=null?ws+'점':'끝')):cur?(P&&P.cur&&P.cur.day===d?'이어 하기':'오늘'):'잠김'}</i>`;
     b.onclick=()=>{ if(!done&&!cur&&!Q.get('debug')){ toast(`${d-1}일차를 마치면 열려요.`); return; } goDay(team,d); }; box.appendChild(b); }
   /* 7일을 마친 학생 — 내 결과 PDF(js/play/result_pdf.js · 저장본만으로 만든다) */
-  const pdf=$('homePdf'); if(pdf){ pdf.innerHTML=''; const fin=!!(P&&P.done&&P.done['7']); pdf.style.display=(fin&&window.ResultPdf)?'':'none'; if(fin&&window.ResultPdf){ pdf.appendChild(ResultPdf.button('pri')); pdf.appendChild(h('span','muted','7일 기록 — NCS 결과 · 강점과 보완할 점 · 날마다 한 일과 쓴 글')); } } }
+  const pdf=$('homePdf'); if(pdf){ pdf.innerHTML=''; const fin=!!(P&&P.done&&P.done['7']); pdf.style.display=(fin&&window.ResultPdf)?'':'none'; if(fin&&window.ResultPdf){ pdf.appendChild(ResultPdf.button('pri')); pdf.appendChild(h('span','muted','7일 기록 — NCS 결과 · 강점과 보완할 점 · 날마다 한 일과 쓴 글')); } }
+  if(window.StudentAIReview) StudentAIReview.mount(box.parentNode,()=>({code:S.code,name:S.name,demo:S.demo}),pdf); }
 function goDay(team,d){ const u=new URL(location.href); u.searchParams.set('team',team); u.searchParams.set('ep',String(d)); if(S.code) u.searchParams.set('code',S.code); else u.searchParams.delete('code'); u.searchParams.delete('fresh'); u.searchParams.delete('home'); location.href=u.toString(); }   /* fresh 는 그 화 한 번만(QA W-13 — 다음 날로 물려주면 그날 새로고침이 처음부터였다) */
 $('homeGo').onclick=async()=>{ const code=$('homeCode').value.trim(); if(code){ $('home').classList.remove('open'); $('loading').classList.remove('off'); await enterWithCode(code,null); } else { const team=$('homeTeam').value||'cs'; S.demo=true; S.code=null; try{ localStorage.removeItem('ws7.code'); }catch(e){} S.team=team; P=await loadProgress(); goDay(team,P.day||1); } };
 $('homeDemo').onclick=async()=>{ const team=$('homeTeam').value||'cs'; S.demo=true; S.code=null; try{ localStorage.removeItem('ws7.code'); }catch(e){} S.team=team; P=await loadProgress(); goDay(team,P.day||1); };
@@ -103,7 +104,7 @@ function askAvatar(again){
   $('avF').onclick=()=>close('f'); $('avM').onclick=()=>close('m'); keep.onclick=()=>close(null); }); }
 
 /* ---------- 하루 시작 ---------- */
-async function startDay(ep){ S.ep=ep; S.phase='loading'; $('home').classList.remove('open'); $('loading').classList.remove('off');
+async function startDay(ep){ if(window.StudentAIReview) StudentAIReview.unmount(); S.ep=ep; S.phase='loading'; $('home').classList.remove('open'); $('loading').classList.remove('off');
   try{ D=await loadStory(S.team,ep); }catch(e){ $('loadMsg').textContent=e.message; $('loadBack').style.display='inline-block'; return; }
   D=JSON.parse(JSON.stringify(D));            /* 전날 결과에 따라 카드가 빠지므로 사본 */
   /* Names are filled after final avatar selection below. */                               /* 「○○씨」 등 이름 자리 — 모든 출력 경로가 이 사본을 쓴다(45차) */
@@ -527,6 +528,8 @@ function cardRecord(s){ const o={act:s.act||'none'};
   if(s.workOk!=null) o.workOk=!!s.workOk;
   if(Array.isArray(s.miss)&&s.miss.length) o.miss=s.miss.slice();
   if(s.text) o.text=s.text; if(s.text2) o.text2=s.text2; if(s.answer) o.answer=s.answer;
+  for(const k of ['workDraft','workInput','input','inputs','values','fields','attach','attachments','acceptCheck','report','reportChoice','targetPid','to','toDept','who','which','variant','variantIndex','vix'])
+    if(Object.prototype.hasOwnProperty.call(s,k)&&s[k]!==undefined)o[k]=JSON.parse(JSON.stringify(s[k]));
   if(s.status==='skipped') o.status='skipped';
   if(s.source==='AI 첨삭') o.ai=1; if(typeof s.aiq==='number') o.aiq=s.aiq;
   /* 57차 E2 — 사수 메모를 열어 봄(hint) · 사규집 검색어·열어 본 조항(rb) · 정답이 아닌 처리로 끝냄(off — D12 판정용) */
@@ -557,7 +560,7 @@ function buildResult(){ const cards={}; const scoredIds=[]; for(const c of D.car
      「오늘 다시」 전에 그날 카드 목록이 미리 드러났다) */
   const skipped=D.cards.concat(S.extra).filter(c=>{ const st=S.cards[c.id]; return st&&st.status==='done'&&st.act==='none'&&!c.followup&&c.scored!==false&&!c.unscored&&c.axis!=='self'; }).map(c=>c.subj);
   const notArrived=D.cards.filter(c=>S.cards[c.id]&&S.cards[c.id].status==='skipped'&&!c.followup&&c.scored!==false).length;
-  return {team:S.team,ep:S.ep,day:D.day,at:new Date().toISOString(),cards,trust:Object.assign({},S.trust),clues:S.clues.slice(),mistake,mistakeLine:mline,leadLine:lead,level,counts:Object.assign({},S.counts,{done,all:mainIds.length}),nexts:S.nexts.slice(),triage:S.triage?Object.assign({score:S.triage.score,hit:S.triage.hit,total:S.triage.total},S.triage.sg?{sg:S.triage.sg}:{}):null,skipped,notArrived,clueGaps:D.cards.filter(c=>S.cards[c.id]&&S.cards[c.id].clueGap).map(c=>c.subj)}; }
+  return {team:S.team,ep:S.ep,day:D.day,at:new Date().toISOString(),cards,trust:Object.assign({},S.trust),clues:S.clues.slice(),mistake,mistakeLine:mline,leadLine:lead,level,counts:Object.assign({},S.counts,{done,all:mainIds.length}),nexts:S.nexts.slice(),triage:S.triage?Object.assign({score:S.triage.score,hit:S.triage.hit,total:S.triage.total,assign:JSON.parse(JSON.stringify(S.triage.assign||{})),ids:(S.triage.ids||[]).slice()},S.triage.sg?{sg:S.triage.sg}:{}):null,skipped,notArrived,clueGaps:D.cards.filter(c=>S.cards[c.id]&&S.cards[c.id].clueGap).map(c=>c.subj)}; }
 /* 디브리프 「오늘의 실수」 대사의 조건(when) — 57차 E2후속 F9. 예전에는 조건을 보지 않아(`||true`) 그 카드에서 다른 실수를 했거나
    형식에서만 깎였어도 그 대사가 떴다. 데이터의 when 은 사람 말이다(「ac30 에서 거래처에 "면제해 드리겠다"고 썼다면」 · 「카드 8을 메일로 상신했다면」 ·
    「전화에서 ㉠을 골랐다면」 · 「by13 을 받았다면(reply·hold)」 · 「○○ 건이 오늘 가장 낮은 점수일 때」). 읽을 수 있는 꼴만 읽는다:
@@ -674,7 +677,8 @@ function renderDebrief(r){ rsFont(); const w=$('dbWrap'); w.innerHTML=''; w.clas
     if(nx.length){ const ul=h('ul','rsList'); for(const t of nx) ul.appendChild(h('li',null,t)); s5.appendChild(ul); }
     if(dl.length) s5.appendChild(rsDl(dl));
     if(D.dialog.debrief.nextEp) s5.appendChild(h('p','rsNote',D.dialog.debrief.nextEp)); }
-  const ft=h('div','foot'); if(S.ep<7) ft.appendChild(mkBtn(`${S.ep+1}일차로`,'pri',()=>goDay(S.team,S.ep+1))); ft.appendChild(mkBtn('홈으로','',()=>goHome(false))); ft.appendChild(mkBtn('오늘 다시','',()=>{ delete P.done[String(S.ep)]; P.cur=null; P.day=S.ep; saveProgress(true); goDay(S.team,S.ep); }));   /* F13: 서버도 그날로 낮춘다(ws7ProgNext) — 클라이언트 P.day 를 같게 */ ft.appendChild(mkBtn('사무실 보기','',()=>$('debrief').classList.remove('open'))); w.appendChild(ft); }
+  const ft=h('div','foot'); if(S.ep<7) ft.appendChild(mkBtn(`${S.ep+1}일차로`,'pri',()=>goDay(S.team,S.ep+1))); ft.appendChild(mkBtn('홈으로','',()=>goHome(false))); ft.appendChild(mkBtn('오늘 다시','',()=>{ delete P.done[String(S.ep)]; P.cur=null; P.day=S.ep; saveProgress(true); goDay(S.team,S.ep); }));   /* F13: 서버도 그날로 낮춘다(ws7ProgNext) — 클라이언트 P.day 를 같게 */ ft.appendChild(mkBtn('사무실 보기','',()=>{ if(window.StudentAIReview) StudentAIReview.unmount(); $('debrief').classList.remove('open'); })); w.appendChild(ft);
+  if(window.StudentAIReview) StudentAIReview.mount(w,()=>({code:S.code,name:S.name,demo:S.demo}),ft); }
 function peerName(){ const m=(D.dialog.briefing||[]).find(l=>l.role==='동기'); if(m) return m.who; const org=ORG[S.team]; return org?({cs:'윤하린',logi:'정수빈',acct:'임도윤',ga:'백하은',rec:'송민재',plan:'안예린',qc:'유하늘',pr:'곽민서',edu:'차은우',buy:'하지원'}[S.team]||'동기'):'동기'; }
 /* 「무엇을 했나」를 한 낱말로 갈라 칩 색을 정한다 */
 function chipKind(st,label){ if(st.act==='none'||label==='미처리'||label==='기록 없음') return 'k-none';
@@ -734,7 +738,7 @@ document.addEventListener('click',(ev)=>{ if($('pauseMenu').hidden) return; if($
 $('inboxHd').onclick=()=>{ if(window.innerWidth<=760) $('inbox').classList.toggle('up'); };
 /* 홈(소개 페이지)으로 나가는 길은 한 곳에서만 만든다 — 화면마다 문구와 동작이
    달라지지 않게. 하루 도중이면 물어보고, 저장이 실제로 끝난 뒤에 옮긴다. */
-async function goHome(ask){
+async function goHome(ask){ if(window.StudentAIReview) StudentAIReview.unmount();
   const mid=(S.phase==='work'||S.phase==='triage'||S.phase==='ep7');
   if(ask&&mid&&!confirm('진행은 저장됩니다. 홈으로 나갈까요?')) return;
   if(mid){ try{ saveProgress(true); }catch(e){}
@@ -749,7 +753,7 @@ const pcHomeBtn=$('pcHome'); if(pcHomeBtn) pcHomeBtn.onclick=()=>goHome(true);
 $('loadBack').onclick=()=>goHome(false);
 $('cClose').onclick=closeCard;
 (async()=>{ try{ await (window.__backendReady||Promise.resolve()); }catch(e){} if(window.Backend&&typeof window.Backend.configure==='function'&&Q.get('api')){ try{ window.Backend.configure(Q.get('api')); }catch(e){} }
-  if(Q.get('home')==='1'){ const c=(Q.get('code')||'').trim(); if(c){ S.code=c.toUpperCase(); try{ localStorage.setItem('ws7.code',S.code); }catch(e){} } showHome(); } else boot(); })();
+  if(Q.get('home')==='1'){ const c=(Q.get('code')||'').trim(); if(c){ S.code=c.toUpperCase(); S.demo=!backendOn(); try{ localStorage.setItem('ws7.code',S.code); }catch(e){} } showHome(); } else boot(); })();
 
 /* ---------- 스모크·자동 플레이용 ----------
    조작 API(자동 플레이·카드 처리·시계 넘기기·하루 끝내기)는 로컬(localhost·127.0.0.1·[::1]·파일)에서만, 또는 토큰 모드가 아닐 때 ?qa=1 로만 만든다(57차 E2-15 · A Y6).

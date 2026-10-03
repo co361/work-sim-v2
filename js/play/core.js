@@ -144,7 +144,7 @@ let saveTimer=null, saveSeq=0;
      걸어간 기록(lastNpc·lastSeat·ask·wrong …)을 뺀다. 디브리프·저장 기록(cardRecord)·「오늘의 실수」 조건(mistakeWhenMet)이 읽는 것은 남긴다.
    · 안 끝난 카드: 모범 답안만 빼고, 단계 기록 안의 글(steps.*.text — st.text·text2 와 같은 글)을 뺀다.
    이어 한 뒤 끝낸 카드를 다시 열면 점수·코멘트·쓴 글은 그대로이고 요소 칩·모범 답안(배포본)만 안 보인다 */
-const CUR_DONE_DROP=['steps','model','bestComment','detail','detail2','feedback','ask','order','qorder','workDraft','workWrong','workTries','lastNpc','lastSeat','deliveredAt','readyAt','reportChoice','wrong','visitorHere','visitorComing','go','onTime'];
+const CUR_DONE_DROP=['steps','model','bestComment','detail','detail2','feedback','ask','order','qorder','workWrong','workTries','lastNpc','lastSeat','deliveredAt','readyAt','wrong','visitorHere','visitorComing','go','onTime'];
 function curCards(cards){ const out={}; for(const [id,st] of Object.entries(cards||{})){ if(!st||typeof st!=='object'){ out[id]=st; continue; } const o=Object.assign({},st);
     if(o.status==='done'||o.status==='skipped'){ for(const k of CUR_DONE_DROP) delete o[k]; }
     else { delete o.model; if(o.steps){ const s2={}; for(const [k,v] of Object.entries(o.steps)){ const v2=Object.assign({},v); delete v2.text; s2[k]=v2; } o.steps=s2; } }
