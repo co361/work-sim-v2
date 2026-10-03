@@ -112,7 +112,7 @@ async function startDay(ep){ S.ep=ep; S.phase='loading'; $('home').classList.rem
     if(pref&&pref!==P.avatar){ P.avatar=pref; saveProgress(true); }
     if(!P.avatar){ P.avatar=await askAvatar(); setAvatarPref(P.avatar); saveProgress(true); } }
   /* 캐릭터 로스터(js/office-story-roster.js)는 아직 배포하지 않는다(2026-09-29 캐릭터·사무실 교체 작업 중) — 파일이 있을 때만 쓴다 */
-  if(typeof adaptStoryToRoster==='function') D=adaptStoryToRoster(D,S.team,P.avatar);fillNames(D);
+  if(typeof bindStoryFaces==='function')bindStoryFaces(D,S.team,P.avatar);fillNames(D);
   document.title=`${D.teamName} ${D.ep}화 「${D.title}」`; $('title').innerHTML=''; $('title').appendChild(document.createTextNode(`${D.teamName} ${D.ep}일차`)); const sm=h('small',null,`「${D.title}」 · ${D.date||''}`); $('title').appendChild(sm);
   /* 44차: 첫 진입 로딩은 「로딩 중」 대신 조작법 카드로 채운다(js/play/intro.js).
      카드를 다 보거나 건너뛴 뒤에야 Intro.ready() 가 풀린다 — 방 이동·캐릭터 교체 로딩은 그대로다. */
@@ -675,7 +675,7 @@ function renderDebrief(r){ rsFont(); const w=$('dbWrap'); w.innerHTML=''; w.clas
     if(dl.length) s5.appendChild(rsDl(dl));
     if(D.dialog.debrief.nextEp) s5.appendChild(h('p','rsNote',D.dialog.debrief.nextEp)); }
   const ft=h('div','foot'); if(S.ep<7) ft.appendChild(mkBtn(`${S.ep+1}일차로`,'pri',()=>goDay(S.team,S.ep+1))); ft.appendChild(mkBtn('홈으로','',()=>goHome(false))); ft.appendChild(mkBtn('오늘 다시','',()=>{ delete P.done[String(S.ep)]; P.cur=null; P.day=S.ep; saveProgress(true); goDay(S.team,S.ep); }));   /* F13: 서버도 그날로 낮춘다(ws7ProgNext) — 클라이언트 P.day 를 같게 */ ft.appendChild(mkBtn('사무실 보기','',()=>$('debrief').classList.remove('open'))); w.appendChild(ft); }
-function peerName(){if(typeof WorkSimRoster!=='undefined'){const self=WorkSimRoster.player(S.team,P?.avatar||avatarPref()||'m');const peer=self&&WorkSimRoster.team(S.team).find(c=>c.player_selectable&&c.model_id!==self.model_id);if(peer)return peer.display_name;} const m=(D.dialog.briefing||[]).find(l=>l.role==='동기'); if(m) return m.who; const org=ORG[S.team]; return org?({cs:'윤하린',logi:'정수빈',acct:'임도윤',ga:'백하은',rec:'송민재',plan:'안예린',qc:'유하늘',pr:'곽민서',edu:'차은우',buy:'하지원'}[S.team]||'동기'):'동기'; }
+function peerName(){ const m=(D.dialog.briefing||[]).find(l=>l.role==='동기'); if(m) return m.who; const org=ORG[S.team]; return org?({cs:'윤하린',logi:'정수빈',acct:'임도윤',ga:'백하은',rec:'송민재',plan:'안예린',qc:'유하늘',pr:'곽민서',edu:'차은우',buy:'하지원'}[S.team]||'동기'):'동기'; }
 /* 「무엇을 했나」를 한 낱말로 갈라 칩 색을 정한다 */
 function chipKind(st,label){ if(st.act==='none'||label==='미처리'||label==='기록 없음') return 'k-none';
   if(st.late) return 'k-late';

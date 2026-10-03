@@ -117,13 +117,13 @@ const OFFICE_CAST={ cs:['acnh_30','acnh_31','acnh_21','acnh_34'], logi:['acnh_45
    여성 플레이어(acnh_49)를 고르면 대사마다 404 가 콘솔 오류로 찍혀 「콘솔 오류 0」 기준을 깬다.
    그림을 붙이는 쪽(talk.js · day.js)은 그래도 onerror 로 이모지에 물러선다(파일이 지워진 경우 대비). */
 const AVATAR_MIN=17, AVATAR_HAVE_MAX=48;
-function playerChar(g){ if(g!=='f') return 'acnh_25'; if(PLAYER_F) return PLAYER_F;
+function playerChar(g){ if(window.WorkSimRoster)return WorkSimRoster.player(S.team,g).model_id; if(g!=='f') return 'acnh_25'; if(PLAYER_F) return PLAYER_F;
   const mine=new Set(OFFICE_CAST[S.team]||[]); return FEMALE_FALLBACK.find(c=>!mine.has(c))||FEMALE_FALLBACK[0]; }
 /* 3D 가 준비되면 한 번 — 사본이 어긋났는지 본다 */
-function checkOfficeCast(O){ if(checkOfficeCast.done||!O||!O.CAST) return; checkOfficeCast.done=true;
+function checkOfficeCast(O){ if(window.WorkSimRoster){if(!O?.CAST)return;for(const [t,list]of Object.entries(O.CAST)){if(list.map(x=>x[0]).join(',')!==WorkSimRoster.team(t).map(c=>c.model_id).join(','))throw new Error('Office roster mismatch '+t);}checkOfficeCast.done=true;return;} if(checkOfficeCast.done||!O||!O.CAST) return; checkOfficeCast.done=true;
   const bad=[]; for(const [t,list] of Object.entries(O.CAST)){ const a=list.map(x=>x[0]).join(','), b=(OFFICE_CAST[t]||[]).join(','); if(a!==b) bad.push(`${t}: office ${a} / core ${b}`); }
   if(bad.length) console.warn('[core.js] OFFICE_CAST 가 office.html CAST 와 다릅니다 — 같이 고치세요\n'+bad.join('\n')); }
-function avatarPic(ch){ if(ch&&ch===PLAYER_F&&!(+String(ch).slice(5)<=AVATAR_HAVE_MAX)){ const mine=new Set(OFFICE_CAST[S.team]||[]); ch=FEMALE_FALLBACK.find(c=>!mine.has(c))||FEMALE_FALLBACK[0]; }   /* 45차 배포 검사: 여성 전용 모델(49) 그림이 아직 없으면 3D 가 대신 쓰는 모델 그림으로(전에는 캐릭터 고르기·대화창에 🙂) */
+function avatarPic(ch){ if(window.WorkSimRoster?.byId(ch))return WorkSimRoster.byId(ch).portrait_url; if(ch&&ch===PLAYER_F&&!(+String(ch).slice(5)<=AVATAR_HAVE_MAX)){ const mine=new Set(OFFICE_CAST[S.team]||[]); ch=FEMALE_FALLBACK.find(c=>!mine.has(c))||FEMALE_FALLBACK[0]; }   /* 45차 배포 검사: 여성 전용 모델(49) 그림이 아직 없으면 3D 가 대신 쓰는 모델 그림으로(전에는 캐릭터 고르기·대화창에 🙂) */
   const m=/^acnh_(\d+)$/.exec(String(ch||'')); if(!m||+m[1]<AVATAR_MIN||+m[1]>AVATAR_HAVE_MAX) return ''; return 'assets/home/w/av_c'+m[1]+'.png'; }
 /* 이 기기에 남는 선호값 — 소개 페이지에서 바꾼 것을 게임이 따라간다 */
 function avatarPref(){ try{ return localStorage.getItem('ws7.avatar')||''; }catch(e){ return ''; } }
