@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>/* 데모 사이트 전용(2026-10-02): 같은 co361.github.io 의 학생용 라이브(work-sim-v2)와 브라우저 저장 공간이 섞이지 않게 키 앞에 ws7demo: 를 붙인다 */(function(){try{var P='ws7demo:',S=Storage.prototype,g=S.getItem,s=S.setItem,r=S.removeItem;S.getItem=function(k){return g.call(this,P+k)};S.setItem=function(k,v){return s.call(this,P+k,v)};S.removeItem=function(k){return r.call(this,P+k)};}catch(e){}})();</script>
 <title>WORK SIM v2 — 팀 사무실</title>
 <style>
   html,body{margin:0;height:100%;background:#eceae6;font:13px/1.4 -apple-system,system-ui,sans-serif;overflow:hidden;color:#eee}
@@ -64,12 +63,13 @@
 <div id="prompt"></div>
 <button id="touchTalk" type="button" hidden>말 걸기</button>
 <div id="log"></div>
-<script src="js/office-roster.js?v=a3531a402d8d877c"></script>
+<script src="js/office-roster.js?v=b0f588e34cfe816d"></script>
 <script src="js/office-employee-faces.js?v=20261003selected1"></script>
+<script>window.WorkSimNativeAssetOrigin=new URL("./",location.href).href;</script>
 <script src="js/office-selected-staff.js?v=20261003selected1"></script>
 <script type="module">
 import * as THREE from 'three';
-import {createArmPosture,fitLaptopHeight} from './js/office-arm-posture.js?v=9fa657b84507a137';
+import {createArmPosture,fitLaptopHeight} from './js/office-arm-posture.js?v=c866d354626bf6f4';
 import {getSeatFit,createFittedWorkChair} from './js/office-seat-fit.js?v=20260929-hairback1';   /* 2026-09-29: 긴 머리 인물 등받이(backrestHeight·backrestZ) */
 import {createWallTeamPlaque} from './js/office-wall-plaque.js?v=20260929-plaque2';
 import * as COZYLIB from './js/office-cozy.js?v=20260929-cozy5';
@@ -1861,7 +1861,7 @@ const _tlV1=new THREE.Vector3(), _tlV2=new THREE.Vector3(), _tlV3=new THREE.Vect
 const _wkA=new THREE.Vector3(), _wkB=new THREE.Vector3(), _wkQ1=new THREE.Quaternion(), _wkQ2=new THREE.Quaternion(), _wkQ3=new THREE.Quaternion();
 async function loadNativeResident(CH){
   const started=performance.now();
-  const url=CH==='acnh_53'?'./assets/native_staff50/characters/acnh_53.glb?v=281471ac92bfc565':WorkSimRoster.byId(CH).model_url;
+  const url=WorkSimRoster.byId(CH).model_url;
   const gltf=await gltfLoad(url);
   const model=new THREE.Group(); model.name=CH+'-resident-root'; model.visible=false;
   model.add(gltf.scene); scene.add(model);
