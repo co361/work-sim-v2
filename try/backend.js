@@ -7,7 +7,7 @@
  const read=()=>{try{return JSON.parse(localStorage.getItem(key)||'{}');}catch(_){return {};}};
  const write=value=>{localStorage.setItem(key,JSON.stringify(value));};
  const find=code=>/^PRACTICE-[A-F0-9]{32}$/.test(String(code||''))?read()[code]:null;
- const data=()=>bank||(bank=fetch('try/practice-data.json').then(r=>{if(!r.ok)throw new Error('체험 과제를 불러오지 못했습니다.');return r.json();}).catch(e=>{bank=null;throw e;}));
+ const data=()=>bank||(bank=fetch('try/practice-data.json?v=20261020senders1').then(r=>{if(!r.ok)throw new Error('체험 과제를 불러오지 못했습니다.');return r.json();}).catch(e=>{bank=null;throw e;}));
  const Backend={
   configure(){return 'browser-practice';},isOn(){return true;},
   async createSession(team){
