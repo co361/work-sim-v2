@@ -1,0 +1,30 @@
+/* 기존 학생 결과 화면의 흰색·회색·남색과 한 단 읽기 구조를 이어 쓴다. */
+.ws7-ai-review{margin:40px 0 24px;padding-top:32px;border-top:1px solid var(--line,#dde3ec);color:var(--ink,#1b2430);font-size:16px;line-height:1.65;overflow-wrap:anywhere;min-width:0}
+.ws7-ai-review :is(h2,h3,h4,p){margin:0}
+.ws7-ai-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ws7-ai-review h2{font-size:24px!important;line-height:1.4!important;display:block!important;margin:0 0 6px!important}
+.ws7-ai-review .ws7-ai-note{font-size:14px;line-height:1.6;color:var(--mute,#5b6675)}
+.ws7-ai-refresh{min-height:44px;padding:8px 16px;flex:none;font-size:14px}
+.ws7-ai-refresh:focus-visible{outline:3px solid var(--acc,#1f4e8c);outline-offset:3px}
+.ws7-ai-refresh:disabled{cursor:wait}
+.ws7-ai-current{margin-top:20px!important;color:var(--mute,#5b6675);font-size:14px}
+.ws7-ai-asof{margin-top:20px!important;padding:12px 14px;background:var(--acc-soft,#e8eefa);color:var(--acc-d,#143766);border-radius:var(--r,14px);font-size:15px}
+.ws7-ai-summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 24px;margin-top:24px}
+.ws7-ai-summary>span{font-size:15px;color:var(--mute,#5b6675)}
+.ws7-ai-summary strong{font-size:36px;line-height:1.3;font-variant-numeric:tabular-nums;color:var(--acc-d,#143766)}
+.ws7-ai-summary small{font-size:16px;font-weight:500;color:var(--mute,#5b6675)}
+.ws7-ai-published{margin-top:8px!important}
+.ws7-ai-unit{margin-top:32px;min-width:0}
+.ws7-ai-unit+.ws7-ai-unit{padding-top:32px;border-top:1px solid var(--line,#dde3ec)}
+.ws7-ai-unit-head{display:flex;align-items:baseline;gap:12px 24px;flex-wrap:wrap}
+.ws7-ai-review h3{font-size:19px!important;line-height:1.5!important;flex:1;min-width:min(220px,100%)}
+.ws7-ai-unit-score{font-size:15px;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--mute,#5b6675)}
+.ws7-ai-criteria{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 20px;margin:16px 0 24px;font-size:14px;color:var(--mute,#5b6675)}
+.ws7-ai-criteria dd{margin:0;font-variant-numeric:tabular-nums}
+.ws7-ai-feedback{margin-top:20px}
+.ws7-ai-review h4{font-size:15px;line-height:1.5;font-weight:700;margin-bottom:6px}
+.ws7-ai-feedback ul{margin:0;padding-left:1.3em}
+.ws7-ai-feedback li+li{margin-top:6px}
+.ws7-ai-next{margin-top:20px;padding-left:14px;border-left:3px solid var(--acc-line,#c5d5ee)}
+.ws7-ai-status:empty{display:none}
+@media(max-width:520px){.ws7-ai-review{margin-top:32px;padding-top:24px;font-size:15px}.ws7-ai-head{gap:12px}.ws7-ai-summary strong{font-size:32px}.ws7-ai-unit-head{display:block}.ws7-ai-unit-score{margin-top:6px!important}}
