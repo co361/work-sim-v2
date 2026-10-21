@@ -1,13 +1,13 @@
 /* Public practice only. No network API, credentials, production codes or participant records. */
 (function(global){
  'use strict';
- const key='practice.sessions.v1';let selected='',bank;
+ const key='guided.sessions.v1';let selected='',bank;
  const clone=value=>JSON.parse(JSON.stringify(value));
  const fail=reason=>({ok:false,reason});
  const read=()=>{try{return JSON.parse(localStorage.getItem(key)||'{}');}catch(_){return {};}};
  const write=value=>{localStorage.setItem(key,JSON.stringify(value));};
  const find=code=>/^PRACTICE-[A-F0-9]{32}$/.test(String(code||''))?read()[code]:null;
- const data=()=>bank||(bank=fetch('try/practice-data.json?v=20261020senders1').then(r=>{if(!r.ok)throw new Error('체험 과제를 불러오지 못했습니다.');return r.json();}).catch(e=>{bank=null;throw e;}));
+ const data=()=>bank||(bank=fetch('try/guided-data.json?v=fccf15151752a52c').then(r=>{if(!r.ok)throw new Error('체험 과제를 불러오지 못했습니다.');return r.json();}).catch(e=>{bank=null;throw e;}));
  const Backend={
   configure(){return 'browser-practice';},isOn(){return true;},
   async createSession(team){

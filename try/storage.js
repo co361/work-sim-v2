@@ -1,7 +1,7 @@
 /* Both practice frames use their own storage keys on the shared GitHub Pages origin. */
 (function(){
  const original={get:Storage.prototype.getItem,set:Storage.prototype.setItem,remove:Storage.prototype.removeItem};
- const prefix='ws7-public-practice-v1:';
+ const prefix='ws7-guided-demo3-v1:';
  Storage.prototype.getItem=function(k){return original.get.call(this,prefix+k);};
  Storage.prototype.setItem=function(k,v){return original.set.call(this,prefix+k,v);};
  Storage.prototype.removeItem=function(k){return original.remove.call(this,prefix+k);};
