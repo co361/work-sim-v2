@@ -4,7 +4,7 @@
  'use strict';
  const clone=x=>JSON.parse(JSON.stringify(x));
  function evidence(id,ov,el,s){const meta=NCS.ov[ov];return {id,ov,el:el||meta.el,s,m:meta.m,cx:1,wv:meta.w};}
- function actual(cards,story,at){
+ function actual(cards,story,at,{automated=false}={}){
   const R=GuidedDemoRules,result=R.result(cards),{visit:V,mail:M,phone:F}=R.ids,records={};
   for(const id of [V,M,F]){
    const c=cards[id]||{};if(c.status!=='done')continue;
@@ -16,8 +16,9 @@
    if(id===F)ev.push(evidence('demo-phone','key','5-3.2',c.choice==='verify'?3:c.choice==='refuse'?1:0));
    records[id]={act:id===V?'ask':id===M?'reply':c.choice,choice:c.choice||'',score:id===V?result.parts[0].points*4:id===M?Math.round(result.email.points/35*100):c.choice==='verify'?100:c.choice==='refuse'?30:0,text:c.text||'',ev:NcsEval.format(ev)};
   }
-  const progress={team:'cs',name:'내 체험',done:{'1':{at:at||new Date().toISOString(),level:result.score>=80?'hi':result.score>=50?'mid':'low',cards:records,ncs2:{v:1,day:''}}}};
-  return {kind:'actual-demo-actions',officialAssessment:false,synthetic:false,progress,stories:{'cs-ep1':clone(story)},result};
+  if(automated){for(const record of Object.values(records)){record.score=null;record.ev='';}result.score=null;result.automated=true;for(const part of result.parts)part.points=null;}
+  const progress={team:'cs',name:automated?'자동 시연':'내 체험',done:{'1':{at:at||new Date().toISOString(),level:automated?null:result.score>=80?'hi':result.score>=50?'mid':'low',cards:records,ncs2:{v:1,day:''}}}};
+  return {kind:automated?'automated-demo-actions':'actual-demo-actions',automated,officialAssessment:false,synthetic:false,progress,stories:{'cs-ep1':clone(story)},result};
  }
  function example(){
   // Entirely fictional demonstration fixture; no student record or answer bank.

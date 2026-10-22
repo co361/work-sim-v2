@@ -7,7 +7,7 @@
   function render(mode){
    const snap=mode==='example'?(sample||(sample=GuidedReportData.example())):own;
    // Lexical values used by the unchanged renderer. Global game P/S/D are never replaced.
-   const P=snap.progress,S={team:'cs'},D={teamName:'고객상담팀'},m=GuidedReportData.model(snap),isExample=snap.synthetic;
+   const P=snap.progress,S={team:'cs'},D={teamName:'고객상담팀'},m=GuidedReportData.model(snap),isExample=snap.synthetic,isAuto=!!snap.automated;
    const titleOf=(d,id)=>snap.stories['cs-ep'+d]?.cards.find(c=>c.id===id)?.subj||'';
    const cut=(t,n)=>t.length>n?t.slice(0,n-1)+'…':t;
    function renderWeek(body,m,sec){ sec=sec||((t)=>rsSec(body,t)); const s0=sec('NCS 직업공통능력');
@@ -68,15 +68,16 @@
    const nav=h('nav','rsNav'),body=h('div','rsBody'),sections=[];nav.setAttribute('aria-label','결과 목차');wrap.append(nav,body);
    const sec=(title,label)=>{const e=rsSec(body,title);sections.push([e,label||title]);return e;};
    const notice=h('div','gd-report-mode');notice.id='guidedReportNotice';notice.setAttribute('role','note');
-   notice.append(h('b',null,isExample?'가상 7일 결과 예시 · 내 체험 점수가 아닙니다':'3 / 3 체험 완료 · 내 실제 체험 기록'));
-   notice.append(h('p',null,isExample?'정식 학생 결과지와 같은 구성입니다. 이름·기록·점수는 화면을 보여 주기 위한 가상 데이터입니다. 내 체험 결과와 정식 성적에는 반영되지 않습니다.':'정식 학생 결과지와 같은 구성입니다. 세 업무의 실제 기록만 반영하며, 관찰이 부족한 역량은 미평가입니다. 그래프를 포함한 전체 구성은 가상 7일 예시에서 볼 수 있습니다.'));
+   notice.append(h('b',null,isExample?'가상 7일 결과 예시 · 내 체험 점수가 아닙니다':isAuto?'3 / 3 자동 시연 완료 · 학생 직접 수행 평가가 아닙니다':'3 / 3 체험 완료 · 내 실제 체험 기록'));
+   notice.append(h('p',null,isExample?'정식 학생 결과지와 같은 구성입니다. 이름·기록·점수는 화면을 보여 주기 위한 가상 데이터입니다. 내 체험 결과와 정식 성적에는 반영되지 않습니다.':isAuto?'자동 시연 또는 자동 시연 후 직접 조작한 별도 기록입니다. 원래 수동 체험은 보존되며, 이 시연의 행동·점수는 학생 평가 근거로 사용하지 않습니다.':'정식 학생 결과지와 같은 구성입니다. 세 업무의 실제 기록만 반영하며, 관찰이 부족한 역량은 미평가입니다. 그래프를 포함한 전체 구성은 가상 7일 예시에서 볼 수 있습니다.'));
    const switcher=h('div','foot');const toggle=(id,label,mode)=>{const b=mkBtn(label,'',()=>{render(mode);$(id).focus({preventScroll:true});});b.id=id;b.setAttribute('aria-pressed',String((mode==='example')===isExample));return b;};
-   switcher.append(toggle('guidedReportActual','내 체험 결과','actual'),toggle('guidedReportExample','정식 7일 결과 예시 보기','example'));notice.append(switcher);body.append(notice);
-   const hd=h('header','rsHead');hd.append(Object.assign(h('img','ws-brand-logo ws-result-logo'),{src:'assets/brand/worksim-logo-45436337f281.png',alt:'WORKSIM'}),h('h1',null,isExample?'가상 학생의 7일 결과':'내 체험 결과'));
-   hd.append(h('p','rsMeta',isExample?`${D.teamName} · 가상 기록 7일 · 전체 결과 구성 예시`:`${D.teamName} · 실제 체험 업무 ${m.exp.total}건 · 정식 성적과 별도`));body.append(hd);sections.push([hd,'요약']);
+   switcher.append(toggle('guidedReportActual',own.automated?'자동 시연 기록':'내 체험 결과','actual'),toggle('guidedReportExample','정식 7일 결과 예시 보기','example'));notice.append(switcher);body.append(notice);
+   const hd=h('header','rsHead');hd.append(Object.assign(h('img','ws-brand-logo ws-result-logo'),{src:'assets/brand/worksim-logo-45436337f281.png',alt:'WORKSIM'}),h('h1',null,isExample?'가상 학생의 7일 결과':isAuto?'자동 시연 기록':'내 체험 결과'));
+   hd.append(h('p','rsMeta',isExample?`${D.teamName} · 가상 기록 7일 · 전체 결과 구성 예시`:`${D.teamName} · ${isAuto?'자동 시연':'실제 체험'} 업무 ${m.exp.total}건 · 정식 성적과 별도`));body.append(hd);sections.push([hd,'요약']);
    const st=h('div','rsStats');const stat=(k,v)=>{const e=h('div');e.append(h('span',null,k),h('b',null,v));st.append(e);};
-   stat('엔딩',m.ep7?.ending||'미실시');stat('7일차 보고서',m.ep7?`${m.ep7.total}/${m.ep7.of}`:'미실시');stat('업무 점수 평균',m.work.avg==null?'-':String(m.work.avg));body.append(st);
-   if(!isExample){body.append(h('p','rsNote',`이번 체험 처리 점수 ${own.result.score}점 / 100점 · 자료 수령, 근거 확인, 메일·전화 대응을 종합한 체험용 점수입니다.`));
+   stat('엔딩',m.ep7?.ending||'미실시');stat('7일차 보고서',m.ep7?`${m.ep7.total}/${m.ep7.of}`:'미실시');stat('업무 점수 평균',isAuto?'평가 제외':m.work.avg==null?'-':String(m.work.avg));body.append(st);
+   if(isAuto){body.append(h('p','gd-assistance','자동 시연 행동은 업무 점수와 NCS 관찰 근거에서 제외합니다. 자동 중지 후 직접 조작한 부분도 원래 수동 기록과 섞지 않습니다.'));}
+   if(!isExample&&!isAuto){body.append(h('p','rsNote',`이번 체험 처리 점수 ${own.result.score}점 / 100점 · 자료 수령, 근거 확인, 메일·전화 대응을 종합한 체험용 점수입니다.`));
     if(own.result.draftUsed)body.append(h('p','gd-assistance','초안 자동입력을 사용했습니다. 발송은 직접 실행했습니다. 메일 품질은 업무 점수에 반영하며, 독립적인 문서 작성 능력과 AI활용능력의 근거로 계산하지 않습니다.'));
    }
    renderWeek(body,m,sec);
@@ -92,15 +93,15 @@
    const ul=h('ul');sections.sort((a,b)=>a[0].compareDocumentPosition(b[0])&Node.DOCUMENT_POSITION_FOLLOWING?-1:1);for(const [s,label] of sections){const li=h('li'),b=mkBtn(label,'',()=>s.scrollIntoView({block:'start',behavior:'smooth'}));li.append(b);ul.append(li);}nav.append(ul);
    function printView(){
     const root=ResultPdf._html(m),title=root.querySelector('h1');
-    title.textContent=isExample?'WORKSIM · 가상 7일 결과 예시':'WORKSIM · 내 체험 결과';
+    title.textContent=isExample?'WORKSIM · 가상 7일 결과 예시':isAuto?'WORKSIM · 자동 시연 기록':'WORKSIM · 내 체험 결과';
     root.insertBefore(h('p','note',notice.querySelector('b').textContent+' · '+notice.querySelector('p').textContent),title.nextSibling);
     if(!isExample){for(const note of root.querySelectorAll('.note'))note.textContent=note.textContent.replace('7일 동안 받은 업무','이번 체험에서 받은 업무');
-     if(own.result.draftUsed)root.insertBefore(h('p','note','초안 자동입력 사용 · 독립 작성 능력은 미평가'),title.nextSibling);
+     if(!isAuto&&own.result.draftUsed)root.insertBefore(h('p','note','초안 자동입력 사용 · 독립 작성 능력은 미평가'),title.nextSibling);
     }
     return root;
    }
 
-   window.GuidedStudentReport.current=Object.freeze({mode:isExample?'example':'actual',model:m,printView});$('debrief').scrollTop=0;
+   window.GuidedStudentReport.current=Object.freeze({mode:isExample?'example':'actual',kind:snap.kind,automated:isAuto,model:m,printView});$('debrief').scrollTop=0;
   }
   render('actual');
  }

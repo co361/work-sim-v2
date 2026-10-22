@@ -814,6 +814,7 @@
   function onKey(ev) {
     if (!boxOpen || !showing) return false;
     const t = ev.target; const tag = (t && t.tagName || '').toUpperCase();
+    if (t?.closest?.('#gdPlayback')) return false; // Demo controls keep their keyboard activation.
     /* 글을 쓰는 중이면 가로채지 않는다. 다만 컴퓨터가 꺼져 안 보이는 작성 칸에 포커스만 남은 경우는 대화창 차례다 */
     if ((tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') && t.offsetParent !== null) return false;
     const it = showing.item; const hasOpts = !!(it.options && it.options.length);

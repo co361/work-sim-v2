@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const R=GuidedDemoRules,{visit:V,mail:M,phone:F}=R.ids,guestKey='guided.guest.v1';
- let actionBusy=false,phoneAt=0,finishing=false,startedAt=0,lastCode='',lastUI='';
+ let actionBusy=false,phoneAt=0,finishing=false,startedAt=0,lastCode='',lastUI='',demoMs=0,lastSyncAt=performance.now();
  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  const active=()=>D?.guidedDemo===true;
  const state=id=>S.cards[id]||{};
@@ -21,6 +21,7 @@
  }
  showHome=async function(){await existingHome();labels();};
  async function start(fresh=false){
+  if(window.GuidedPlayback?.automatic||window.GuidedPlayback?.state.pending)window.GuidedPlayback.stop();
   const b=$('homeDemo');if(b.disabled)return;b.disabled=true;homeMsg('체험을 준비하고 있어요…');
   try{
    clearTimeout(saveTimer);await __backendReady;let code=fresh?null:localStorage.getItem(guestKey);
@@ -47,9 +48,9 @@
  function button(label,fn,id){const b=mkBtn(label,'',()=>Promise.resolve(fn()).catch(e=>status(e.message)));if(id)b.id=id;b.disabled=actionBusy;return b;}
  function closePc(){if(Desk.isOpen())$('pcBtn').click();}
  async function seat(){
-  const o=office();if(!o?.ready?.())throw Error('사무실을 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요.');
+  const signal=window.GuidedPlayback?.signal;const o=office();if(!o?.ready?.())throw Error('사무실을 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요.');
   if(o.busy||o.walking)throw Error('이동이나 대화가 끝나면 다시 눌러 주세요.');
-  if(!Desk.isSeated()){await o.goSeat();Desk.setSeated(true);}
+  if(!Desk.isSeated()){await o.goSeat({demoSignal:signal});if(signal?.aborted)throw new DOMException('자동 시연 중지','AbortError');Desk.setSeated(true);}
   if(!Desk.isOpen())$('pcBtn').click();
  }
  async function mail(){await seat();Desk.openApp(Desk.MAIL);openCard(M);}
@@ -63,7 +64,7 @@
  const oldTravel=travel;travel=async function(mode,opts){
   if(!active()||mode!=='ask'||opts.teamKey!=='logi')return oldTravel(mode,opts);
   const o=office();if(!o?.ready?.()||typeof o.goToTeam!=='function')throw Error('실제 사무실을 불러오지 못해 방문을 완료할 수 없습니다.');
-  const r=await o.goToTeam('logi',{...opts,mode});if(!r||r.present===false)throw Error('물류팀 방문이 완료되지 않았습니다. 다시 시도해 주세요.');rbUnlock('logi');return r;
+  const r=await o.goToTeam('logi',{...opts,mode,demoSignal:window.GuidedPlayback?.signal});if(!r||r.present===false)throw Error('물류팀 방문이 완료되지 않았습니다. 다시 시도해 주세요.');rbUnlock('logi');return r;
  };
  const oldAsk=doAsk;doAsk=async function(id,d,auto){
   const r=await oldAsk(id,d,auto);if(!active())return r;
@@ -81,9 +82,9 @@
   b.hidden=false;b.disabled=false;$('cpMode').textContent='체험용 기준';
   note('초안 자동입력은 글만 채웁니다. 내용을 확인하고 직접 「보내기」를 눌러 주세요.');
  };
- function fillDraft(){
+ function fillDraft(replace=false){
   if(!active()||S.composing?.id!==M||done(M))return;
-  const ta=$('composeText');if(ta.value.trim()&&ta.value!==state(M).guidedDraftAuto&&!confirm('지금 쓴 초안을 체험용 예시 초안으로 바꿀까요?'))return;
+  const ta=$('composeText');if(!(replace===true&&P?.guidedAutomation)&&ta.value.trim()&&ta.value!==state(M).guidedDraftAuto&&!confirm('지금 쓴 초안을 체험용 예시 초안으로 바꿀까요?'))return;
   state(M).guidedDraftUsed=true;state(M).guidedDraftAuto=R.draft;ta.value=R.draft;ta.dispatchEvent(new Event('input'));status('초안만 입력했습니다. 아직 발송하지 않았습니다.');
  }
  $('composeText').addEventListener('input',()=>{if(active()&&S.composing?.id===M){state(M).guidedDraft=$('composeText').value;saveProgress();}});
@@ -107,6 +108,8 @@
  const oldDone=checkAllDone;checkAllDone=function(){if(!active())return oldDone();$('endbar').classList.remove('open');};
  const oldFinish=finish;finish=function(){if(active()&&![V,M,F].every(done)){toast('자료 수령, 메일 발송, 전화 응대를 마치면 결과가 바로 열립니다.');return Promise.resolve(null);}return oldFinish.apply(this,arguments);};
  function sync(){
+  const now=performance.now(),dt=Math.min(500,Math.max(0,now-lastSyncAt));lastSyncAt=now;
+  if(active()&&S.phase==='work'&&!S.paused&&!document.hidden)demoMs+=dt*(window.GuidedPlayback?.rate||1);
   panel.hidden=!active()||!['work','briefing'].includes(S.phase);if(panel.hidden)return;
   if(lastCode!==S.code){lastCode=S.code;phoneAt=0;finishing=false;startedAt=Date.now();}
   const phase=done(V)?2:1;document.body.classList.toggle('guided-phone-pending',state(F).arrived&&!done(F));
@@ -122,20 +125,22 @@
    if(state(F).arrived&&!done(F))box.append(button('한도윤 님 전화 받기',()=>answerPhone(F),'gdPhone'));
   }
   }
-  if(phase===2){if(!phoneAt)phoneAt=Date.now()+7000;if(Date.now()>=phoneAt&&!state(F).arrived&&!actionBusy&&!Talk.isOpen())phone();}
+  if(phase===2){if(!phoneAt)phoneAt=demoMs+7000;if(demoMs>=phoneAt&&!S.paused&&!state(F).arrived&&!actionBusy&&!Talk.isOpen())phone();}
   if(done(V)&&done(M)&&done(F)&&!finishing&&!actionBusy&&!Talk.isOpen()){
    finishing=true;status('체험 결과를 준비합니다.');finish().catch(e=>{finishing=false;status('결과 저장에 실패했습니다: '+e.message);});
   }
  }
  renderProgTab=function(){const b=$('tab_prog');b.replaceChildren(h('h4',null,'3단계 체험 진행'),h('p',null,`1. 자료 수령 ${done(V)?'완료':'진행 전'} · 2. 메일 ${done(M)?'완료':'미완료'} / 전화 ${done(F)?'완료':'미완료'} · 3. 결과 자동 표시`),h('p',null,'체험 기록은 이 브라우저에만 저장됩니다. 정식 참가자 평가에 반영되지 않습니다.'));};
  renderDebrief=function(){
-  const result=R.result(S.cards),snapshot=GuidedReportData.actual(S.cards,D,P?.done?.['1']?.at);
+  if(window.GuidedPlayback?.automatic)window.GuidedPlayback.stop('자동 시연 완료');
+  const automated=!!P?.guidedAutomation,result={...R.result(S.cards),automated},snapshot=GuidedReportData.actual(S.cards,D,P?.done?.['1']?.at,{automated});
+  if(automated)result.score=null;
   GuidedStudentReport.mount($('dbWrap'),snapshot,{restart:()=>start(true),home:()=>{location.href='try-intro.html';}});
   panel.hidden=true;document.body.classList.remove('guided-phone-pending');
-  if(P?.done?.['1']){P.done['1'].publicPractice=true;P.done['1'].guidedDemo=result;P.done['1'].guidedReport={version:1,kind:'actual-demo-actions',officialAssessment:false,draftUsed:result.draftUsed};saveProgress(true);}
+  if(P?.done?.['1']){P.done['1'].publicPractice=true;P.done['1'].guidedDemo=result;P.done['1'].guidedReport={version:1,kind:automated?'automated-demo-actions':'actual-demo-actions',officialAssessment:false,automated,draftUsed:result.draftUsed};saveProgress(true);}
  };
  // Correct the old long-day tutorial only in this demonstration entry.
  const tutorial=$('tutCard');if(tutorial)new MutationObserver(()=>{const title=tutorial.querySelector('h3');if(title?.textContent==='하루는 09:00에 시작해 18:00에 끝나요'){title.textContent='협업·판단·결과를 짧게 체험해요';tutorial.querySelector('p').textContent='안내 버튼으로 물류팀을 방문하고, 내 자리에서 메일과 사규집을 확인합니다. 세 업무를 마치면 체험 점수가 바로 나옵니다. 강제 시간 제한은 없습니다.';}}).observe(tutorial,{childList:true,subtree:true});
  setInterval(sync,350);labels();
- window.GuidedDemo=Object.freeze({get state(){return {active:active(),busy:actionBusy,phase:done(V)?done(M)&&done(F)?3:2:1,phoneAt,elapsedMs:Date.now()-startedAt,result:active()?R.result(S.cards):null};},visit:()=>ask(V),inquire:()=>ask(M),openMail:mail,openRules:rules});
+ window.GuidedDemo=Object.freeze({get state(){return {active:active(),busy:actionBusy,phase:done(V)?done(M)&&done(F)?3:2:1,phoneAt,elapsedMs:Date.now()-startedAt,result:active()?{...R.result(S.cards),automated:!!P?.guidedAutomation,...(P?.guidedAutomation?{score:null}:{})}:null};},visit:()=>ask(V),inquire:()=>ask(M),openMail:mail,openRules:rules,fillDraft,answerPhone:()=>answerPhone(F)});
 })();

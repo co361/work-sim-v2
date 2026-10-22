@@ -170,7 +170,7 @@ function setStatus(t){ const e=$('saveStat'); if(e){ e.textContent=t; clearTimeo
 
 /* ---------- 시계 ---------- */
 let lastTick=0;
-function clockTick(){ const now=performance.now(); const dt=lastTick?(now-lastTick)/1000:0; lastTick=now; if(!S.running||S.paused||S.phase!=='work') return; const slow=S.composing?1/3:1; advance(dt/SEC_PER_MIN*slow); }
+function clockTick(){ const now=performance.now(); const dt=lastTick?(now-lastTick)/1000:0; lastTick=now; if(!S.running||S.paused||S.phase!=='work') return; const slow=S.composing?1/3:1; advance(dt/SEC_PER_MIN*slow*(window.WS7_PUBLIC_PRACTICE&&D?.guidedDemo?(window.GuidedPlayback?.rate||1):1)); }
 /* 하루가 끝나는 시각. 마지막 카드가 도착하기도 전에 하루가 닫히면 학생은 손도
    못 댄 건으로 점수를 잃는다 — 마지막 도착 + 3분까지는 하루를 끝내지 않는다. */
 function dayEndMin(){ if(!D) return 0; let last=0;
