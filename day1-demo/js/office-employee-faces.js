@@ -1,0 +1,2 @@
+/* User choices: same teams, one woman and one man per team. */
+window.WorkSimEmployeeFaces={"cs":{"male":"acnh_53","female":"acnh_21"},"logi":{"male":"acnh_23","female":"acnh_52"},"acct":{"male":"acnh_37","female":"acnh_19"},"ga":{"male":"acnh_27","female":"acnh_58"},"rec":{"male":"acnh_43","female":"acnh_17"},"plan":{"male":"acnh_61","female":"acnh_40"},"qc":{"male":"acnh_28","female":"acnh_35"},"pr":{"male":"acnh_65","female":"acnh_66"},"edu":{"male":"acnh_36","female":"acnh_46"},"buy":{"male":"acnh_48","female":"acnh_47"}};

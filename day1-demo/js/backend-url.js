@@ -1,0 +1,1 @@
+window.WS7_DAY1_DEMO=true;window.WS7_VERIFICATION_DEMO=true;window.BACKEND_URL="https://script.google.com/macros/s/AKfycbxlYCqK-3nRuvNHmILC_tYpZbp_W0FnFWnw24jI8nE2Rh1kmHML0FS3ptACIq1SzLwI/exec";window.WS7_DEMO_API_URL="https://script.google.com/macros/s/AKfycbxlYCqK-3nRuvNHmILC_tYpZbp_W0FnFWnw24jI8nE2Rh1kmHML0FS3ptACIq1SzLwI/exec";
